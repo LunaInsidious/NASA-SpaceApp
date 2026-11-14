@@ -363,5 +363,11 @@
   "source.gameDesign": "ゲームの せってい（あそびやすく するため）",
   "valueName.events.flareMultiplierM": "M級フレアの とき そとが 何ばい あぶないか",
   "valueName.events.sepMultiplier": "粒子の あらし（SEP）の とき そとが 何ばい あぶないか",
-  "valueName.events.flareDurationHours": "ゲームの中で フレアの あらしが つづく じかん"
+  "valueName.events.flareDurationHours": "ゲームの中で フレアの あらしが つづく じかん",
+  "tutorial.professorName": "ルナはかせ",
+  "tutorial.skipTyping": "ぜんぶ よむ",
+  "photo.title": "NASA の ほんものの しゃしん",
+  "photo.credit": "しゃしん：{credit}",
+  "photo.close": "とじる",
+  "photo.example": "（にた ものの しゃしん）"
 }

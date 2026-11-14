@@ -363,5 +363,11 @@
   "source.gameDesign": "game design (to make the game fun)",
   "valueName.events.flareMultiplierM": "How much stronger outside during an M-class flare",
   "valueName.events.sepMultiplier": "How much stronger outside during a particle storm (SEP)",
-  "valueName.events.flareDurationHours": "How long a flare storm lasts in the game"
+  "valueName.events.flareDurationHours": "How long a flare storm lasts in the game",
+  "tutorial.professorName": "Professor Luna",
+  "tutorial.skipTyping": "Show all",
+  "photo.title": "A real photo from NASA",
+  "photo.credit": "Image: {credit}",
+  "photo.close": "Close",
+  "photo.example": "(an example photo of this kind)"
 }
