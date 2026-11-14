@@ -107,7 +107,7 @@
   "placement.noEarth": "Earth can't be seen from here",
   "placement.noIce": "there is no ice here",
   "launch.title": "Supply (order from Earth)",
-  "launch.stepCostKg": "{step} kg · space {cost}",
+  "launch.itemAmount": "{name} ({step} kg)",
   "launch.stepCostOne": "space {cost}",
   "launch.crewRoom": "room for {count} more",
   "launch.crewNoRoom": "Build a habitat first",

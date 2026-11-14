@@ -107,7 +107,7 @@
   "placement.noEarth": "ここからは｜地球《ちきゅう》が｜見《み》えない",
   "placement.noIce": "ここに｜氷《こおり》はない",
   "launch.title": "｜補給《ほきゅう》（｜地球《ちきゅう》に ｜注文《ちゅうもん》）",
-  "launch.stepCostKg": "{step}kg・｜場所《ばしょ》 {cost}",
+  "launch.itemAmount": "{name}（{step}kg）",
   "launch.stepCostOne": "｜場所《ばしょ》 {cost}",
   "launch.crewRoom": "あと {count}｜人《にん》",
   "launch.crewNoRoom": "｜先《さき》に ｜居住《きょじゅう》モジュールを ｜建《た》てよう",

@@ -651,9 +651,11 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       // ＋を1回押したときに増える数と、それがロケットの場所をどれだけ使うか
       const step = BULK_LAUNCH_ITEMS.includes(kind) ? values.launch.bulkOrderStep.value : 1;
       const stepCost = launchItemCost({ kind, quantity: step }, values);
-      const costText = BULK_LAUNCH_ITEMS.includes(kind)
-        ? t('launch.stepCostKg', { step: fmt(step), cost: fmt(stepCost) })
-        : t('launch.stepCostOne', { cost: fmt(stepCost) });
+      // 量は名前のかっこの中に（＋1回で増える量）。横には、それが使うロケットの場所だけを出す
+      const nameText = BULK_LAUNCH_ITEMS.includes(kind)
+        ? t('launch.itemAmount', { name: t(`launchItem.${kind}`), step: fmt(step) })
+        : t(`launchItem.${kind}`);
+      const costText = t('launch.stepCostOne', { cost: fmt(stepCost) });
       const desc =
         kind === 'materials' || kind === 'crew' || kind === 'relaySatellite'
           ? `<small>${t(`launchItemDesc.${kind}`)}</small>`
@@ -664,7 +666,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           ? `<small class="${noRoom ? 'ui-bad' : 'ui-ok'}">${noRoom ? t('launch.crewNoRoom') : t('launch.crewRoom', { count: crewRoom })}</small>`
           : '';
       return `<li>
-        <span class="ui-grow"><b>${t(`launchItem.${kind}`)}</b> <span class="ui-small ui-cost">${costText}</span>${desc}${roomNote}</span>
+        <span class="ui-grow"><b>${nameText}</b> <span class="ui-small ui-cost">${costText}</span>${desc}${roomNote}</span>
         <button data-action="cart" data-kind="${kind}" data-delta="-1">−</button>
         <span class="ui-qty">${cart[kind]}</span>
         <button data-action="cart" data-kind="${kind}" data-delta="1" ${noRoom ? 'disabled' : ''}>＋</button>
