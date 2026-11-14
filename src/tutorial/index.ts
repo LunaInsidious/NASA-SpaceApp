@@ -77,20 +77,29 @@ const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
     '[data-action="menu"][data-menu="build"]',
   ],
   goInsideWait: ['[data-action="context"][data-context="enterHabitat"]'],
-  nextDay: ['[data-action="context"][data-context="nextDay"]'],
-  waitArrival: ['[data-action="context"][data-context="nextDay"]'],
+  nextDay: [
+    '[data-action="context"][data-context="nextDay"]',
+    '[data-action="nbGo"][data-page="plan"]',
+  ],
+  waitArrival: [
+    '[data-action="context"][data-context="nextDay"]',
+    '[data-action="nbGo"][data-page="plan"]',
+  ],
   assignCrew: [
     '[data-action="assign"][data-task="farming"]',
-    '[data-action="nbTab"][data-tab="crew"]',
+    '[data-action="nbGo"][data-page="crew"]',
   ],
   takeIce: ['[data-action="context"][data-context="collectIce"]'],
   goHome: ['[data-action="context"][data-context="enterHabitat"]'],
   flareDrill: ['[data-action="flare"][data-choice="shelter"]'],
-  goOutside: ['[data-action="context"][data-context="exitHabitat"]'],
+  goOutside: [
+    '[data-action="context"][data-context="exitHabitat"]',
+    '[data-action="nbGo"][data-page="plan"]',
+  ],
   regolith: ['[data-action="context"][data-context="coverRegolith"]'],
   pause: ['[data-action="pause"]'],
   resume: ['.ui-pause [data-action="pause"]', '[data-action="pause"]'],
-  save: ['[data-action="save"][data-slot="0"]', '[data-action="nbTab"][data-tab="save"]'],
+  save: ['[data-action="save"][data-slot="0"]', '[data-action="nbGo"][data-page="save"]'],
   data: ['[data-action="menu"][data-menu="data"]'],
 };
 // 「ちゅうもん」の段は、食料の＋ → 隊員の＋ → 注文を送る、の順に1つずつ指す
@@ -123,7 +132,7 @@ function pointTarget(step: Step): HTMLElement | null {
     }
     return (
       visibleElement('[data-action="order"]') ??
-      visibleElement('[data-action="nbTab"][data-tab="launch"]')
+      visibleElement('[data-action="nbGo"][data-page="launch"]')
     );
   }
   for (const selector of STEP_POINTS[step] ?? []) {

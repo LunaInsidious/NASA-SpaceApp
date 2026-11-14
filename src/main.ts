@@ -5,6 +5,7 @@ import achievementsJson from '../data/achievements.json';
 import donkiJson from '../data/donki-events.json';
 import missionsJson from '../data/missions.json';
 import nasaImagesJson from '../data/nasa-images.json';
+import tasksJson from '../data/tasks.json';
 import valuesJson from '../data/values.json';
 import type {
   ActiveEvent,
@@ -34,6 +35,16 @@ import {
   restUntilNextDay,
   step,
 } from './sim/index.ts';
+import {
+  completeTask,
+  needsRepair as facilityNeedsRepair,
+  nextTask,
+  type PlannedTask,
+  parseTasks,
+  type TaskKind,
+  taskCandidates,
+  taskDef,
+} from './tasks/index.ts';
 import { createTitle } from './title/index.ts';
 import { type Advice, createAdviceCard, pickAdvices } from './tutorial/advice.ts';
 import { type DeathAdvice, type DeathKind, diagnoseDeath } from './tutorial/death.ts';
@@ -63,6 +74,7 @@ const MORNING_MIN_DELTA = 0.05;
 
 const values: Values = valuesJson;
 const timeline: DonkiTimeline = parseDonkiTimeline(donkiJson);
+const taskDefs = parseTasks(tasksJson);
 
 /** data/donki-events.json の形を確かめる。形が違えば止める */
 function parseDonkiTimeline(json: unknown): DonkiTimeline {
@@ -124,6 +136,9 @@ let dayLog: DayLogEntry[] = [];
 // 休むときに見せた、休む理由（振り返りに「核になる知識の一言」として残す）
 let restReason: (typeof REST_REASONS)[number] | null = null;
 let lastRestKey = '';
+// 休息の画面で選んだ、次に外に出たときのタスク（選んだ順）と、今日外でこなすタスク
+let selectedTaskIds: string[] = [];
+let todayPlan: PlannedTask[] = [];
 let menuPaused = false;
 let indoors = state.player.indoors;
 let buildMode: { kind: FacilityKind; options: BuildOptions } | null = null;
@@ -192,6 +207,18 @@ const ui = createUi(
       pending.push({ type: 'assignCrew', crewId, task });
     },
     onContextAction: doAction,
+    onTaskToggle: (taskId) => {
+      selectedTaskIds = selectedTaskIds.includes(taskId)
+        ? selectedTaskIds.filter((id) => id !== taskId)
+        : [...selectedTaskIds, taskId];
+      const chosen = currentCandidates().find((task) => task.id === taskId);
+      if (chosen !== undefined) {
+        help.learn(taskDef(taskDefs, chosen.kind).terms, true);
+      }
+    },
+    onMinigameSound: (name) => {
+      fx.sound(name === 'hit' ? 'pop' : name === 'miss' ? 'land' : 'star');
+    },
     onFlareChoice: (choice) => {
       if (choice === 'shelter') {
         shelter();
@@ -334,6 +361,9 @@ function startFrom(next: SimState, fromSave: boolean): void {
   tankWarnings = 0;
   dayLog = [];
   restReason = null;
+  selectedTaskIds = [];
+  todayPlan = [];
+  ui.stopMinigame();
   pending.length = 0;
   accumulatedHours = 0;
   collectedIce = false;
@@ -365,7 +395,12 @@ function applyPlayerMode(): void {
   carryBadge.hidden = carriedIce === null;
   world.setPlayerVisible(!indoors);
   world.setMovementEnabled(
-    !menuPaused && !tutorial.isBlocking() && !help.isOpen() && !title.isOpen() && !indoors,
+    !menuPaused &&
+      !tutorial.isBlocking() &&
+      !help.isOpen() &&
+      !title.isOpen() &&
+      !indoors &&
+      !ui.isMinigameOpen(),
   );
 }
 
@@ -431,6 +466,10 @@ function doAction(action: ContextAction): void {
       indoors = false;
       wentOutToday = true;
       tankWarnings = 0;
+      todayPlan = selectedTaskIds.flatMap((id) =>
+        currentCandidates().filter((task) => task.id === id),
+      );
+      selectedTaskIds = [];
       fx.sound('door');
       // 居住モジュールの真ん中（倒れたあと、退避したあと）にいると、ドームの中に隠れてしまう。ドアの前に出す
       const home = state.facilities
@@ -446,10 +485,12 @@ function doAction(action: ContextAction): void {
       break;
     }
     case 'collectIce':
-      // 氷は手で運ぶ（docs/SPEC.md「水と酸素」）。居住モジュールに持ち帰ると水になる
-      carriedIce = { x: p.x, z: p.z };
-      fx.sound('pickup');
-      earn('collectIce');
+      // 氷は手で掘って運ぶ（docs/SPEC.md「水と酸素」）。居住モジュールに持ち帰ると水になる
+      playMinigame('ice', () => {
+        carriedIce = { x: p.x, z: p.z };
+        fx.sound('pickup');
+        earn('collectIce');
+      });
       break;
     case 'repair': {
       const target = near.find(needsRepair);
@@ -466,17 +507,23 @@ function doAction(action: ContextAction): void {
         fx.sound('warn');
         break;
       }
-      pending.push({ type: 'repair', facilityId: target.id });
-      dayLog.push({ kind: 'repair', facility: target.kind });
-      fx.sound('repair');
+      playMinigame('repair', () => {
+        pending.push({ type: 'repair', facilityId: target.id });
+        dayLog.push({ kind: 'repair', facility: target.kind });
+        todayPlan = completeTask(todayPlan, 'repair', target.id);
+        fx.sound('repair');
+      });
       break;
     }
     case 'coverRegolith': {
       const target = near.find((f) => f.kind === 'habitat' && f.regolithCover !== true);
       if (target !== undefined) {
-        pending.push({ type: 'coverWithRegolith', facilityId: target.id });
-        dayLog.push({ kind: 'regolith' });
-        fx.sound('dig');
+        playMinigame('regolith', () => {
+          pending.push({ type: 'coverWithRegolith', facilityId: target.id });
+          dayLog.push({ kind: 'regolith' });
+          todayPlan = completeTask(todayPlan, 'regolith', target.id);
+          fx.sound('dig');
+        });
       }
       break;
     }
@@ -486,6 +533,7 @@ function doAction(action: ContextAction): void {
 
 /** 太陽フレアの警報で「退避する」を選んだとき：いちばん近い居住モジュールに入る */
 function shelter(): void {
+  ui.stopMinigame();
   moveIntoNearestHabitat();
   fx.sound('door');
   deliverIce();
@@ -528,16 +576,60 @@ function restInfo(): RestInfo | null {
       name: entry.facility === undefined ? '' : t(`facility.${entry.facility}`),
     }),
   );
+  const missed = todayPlan
+    .filter((task) => !task.done)
+    .map((task) => t('review.missed', { task: taskLabel(task) }));
   const review = [
     ...(done.length > 0 ? done : [t(wentOutToday ? 'review.nothing' : 'review.morning')]),
+    ...missed,
     ...(restReason === null ? [] : [t('review.knowledge', { text: restReasonText(restReason) })]),
   ];
   const actions = contextActions();
+  const home = mainHabitat();
   return {
+    wentOutToday,
     canGoOut: actions.includes('exitHabitat'),
     canNextDay: actions.includes('nextDay'),
     review,
+    tasks: currentCandidates().map((task) => ({
+      id: task.id,
+      label: taskLabel(task),
+      meters: Math.round(Math.hypot(task.x - home.x, task.z - home.z)),
+      selected: selectedTaskIds.includes(task.id),
+    })),
   };
+}
+
+/** 着陸のときからある居住モジュール（タスクの距離の起点） */
+function mainHabitat(): Facility {
+  const home = state.facilities.find((f) => f.kind === 'habitat');
+  if (home === undefined) {
+    throw new Error('居住モジュールが1つもない（最初に1つあり、こわせない）');
+  }
+  return home;
+}
+
+/** 今の基地の様子から出した、翌日のタスクの候補 */
+function currentCandidates(): PlannedTask[] {
+  return taskCandidates(taskDefs, state, values, env.iceSpots);
+}
+
+function taskLabel(task: PlannedTask): string {
+  const facility = state.facilities.find((f) => f.id === task.facilityId);
+  return t(taskDef(taskDefs, task.kind).textKey, {
+    name: facility === undefined ? '' : t(`facility.${facility.kind}`),
+  });
+}
+
+/** その場の行動の前に、ミニゲームをする。できたら反映する（やめたら何もしない） */
+function playMinigame(kind: TaskKind, onSuccess: () => void): void {
+  ui.startMinigame(taskDef(taskDefs, kind).minigame, (outcome) => {
+    if (outcome === 'success') {
+      onSuccess();
+    }
+    applyPlayerMode();
+  });
+  applyPlayerMode();
 }
 
 /** 休息の画面を、変わったときだけ描き直してもらう */
@@ -567,6 +659,7 @@ function sleepUntilMorning(): void {
   restDays++;
   wentOutToday = false;
   dayLog = [];
+  todayPlan = [];
   // 中にいたので、警報（退避するか）は出さない。届いた・宇宙天気は朝の窓にまとめる
   handleEvents(
     result.emitted.filter(
@@ -617,6 +710,7 @@ function deliverIce(): void {
     carriedIce = null;
     collectedIce = true;
     dayLog.push({ kind: 'ice' });
+    todayPlan = completeTask(todayPlan, 'ice', null);
     fx.banner(t('fx.iceWater', { kg: values.player.iceKgPerTrip.value }), 'small');
     fx.sound('coin');
   }
@@ -645,7 +739,7 @@ function currentPlacement(): { x: number; z: number; placement: Placement } | nu
 }
 
 function needsRepair(f: Facility): boolean {
-  return f.condition < values.player.repairPromptBelowCondition.value;
+  return facilityNeedsRepair(f, values);
 }
 
 function confirmBuild(): void {
@@ -732,6 +826,13 @@ function guideTarget(): { x: number; z: number } | null {
   const currentAdvice = currentAdvices.at(0) ?? null;
   if (currentAdvice?.kind === 'tankLow') {
     return nearestToPlayer(habitats);
+  }
+  if (tutorial.guide() === null && !indoors) {
+    const task = nextTask(todayPlan);
+    if (task !== null) {
+      // 氷を掘ったあとは、持ち帰る（居住モジュールへ）
+      return task.kind === 'ice' && carriedIce !== null ? nearestToPlayer(habitats) : task;
+    }
   }
   if (currentAdvice !== null && currentAdvice.facilityId !== null) {
     const id = currentAdvice.facilityId;
@@ -880,8 +981,9 @@ function handleEvents(events: GameEvent[]): void {
       // sim が着陸船の近くの居住モジュールに戻している。その日の活動はおしまい
       world.teleportPlayer(state.player.x, state.player.z);
       indoors = state.player.indoors;
-      // 倒れると、運んでいた氷はなくなる
+      // 倒れると、運んでいた氷はなくなる。ミニゲームの途中でも閉じる
       carriedIce = null;
+      ui.stopMinigame();
       startRest();
       applyPlayerMode();
     }
@@ -1043,6 +1145,7 @@ engine.runRenderLoop(() => {
   updateFootSounds();
   const actions = contextActions();
   updateRest();
+  ui.setTaskList(todayPlan.map((task) => ({ label: taskLabel(task), done: task.done })));
   const actionsKey = actions.join(',');
   if (actionsKey !== lastActionsKey) {
     lastActionsKey = actionsKey;

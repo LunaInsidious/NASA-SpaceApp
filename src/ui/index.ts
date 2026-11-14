@@ -19,6 +19,7 @@ import { PROFESSOR_SVG } from '../tutorial/professor.ts';
 import type { PadInput } from '../world/api.ts';
 import type { ContextAction, MorningSummary, RestInfo, Ui, UiCallbacks } from './api.ts';
 import { getLang, onLangChange, setLang, t, tPlain } from './i18n.ts';
+import { type MinigameOutcome, openMinigame } from './minigame.ts';
 import { type NasaImages, photoFigureHtml } from './photo.ts';
 import './ui.css';
 
@@ -54,8 +55,10 @@ const CONTEXT_ACTIONS: readonly ContextAction[] = [
 ];
 const MENUS = ['build', 'data'] as const;
 // 休息フェーズの2D画面のタブ（docs/SPEC.md ステップ13）
-const NOTEBOOK_TABS = ['review', 'tasks', 'build', 'crew', 'launch', 'research', 'save'] as const;
-type NotebookTab = (typeof NOTEBOOK_TABS)[number];
+// 休息フェーズの2D画面は、タブではなく順に進むページ（何から開くかを選ばなくてよい）。セーブは順の外
+const REST_PAGES = ['review', 'crew', 'launch', 'build', 'tasks', 'plan'] as const;
+const NOTEBOOK_PAGES = [...REST_PAGES, 'save'] as const;
+type RestPage = (typeof NOTEBOOK_PAGES)[number];
 const DEVELOPMENT_ELEMENTS = ['selfSufficiency', 'stability', 'safety', 'scale'] as const;
 const LIFE_SUPPORT_KEYS = ['oxygen', 'water', 'food'] as const;
 const SHIELD_MATERIALS = ['regolith', 'water'] as const;
@@ -275,7 +278,11 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   let menu: MenuKind | null = null;
   // 休息フェーズの2D画面（居住モジュールの中）。main が setRest で開け閉めする
   let rest: RestInfo | null = null;
-  let notebookTab: NotebookTab = 'review';
+  let restPage: RestPage = 'review';
+  // 外で今日こなすタスク（main が setTaskList で渡す）
+  let taskList: { label: string; done: boolean }[] = [];
+  // 開いているミニゲームを閉じる関数
+  let closeMinigame: (() => void) | null = null;
   const dialogs: Dialog[] = [];
   let saves: SaveSummary[] = [];
   let donkiEvents: DonkiEvent[] = [];
@@ -458,6 +465,16 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         <div class="ui-tank-bar"><div style="width:${tankPct}%"></div></div>
         <div class="ui-small ui-long">${t(state.player.indoors ? 'hud.tankIndoors' : 'hud.tankOutdoors')}</div>
       </div>
+      ${
+        !state.player.indoors && taskList.length > 0
+          ? `<div class="ui-panel ui-tasks"><div class="ui-label">${t('tasks.today')}</div>${taskList
+              .map(
+                (task) =>
+                  `<div class="${task.done ? 'ui-ok' : ''}">${task.done ? '✅' : '⬜'} ${task.label}</div>`,
+              )
+              .join('')}</div>`
+          : ''
+      }
       <button class="ui-chips" data-action="toggleHud" aria-expanded="${hudOpen}">
         <span class="${life.min < LOW_DAYS ? 'ui-bad' : ''}">${forever(life.min) ? t('hud.chip.lifeSteady', { days: fmt(ifStopped.min) }) : t('hud.chip.life', { days: fmt(life.min) })}</span>
         <span class="${netKw < 0 ? 'ui-bad' : 'ui-ok'}">${t('hud.chip.power', { kw: `${netKw < 0 ? '−' : '+'}${fmt(Math.abs(netKw), 1)}` })}</span>
@@ -919,28 +936,59 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <p class="ui-small">${t('research.note')}</p>`;
   };
 
-  const reviewHtml = (info: RestInfo) => `
+  const reviewHtml = (info: RestInfo, current: SimState, currentView: SimView) => `
     <h2>${t('review.title')}</h2>
-    <ul class="nb-review">${info.review.map((line) => `<li>${line}</li>`).join('')}</ul>`;
+    <ul class="nb-review">${info.review.map((line) => `<li>${line}</li>`).join('')}</ul>
+    ${researchHtml(current, currentView)}`;
 
-  const notebookTabHtml = (
-    tab: NotebookTab,
+  /** 翌日のタスクを選ぶ。外にいられる時間は限られるので、全部はできないかもしれない */
+  const tasksHtml = (info: RestInfo) => {
+    const rows = info.tasks
+      .map(
+        (task) => `<li class="ui-supply-row${task.selected ? ' picked' : ''}">
+          <span class="ui-grow"><b>${task.label}</b> <span class="ui-small ui-cost">${t('tasks.meters', { meters: fmt(task.meters) })}</span></span>
+          <button data-action="taskToggle" data-task="${esc(task.id)}" class="${task.selected ? 'on' : ''}">${t(task.selected ? 'tasks.selected' : 'tasks.select')}</button>
+        </li>`,
+      )
+      .join('');
+    return `
+      <h2>${t('tasks.title')}</h2>
+      <p>${t('tasks.lead', { hours: fmt(values.eva.maxHours.value) })}</p>
+      ${rows === '' ? `<p class="ui-small">${t('tasks.none')}</p>` : `<ul class="ui-list">${rows}</ul>`}`;
+  };
+
+  /** さいごのページ：明日の計画（選んだタスク）と、「翌日へ」「外に出る」 */
+  const planHtml = (info: RestInfo) => {
+    const chosen = info.tasks.filter((task) => task.selected);
+    return `
+      <h2>${t('plan.title')}</h2>
+      ${
+        chosen.length === 0
+          ? `<p class="ui-small">${t('plan.empty')}</p>`
+          : `<ol class="nb-plan">${chosen.map((task) => `<li>${task.label}</li>`).join('')}</ol>`
+      }
+      <p class="ui-small">${t(info.canGoOut ? 'plan.goOutNote' : 'plan.sleepNote')}</p>`;
+  };
+
+  const restPageHtml = (
+    page: RestPage,
     info: RestInfo,
     current: SimState,
     currentView: SimView,
   ) => {
-    switch (tab) {
+    switch (page) {
       case 'review':
-        return reviewHtml(info);
-      case 'tasks':
-      case 'build':
-        return `<h2>${t(`notebook.tab.${tab}`)}</h2><p class="ui-small">${t('notebook.soon')}</p>`;
+        return reviewHtml(info, current, currentView);
       case 'crew':
         return crewMenuHtml(current, currentView);
       case 'launch':
         return launchMenuHtml(currentView);
-      case 'research':
-        return researchHtml(current, currentView);
+      case 'build':
+        return `<h2>${t('notebook.page.build')}</h2><p class="ui-small">${t('notebook.soon')}</p>`;
+      case 'tasks':
+        return tasksHtml(info);
+      case 'plan':
+        return planHtml(info);
       case 'save':
         return saveMenuHtml();
     }
@@ -955,28 +1003,40 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     }
     notebookEl.hidden = false;
     document.body.classList.add('nb-open');
-    const tabs = NOTEBOOK_TABS.map(
-      (tab) =>
-        `<button class="nb-tab ${tab === notebookTab ? 'on' : ''}" data-action="nbTab" data-tab="${tab}">${t(`notebook.icon.${tab}`)} ${t(`notebook.tab.${tab}`)}</button>`,
+    // 上の進み具合：番号と名前。押すとそのページへ戻れる（ふだんは「次へ」で順に進む）
+    const index = REST_PAGES.indexOf(restPage === 'save' ? 'plan' : restPage);
+    const steps = REST_PAGES.map(
+      (page, i) =>
+        `<button class="nb-step ${page === restPage ? 'on' : i < index ? 'past' : ''}" data-action="nbGo" data-page="${page}"><span class="nb-step-no">${i + 1}</span>${t(`notebook.page.${page}`)}</button>`,
     ).join('');
     const guideHtml =
       guide === null
         ? ''
         : `<div class="ui-modal-guide"><span class="ui-modal-guide-face">${PROFESSOR_SVG}</span><div>${guide}</div></div>`;
-    // 「外に出る」「翌日へ」は 3D の画面と同じボタン（data-action="context"）にして、E キーとくんれんの矢印もそのまま使う
-    const goOut = rest.canGoOut
-      ? `<button data-action="context" data-context="exitHabitat">${t('action.exitHabitat')}</button>`
-      : `<span class="ui-small">${t('notebook.wentOut')}</span>`;
-    const nextDay = rest.canNextDay
-      ? `<button class="primary nb-next" data-action="context" data-context="nextDay">${t('action.nextDay')}</button>`
-      : '';
+    const back =
+      restPage === 'save' || index > 0
+        ? `<button data-action="nbBack">${t('notebook.back')}</button>`
+        : '<span></span>';
+    let forward: string;
+    if (restPage === 'plan') {
+      // 「外に出る」「翌日へ」は 3D の画面と同じボタン（data-action="context"）にして、E キーとくんれんの矢印もそのまま使う
+      const goOut = rest.canGoOut
+        ? `<button class="primary nb-next" data-action="context" data-context="exitHabitat">${t('action.exitHabitat')}</button>`
+        : '';
+      const nextDay = rest.canNextDay
+        ? `<button class="${rest.canGoOut ? '' : 'primary nb-next'}" data-action="context" data-context="nextDay">${t('action.nextDay')}</button>`
+        : '';
+      forward = `<span class="nb-foot-actions">${goOut}${nextDay}</span>`;
+    } else {
+      forward = `<button class="primary nb-next" data-action="nbNext">${t('notebook.next', { page: t(`notebook.page.${REST_PAGES[Math.min(index + 1, REST_PAGES.length - 1)]}`) })}</button>`;
+    }
     notebookEl.innerHTML = `
       <div class="nb">
-        <div class="nb-head"><b>${t('notebook.title', { day: Math.floor(view.day) + 1 })}</b></div>
+        <div class="nb-head"><b>${t('notebook.title', { day: Math.floor(view.day) + 1 })}</b><button class="nb-save" data-action="nbGo" data-page="save">${t('notebook.saveButton')}</button></div>
         ${guideHtml}
-        <nav class="nb-tabs">${tabs}</nav>
-        <section class="nb-page">${notebookTabHtml(notebookTab, rest, state, view)}</section>
-        <div class="nb-foot">${goOut}${nextDay}</div>
+        <nav class="nb-steps">${steps}</nav>
+        <section class="nb-page">${restPageHtml(restPage, rest, state, view)}</section>
+        <div class="nb-foot">${back}${forward}</div>
       </div>`;
   };
 
@@ -1037,21 +1097,21 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   };
 
   /** 3D の窓（建設・データ）を開く。隊員・ほきゅう・セーブは休息の画面のタブなので、中にいればそのタブにし、外ならひとこと出す */
-  const openMenu = (kind: MenuKind | NotebookTab) => {
+  const openMenu = (kind: MenuKind | RestPage) => {
     const menuKind = MENUS.find((m) => m === kind);
     // 中にいる間は、建設も中の画面の「建てる」タブで（3D の地面は指せない）
     if (menuKind === 'build' && rest !== null) {
-      notebookTab = 'build';
+      restPage = 'build';
       renderNotebook();
       return;
     }
     if (menuKind === undefined) {
-      const tab = pick(kind, NOTEBOOK_TABS, 'notebook tab');
+      const page = pick(kind, NOTEBOOK_PAGES, 'notebook page');
       if (rest === null) {
-        toast(t('notebook.insideOnly', { name: t(`notebook.tab.${tab}`) }), false);
+        toast(t('notebook.insideOnly', { name: t(`notebook.page.${page}`) }), false);
         return;
       }
-      notebookTab = tab;
+      restPage = page;
       renderNotebook();
       return;
     }
@@ -1107,10 +1167,30 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       case 'closeMenu':
         closeMenus();
         break;
-      case 'nbTab':
-        notebookTab = pick(target.dataset.tab, NOTEBOOK_TABS, 'notebook tab');
+      case 'nbGo':
+        restPage = pick(target.dataset.page, NOTEBOOK_PAGES, 'notebook page');
         renderNotebook();
         break;
+      case 'nbNext': {
+        const index = REST_PAGES.indexOf(restPage === 'save' ? 'plan' : restPage);
+        restPage = REST_PAGES[Math.min(index + 1, REST_PAGES.length - 1)];
+        renderNotebook();
+        break;
+      }
+      case 'nbBack': {
+        const index = restPage === 'save' ? REST_PAGES.length : REST_PAGES.indexOf(restPage);
+        restPage = REST_PAGES[Math.max(index - 1, 0)];
+        renderNotebook();
+        break;
+      }
+      case 'taskToggle': {
+        const taskId = target.dataset.task;
+        if (taskId === undefined) {
+          throw new Error('ui のタスクの ID がない');
+        }
+        callbacks.onTaskToggle(taskId);
+        break;
+      }
       case 'context':
         callbacks.onContextAction(pick(target.dataset.context, CONTEXT_ACTIONS, 'context'));
         break;
@@ -1406,7 +1486,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       }
     },
     isMenuOpen() {
-      return menu !== null || dialogs.length > 0;
+      return menu !== null || dialogs.length > 0 || closeMinigame !== null;
     },
     setGuide(next) {
       if (next === guide) {
@@ -1417,13 +1497,42 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         renderModal();
       }
     },
+    setTaskList(next) {
+      if (JSON.stringify(next) === JSON.stringify(taskList)) {
+        return;
+      }
+      taskList = next.map((task) => ({ ...task }));
+      renderHud();
+    },
+    startMinigame(kind, onFinish) {
+      if (closeMinigame !== null) {
+        return;
+      }
+      closeMinigame = openMinigame(
+        root,
+        kind,
+        values,
+        (outcome: MinigameOutcome) => {
+          closeMinigame = null;
+          onFinish(outcome);
+        },
+        (name) => callbacks.onMinigameSound(name),
+      );
+    },
+    stopMinigame() {
+      closeMinigame?.();
+      closeMinigame = null;
+    },
+    isMinigameOpen() {
+      return closeMinigame !== null;
+    },
     setRest(next) {
       if (JSON.stringify(next) === JSON.stringify(rest)) {
         return;
       }
       if (rest === null && next !== null) {
-        // 中に入ったら、まず振り返りを見せる
-        notebookTab = 'review';
+        // 夕方に中に入ったら振り返りから。朝（まだ外に出ていない）なら、さいごのページ（明日の計画と「外に出る」）から
+        restPage = next.wentOutToday ? 'review' : 'plan';
       }
       rest = next;
       renderNotebook();

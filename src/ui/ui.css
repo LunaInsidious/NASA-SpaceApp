@@ -982,27 +982,6 @@
   margin: 0 12px 6px;
 }
 
-.nb-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 0 10px;
-  border-bottom: 1px solid rgba(143, 182, 255, 0.35);
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-
-.ui-root button.nb-tab {
-  flex: none;
-  border-bottom: none;
-  border-radius: 8px 8px 0 0;
-  white-space: nowrap;
-}
-
-.ui-root button.nb-tab.on {
-  background: #3d7be0;
-  border-color: #8fb6ff;
-}
-
 .nb-page {
   flex: 1 1 auto;
   min-height: 0;
@@ -1060,27 +1039,259 @@ body.nb-open .ui-top .ui-status {
   visibility: hidden;
 }
 
-/* スマホ：タブは折り返して全部見せる（横にはみ出すと、くんれんの矢印が指すタブが見えない）。
-   上の一時停止・ことばじてんのボタンと重ならないよう、上を空ける */
+/* 上の進み具合（①振り返り → … → ⑥明日の計画）。押すとそのページへ戻れる */
+.nb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nb-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 10px 8px;
+  border-bottom: 1px solid rgba(143, 182, 255, 0.35);
+}
+
+.ui-root button.nb-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.ui-root button.nb-step.past {
+  opacity: 1;
+  border-color: #6fd08c;
+}
+
+.ui-root button.nb-step.on {
+  opacity: 1;
+  background: #3d7be0;
+  border-color: #8fb6ff;
+  font-weight: 700;
+}
+
+.nb-step-no {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 11px;
+}
+
+.nb-foot {
+  justify-content: space-between;
+}
+
+.nb-foot-actions {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+ol.nb-plan li {
+  padding: 4px 0;
+  font-weight: 700;
+}
+
+/* 外：今日のタスク（ボンベの下） */
+.ui-tasks {
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+/* ---- ミニゲーム（docs/SPEC.md ステップ14） ---- */
+.mg-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+}
+
+.mg-card {
+  width: min(520px, 100%);
+  padding: 14px 16px;
+  border: 2px solid #ffd27a;
+  border-radius: 14px;
+  background: rgb(14, 20, 34);
+}
+
+.mg-card h2 {
+  margin: 0 0 4px;
+}
+
+.mg-howto {
+  margin: 0 0 8px;
+}
+
+.mg-timer {
+  height: 8px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.mg-card .mg-timer > div {
+  height: 100%;
+  background: #ffd27a;
+}
+
+.mg-area {
+  position: relative;
+  height: 200px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  touch-action: none;
+  user-select: none;
+  cursor: pointer;
+}
+
+.mg-track {
+  position: absolute;
+  top: 40%;
+  left: 8%;
+  right: 8%;
+  height: 28px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.mg-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 14px;
+  background: rgba(111, 208, 140, 0.7);
+}
+
+.mg-marker {
+  position: absolute;
+  top: -6px;
+  width: 8px;
+  height: 40px;
+  margin-left: -4px;
+  border-radius: 4px;
+  background: #ffd27a;
+}
+
+.mg-dots {
+  position: absolute;
+  bottom: 14px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 22px;
+  color: #6fd08c;
+}
+
+.mg-drill {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 26px;
+}
+
+.mg-shake {
+  animation: mg-shake 0.3s;
+}
+
+@keyframes mg-shake {
+  25% {
+    transform: translateX(-6px);
+  }
+
+  75% {
+    transform: translateX(6px);
+  }
+}
+
+.mg-slot,
+.mg-piece,
+.mg-mound {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.mg-slot {
+  display: grid;
+  place-items: center;
+  width: 70px;
+  height: 70px;
+  border: 3px dashed #ffd27a;
+  border-radius: 12px;
+  color: #ffd27a;
+  animation: mg-glow 1s infinite alternate;
+}
+
+@keyframes mg-glow {
+  to {
+    box-shadow: 0 0 16px #ffd27a;
+  }
+}
+
+.mg-piece {
+  font-size: 46px;
+  pointer-events: none;
+}
+
+.mg-mound {
+  width: 36px;
+  height: 22px;
+  border-radius: 18px 18px 4px 4px;
+  background: #6b6355;
+  pointer-events: none;
+}
+
+.mg-mound.next {
+  outline: 3px solid #ffd27a;
+}
+
+.mg-mound.done {
+  background: #c9b48a;
+  height: 30px;
+}
+
+.mg-status {
+  min-height: 1.6em;
+  margin-top: 8px;
+  font-weight: 700;
+}
+
+.mg-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* スマホ：上の一時停止・ことばじてんのボタンと重ならないよう、上を空ける */
 @media (max-width: 600px) {
   .nb-layer {
     padding: 56px 6px 6px;
   }
 
-  .nb-tabs {
-    flex-wrap: wrap;
-    padding: 0 6px 6px;
-    overflow-x: visible;
-  }
-
-  .ui-root button.nb-tab {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 8px;
-    padding: 5px 8px;
-    font-size: 13px;
-  }
-
   .nb-page {
     padding: 8px 10px 12px;
+  }
+
+  .ui-root button.nb-step {
+    padding: 3px 6px;
+    font-size: 12px;
   }
 }

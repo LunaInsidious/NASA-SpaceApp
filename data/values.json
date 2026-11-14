@@ -35,6 +35,58 @@
       "source": "docs/SPEC.md 追加の仕様（活動フェーズと休息フェーズ）"
     }
   },
+  "minigame": {
+    "timingTimeLimitSec": {
+      "value": 20,
+      "unit": "s",
+      "source": "docs/SPEC.md 追加の仕様（ミニゲームは10〜30秒、タップかなぞるだけ）"
+    },
+    "timingPeriodSec": {
+      "value": 1.6,
+      "unit": "s",
+      "source": "TBD"
+    },
+    "timingZoneRatio": {
+      "value": 0.24,
+      "unit": "ratio",
+      "source": "TBD"
+    },
+    "timingHits": {
+      "value": 3,
+      "unit": "count",
+      "source": "TBD"
+    },
+    "dragTimeLimitSec": {
+      "value": 15,
+      "unit": "s",
+      "source": "docs/SPEC.md 追加の仕様（ミニゲームは10〜30秒、タップかなぞるだけ）"
+    },
+    "dragSnapRatio": {
+      "value": 0.12,
+      "unit": "ratio",
+      "source": "TBD"
+    },
+    "traceTimeLimitSec": {
+      "value": 15,
+      "unit": "s",
+      "source": "docs/SPEC.md 追加の仕様（ミニゲームは10〜30秒、タップかなぞるだけ）"
+    },
+    "tracePoints": {
+      "value": 6,
+      "unit": "count",
+      "source": "TBD"
+    },
+    "traceHitRatio": {
+      "value": 0.08,
+      "unit": "ratio",
+      "source": "TBD"
+    },
+    "traceMarginRatio": {
+      "value": 0.1,
+      "unit": "ratio",
+      "source": "TBD"
+    }
+  },
   "moon": {
     "gravity": {
       "value": 1.62,

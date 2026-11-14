@@ -10,6 +10,7 @@ import type {
 } from '../contracts/index.ts';
 import type { SaveSummary } from '../save/api.ts';
 import type { BuildOptions, Placement, SimView } from '../sim/api.ts';
+import type { MinigameKind } from '../tasks/minigame.ts';
 import type { DeathAdvice } from '../tutorial/death.ts';
 import type { PadInput } from '../world/api.ts';
 import type { NasaImages } from './photo.ts';
@@ -37,12 +38,16 @@ export interface MorningSummary {
 
 /** 休息フェーズの2D画面（居住モジュールの中）に出すもの。main が作る */
 export interface RestInfo {
+  /** その日にもう外に出たか（出たあとなら振り返りから、朝なら明日の計画のページから見せる） */
+  wentOutToday: boolean;
   /** その日にまだ外に出られるか */
   canGoOut: boolean;
   /** 「翌日へ」を押せるか（くんれん中は段による） */
   canNextDay: boolean;
   /** 振り返り：その日の外での結果と、核になる知識の一言（i18n から作った HTML） */
   review: string[];
+  /** 翌日のタスクの候補（label は i18n から作った HTML、meters は居住モジュールからの距離）。selected は選んだもの */
+  tasks: { id: string; label: string; meters: number; selected: boolean }[];
 }
 
 export interface UiCallbacks {
@@ -54,6 +59,10 @@ export interface UiCallbacks {
   onOrderLaunch(items: LaunchItem[]): void;
   onAssignCrew(crewId: string, task: CrewTask): void;
   onContextAction(action: ContextAction): void;
+  /** 休息の画面で、翌日のタスクを選ぶ・やめる */
+  onTaskToggle(taskId: string): void;
+  /** ミニゲームの音（当たった・外した・できた） */
+  onMinigameSound(name: 'hit' | 'miss' | 'success'): void;
   onFlareChoice(choice: 'shelter' | 'continue'): void;
   /** 新しく始める（セーブは消さない） */
   onRestart(): void;
@@ -88,6 +97,13 @@ export interface Ui {
   openMenu(menu: 'build' | 'launch' | 'crew' | 'save' | 'data'): void;
   /** 休息フェーズの2D画面を出す（中にいる間）。null で閉じる */
   setRest(info: RestInfo | null): void;
+  /** 外で今日こなすタスクの一覧（ボンベの下に出す）。中では出さない */
+  setTaskList(tasks: { label: string; done: boolean }[]): void;
+  /** ミニゲームを開く。成功するか「やめる」で onFinish を呼ぶ（時間切れは中で「もう一度」を選ぶ） */
+  startMinigame(kind: MinigameKind, onFinish: (outcome: 'success' | 'quit') => void): void;
+  /** 開いているミニゲームを閉じる（倒れた、警報など。onFinish は呼ばない） */
+  stopMinigame(): void;
+  isMinigameOpen(): boolean;
   /** セーブの一覧が変わったら main が呼ぶ（新しい順） */
   setSaves(saves: SaveSummary[]): void;
   /** データ出典の窓に出す、ゲームで使う DONKI の記録（data/donki-events.json）。起動時に main が1回呼ぶ */
