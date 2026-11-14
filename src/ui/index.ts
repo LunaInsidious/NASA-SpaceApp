@@ -53,11 +53,13 @@ const CONTEXT_ACTIONS: readonly ContextAction[] = [
   'coverRegolith',
   'nextDay',
 ];
-const MENUS = ['build', 'data'] as const;
+const MENUS = ['build', 'status', 'data'] as const;
 // 休息フェーズの2D画面のタブ（docs/SPEC.md ステップ13）
 // 休息フェーズの2D画面は、タブではなく順に進むページ（何から開くかを選ばなくてよい）。セーブは順の外
 const REST_PAGES = ['review', 'crew', 'launch', 'build', 'tasks', 'plan'] as const;
-const NOTEBOOK_PAGES = [...REST_PAGES, 'save'] as const;
+const NOTEBOOK_PAGES = [...REST_PAGES, 'save', 'status'] as const;
+// インベントリ画面に出す物資
+const INVENTORY_STOCKS = ['oxygen', 'water', 'food', 'spareParts', 'materials'] as const;
 type RestPage = (typeof NOTEBOOK_PAGES)[number];
 // マス目の地図の重ね表示：日なた・地球が見える・氷
 const GRID_LAYERS = ['sun', 'earth', 'ice'] as const;
@@ -72,6 +74,7 @@ const TOAST_MS = 4500;
 const TOAST_MAX = 2; // 一度に並べるお知らせの数（多いと子どもがこわがるので少なく）
 const HOURS_PER_DAY = 24;
 const PERCENT = 100;
+const MINUTES_PER_HOUR = 60;
 const LOW_BAR_RATIO = 0.25; // バーを赤くする残りの割合
 const LOW_DAYS = 7; // 生命維持の日数を赤くする
 const DOSE_WARN_RATIO = 0.5; // 被ばくが上限のこの割合を超えたら赤くする
@@ -276,8 +279,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   let userPaused = false;
   let lastPaused = false;
   let showBreakdown = false;
-  // スマホ：くわしい数字の窓を開いているか（ふだんは小さなチップだけ）
-  let hudOpen = false;
   let menu: MenuKind | null = null;
   // 休息フェーズの2D画面（居住モジュールの中）。main が setRest で開け閉めする
   let rest: RestInfo | null = null;
@@ -397,6 +398,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     if (lastPaused) {
       lines.push(`<div class="ui-long">${t('hud.paused')}</div>`);
     }
+    statusEl.classList.toggle('emergency', state.activeEvents.length > 0);
     statusEl.innerHTML = lines.join('');
   };
 
@@ -426,16 +428,22 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     window.setTimeout(() => pop.remove(), GAIN_MS);
   };
 
-  const renderHud = () => {
-    if (state === null || view === null) {
-      hudEl.innerHTML = '';
-      return;
-    }
-    const life = view.lifeSupportDays;
+  /** 外にいられる残りの時間（ゲームの中の時間）。ボンベの残り × 宇宙服でいられる時間 */
+  const timeLeft = (tankRatio: number) => {
+    const minutes = Math.max(
+      0,
+      Math.floor(tankRatio * values.eva.maxHours.value * MINUTES_PER_HOUR),
+    );
+    return { hours: Math.floor(minutes / MINUTES_PER_HOUR), minutes: minutes % MINUTES_PER_HOUR };
+  };
+
+  /** くわしい数字（生命維持・電力・被ばく・発展度）。3D の画面ではくんれんの段だけで見せ、ふだんはインベントリ画面に出す */
+  const detailPanelsHtml = (current: SimState, currentView: SimView): string => {
+    const life = currentView.lifeSupportDays;
     // sim は減らないときに上限（display.maxLifeSupportDays）を返すので、上限なら「減っていない」と出す
     // 減っていないとき（sim は上限を返す）は、作るのが止まったらあと何日もつかを「（減らない）」と並べて出す
     const forever = (days: number) => days >= values.display.maxLifeSupportDays.value;
-    const ifStopped = view.lifeSupportDaysIfStopped;
+    const ifStopped = currentView.lifeSupportDaysIfStopped;
     const daysText = (days: number, stopped: number) =>
       forever(days)
         ? t('hud.daysSteady', { days: fmt(stopped, 1) })
@@ -446,7 +454,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
             `<div>${t('hud.breakdown', { name: t(`resource.${key}`), days: daysText(life[key], ifStopped[key]) })}</div>`,
         ).join('')}</div>`
       : `<div class="ui-small">${t('hud.tapForDetails')}</div>`;
-    const power = view.power;
+    const power = currentView.power;
     const battery =
       power.batteryCapacityKwh > 0
         ? `<div class="ui-small">${t('hud.battery', {
@@ -454,42 +462,11 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
             capacity: fmt(power.batteryCapacityKwh),
           })}</div>${bar(power.batteryKwh / power.batteryCapacityKwh, '')}`
         : `<div class="ui-small">${t('hud.noBattery')}</div>`;
-    const shielding = view.shielding;
+    const shielding = currentView.shielding;
     const doseWarn = shielding.playerDoseMsv > shielding.doseLimitMsv * DOSE_WARN_RATIO;
-    const development = state.development;
+    const development = current.development;
     const elementMax = values.development.elementMax.value;
-    const netKw = power.generationKw - power.consumptionKw;
-    const tankPct = Math.round(Math.min(1, Math.max(0, view.tankRatio)) * PERCENT);
-    const tankLevel =
-      view.tankRatio < values.advice.tankLowRatio.value
-        ? 'danger'
-        : view.tankRatio < TANK_WARN_RATIO
-          ? 'warn'
-          : 'ok';
-    hudEl.classList.toggle('open', hudOpen);
-    hudEl.innerHTML = `
-      <div class="ui-panel ui-tank ui-tank-${tankLevel} ${state.player.indoors ? 'indoors' : ''}">
-        <div class="ui-tank-head"><span>🫧 <span class="ui-long">${t('hud.tankHp')}</span><span class="ui-short">${t('hud.tankShort')}</span></span><span class="ui-tank-pct">${tankPct}%</span></div>
-        <div class="ui-tank-bar"><div style="width:${tankPct}%"></div></div>
-        <div class="ui-small ui-long">${t(state.player.indoors ? 'hud.tankIndoors' : 'hud.tankOutdoors')}</div>
-      </div>
-      ${
-        !state.player.indoors && taskList.length > 0
-          ? `<div class="ui-panel ui-tasks"><div class="ui-label">${t('tasks.today')}</div>${taskList
-              .map(
-                (task) =>
-                  `<div class="${task.done ? 'ui-ok' : ''}">${task.done ? '✅' : '⬜'} ${task.label}</div>`,
-              )
-              .join('')}</div>`
-          : ''
-      }
-      <button class="ui-chips" data-action="toggleHud" aria-expanded="${hudOpen}">
-        <span class="${life.min < LOW_DAYS ? 'ui-bad' : ''}">${forever(life.min) ? t('hud.chip.lifeSteady', { days: fmt(ifStopped.min) }) : t('hud.chip.life', { days: fmt(life.min) })}</span>
-        <span class="${netKw < 0 ? 'ui-bad' : 'ui-ok'}">${t('hud.chip.power', { kw: `${netKw < 0 ? '−' : '+'}${fmt(Math.abs(netKw), 1)}` })}</span>
-        <span class="${doseWarn ? 'ui-bad' : ''}">${t('hud.chip.dose', { dose: fmt(shielding.playerDoseMsv) })}</span>
-        <span>${t('hud.chip.development', { value: fmt(development.total) })}</span>
-        <span class="ui-chips-more">${hudOpen ? '▲' : '▼'}</span>
-      </button>
+    return `
       <div class="ui-panel ui-detail">
         <div class="ui-stat ui-life" data-action="toggleBreakdown">
           <span class="ui-label">${t('hud.lifeSupport')}</span>
@@ -521,6 +498,38 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
             `<div class="ui-small">${t(`development.${key}`)} <span class="ui-stars">${stars(development[key], elementMax)}</span></div>`,
         ).join('')}
       </div>`;
+  };
+
+  const renderHud = () => {
+    if (state === null || view === null) {
+      hudEl.innerHTML = '';
+      return;
+    }
+    const life = view.lifeSupportDays;
+    const tankPct = Math.round(Math.min(1, Math.max(0, view.tankRatio)) * PERCENT);
+    const tankLevel =
+      view.tankRatio < values.advice.tankLowRatio.value
+        ? 'danger'
+        : view.tankRatio < TANK_WARN_RATIO
+          ? 'warn'
+          : 'ok';
+    hudEl.innerHTML = `
+      <div class="ui-panel ui-tank ui-tank-${tankLevel} ${state.player.indoors ? 'indoors' : ''}">
+        <div class="ui-tank-head"><span>🫧 <span class="ui-long">${t('hud.tankHp')}</span><span class="ui-short">${t('hud.tankShort')}</span></span><span class="ui-tank-pct">${tankPct}%</span></div>
+        <div class="ui-tank-bar"><div style="width:${tankPct}%"></div></div>
+        <div class="ui-small">${state.player.indoors ? t('hud.tankIndoors') : t('hud.timeLeft', timeLeft(view.tankRatio))}</div>
+      </div>
+      ${
+        !state.player.indoors && taskList.length > 0
+          ? `<div class="ui-panel ui-tasks"><div class="ui-label">${t('tasks.today')}</div>${taskList
+              .map(
+                (task) =>
+                  `<div class="${task.done ? 'ui-ok' : ''}">${task.done ? '✅' : '⬜'} ${task.label}</div>`,
+              )
+              .join('')}</div>`
+          : ''
+      }
+      ${detailPanelsHtml(state, view)}`;
     const maxDays = values.display.maxLifeSupportDays.value;
     if (
       lastLifeMin !== null &&
@@ -1033,6 +1042,36 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       </div>`;
   };
 
+  /** インベントリ画面（くわしい様子）：くわしい数字、物資の量、基地の様子（docs/SPEC.md ステップ16） */
+  const inventoryHtml = (current: SimState, currentView: SimView) => {
+    const stocks = INVENTORY_STOCKS.map(
+      (kind) =>
+        `<li><span>${t(`launchItem.${kind}`)}</span><b>${fmt(current.stocks[kind], kind === 'spareParts' ? 1 : 0)}${kind === 'spareParts' ? '' : ' kg'}</b></li>`,
+    ).join('');
+    const commLine = currentView.comm.linked
+      ? `<b class="ui-ok">${t('hud.commLinked')}</b>`
+      : `<b class="ui-bad">${t('hud.commLost')}</b>`;
+    return `
+      <h2>${t('inventory.title')}</h2>
+      <div class="nb-inv">
+        ${detailPanelsHtml(current, currentView)}
+        <div class="ui-panel">
+          <span class="ui-label">${t('inventory.stocks')}</span>
+          <ul class="nb-stats">${stocks}</ul>
+        </div>
+        <div class="ui-panel">
+          <span class="ui-label">${t('inventory.base')}</span>
+          <ul class="nb-stats">
+            <li><span>${t('hud.day', { day: Math.floor(currentView.day) + 1 })}</span><b>${t(current.player.indoors ? 'hud.indoors' : 'hud.outdoors')}</b></li>
+            <li><span>${t('research.comm')}</span>${commLine}</li>
+            <li><span>${t('hud.relays', { count: currentView.comm.relaySatellites })}</span><b></b></li>
+            <li><span>${t('crew.title')}</span><b>${t('inventory.crew', { count: currentView.crew.count, capacity: currentView.crew.capacity })}</b></li>
+            ${current.phase === 'cleared' ? `<li><b class="ui-ok">${t('hud.cleared')}</b></li>` : ''}
+          </ul>
+        </div>
+      </div>`;
+  };
+
   /** 翌日のタスクを選ぶ。外にいられる時間は限られるので、全部はできないかもしれない */
   const tasksHtml = (info: RestInfo) => {
     const rows = info.tasks
@@ -1083,8 +1122,13 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         return planHtml(info);
       case 'save':
         return saveMenuHtml();
+      case 'status':
+        return inventoryHtml(current, currentView);
     }
   };
+
+  /** 順に進むページの何番目か。セーブ・くわしい様子（順の外）なら -1 */
+  const restPageIndex = () => (REST_PAGES as readonly string[]).indexOf(restPage);
 
   const renderNotebook = () => {
     if (rest === null || state === null || view === null) {
@@ -1096,7 +1140,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     notebookEl.hidden = false;
     document.body.classList.add('nb-open');
     // 上の進み具合：番号と名前。押すとそのページへ戻れる（ふだんは「次へ」で順に進む）
-    const index = REST_PAGES.indexOf(restPage === 'save' ? 'plan' : restPage);
+    const outOfOrder = restPageIndex() < 0;
+    const index = outOfOrder ? REST_PAGES.length - 1 : restPageIndex();
     const steps = REST_PAGES.map(
       (page, i) =>
         `<button class="nb-step ${page === restPage ? 'on' : i < index ? 'past' : ''}" data-action="nbGo" data-page="${page}"><span class="nb-step-no">${i + 1}</span>${t(`notebook.page.${page}`)}</button>`,
@@ -1106,7 +1151,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         ? ''
         : `<div class="ui-modal-guide"><span class="ui-modal-guide-face">${PROFESSOR_SVG}</span><div>${guide}</div></div>`;
     const back =
-      restPage === 'save' || index > 0
+      outOfOrder || index > 0
         ? `<button data-action="nbBack">${t('notebook.back')}</button>`
         : '<span></span>';
     let forward: string;
@@ -1124,7 +1169,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     }
     notebookEl.innerHTML = `
       <div class="nb">
-        <div class="nb-head"><b>${t('notebook.title', { day: Math.floor(view.day) + 1 })}</b><button class="nb-save" data-action="nbGo" data-page="save">${t('notebook.saveButton')}</button></div>
+        <div class="nb-head"><b>${t('notebook.title', { day: Math.floor(view.day) + 1 })}</b><span class="nb-head-buttons"><button data-action="nbGo" data-page="status">${t('notebook.statusButton')}</button><button data-action="nbGo" data-page="save">${t('notebook.saveButton')}</button></span></div>
         ${guideHtml}
         <nav class="nb-steps">${steps}</nav>
         <section class="nb-page">${restPageHtml(restPage, rest, state, view)}</section>
@@ -1146,6 +1191,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       let html: string;
       if (menu === 'build') {
         html = buildMenuHtml(state);
+      } else if (menu === 'status') {
+        html = inventoryHtml(state, view);
       } else {
         html = dataMenuHtml();
       }
@@ -1192,8 +1239,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   const openMenu = (kind: MenuKind | RestPage) => {
     const menuKind = MENUS.find((m) => m === kind);
     // 中にいる間は、建設も中の画面の「建てる」タブで（3D の地面は指せない）
-    if (menuKind === 'build' && rest !== null) {
-      restPage = 'build';
+    if ((menuKind === 'build' || menuKind === 'status') && rest !== null) {
+      restPage = menuKind;
       renderNotebook();
       return;
     }
@@ -1264,13 +1311,13 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         renderNotebook();
         break;
       case 'nbNext': {
-        const index = REST_PAGES.indexOf(restPage === 'save' ? 'plan' : restPage);
+        const index = restPageIndex() < 0 ? REST_PAGES.length - 1 : restPageIndex();
         restPage = REST_PAGES[Math.min(index + 1, REST_PAGES.length - 1)];
         renderNotebook();
         break;
       }
       case 'nbBack': {
-        const index = restPage === 'save' ? REST_PAGES.length : REST_PAGES.indexOf(restPage);
+        const index = restPageIndex() < 0 ? REST_PAGES.length : restPageIndex();
         restPage = REST_PAGES[Math.max(index - 1, 0)];
         renderNotebook();
         break;
@@ -1455,9 +1502,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const target = e.target.closest<HTMLElement>('[data-action]');
     if (target?.dataset.action === 'toggleBreakdown') {
       showBreakdown = !showBreakdown;
-      renderHud();
-    } else if (target?.dataset.action === 'toggleHud') {
-      hudOpen = !hudOpen;
       renderHud();
     } else if (target?.dataset.action === 'jump') {
       jumpHeld = true;

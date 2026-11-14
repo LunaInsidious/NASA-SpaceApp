@@ -382,11 +382,6 @@
 }
 
 @media (max-width: 640px) {
-  /* スマホ幅：発展度は合計だけにして、下の案内の吹き出しに重ならないようにする */
-  .ui-development .ui-small {
-    display: none;
-  }
-
   /* スマホ幅：建設のバーは、下のボタン列と仮想パッドより上に出す */
   .ui-buildbar {
     left: 8px;
@@ -576,8 +571,7 @@
 }
 
 /* 短い表示（スマホだけ）とメニューのアイコン */
-.ui-short,
-.ui-chips {
+.ui-short {
   display: none;
 }
 
@@ -585,7 +579,7 @@
   margin-right: 4px;
 }
 
-/* スマホ：詰め込みすぎない。いつも見せるのは命に関わるものだけで、くわしい数字はチップを押して開く */
+/* スマホ：詰め込みすぎない */
 @media (max-width: 640px) {
   .ui-long {
     display: none;
@@ -617,45 +611,6 @@
   .ui-tank-bar {
     height: 10px;
     margin: 3px 0 1px;
-  }
-
-  .ui-root button.ui-chips {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 6px;
-    white-space: nowrap;
-    padding: 4px 8px;
-    border-radius: 10px;
-    background: rgba(8, 12, 22, 0.72);
-    font-size: 12px;
-    text-align: left;
-  }
-
-  .ui-chips-more {
-    margin-left: auto;
-    opacity: 0.7;
-  }
-
-  /* くわしい数字はチップを押したときだけ。チュートリアルで電力を見る段では出す */
-  .ui-detail {
-    display: none;
-  }
-
-  /* 開いたときは、くわしい数字の窓だけを広げて、右上の表示の上に重ねる */
-  .ui-hud.open {
-    z-index: 2;
-  }
-
-  .ui-hud.open .ui-detail {
-    width: calc(100vw - 16px);
-    max-width: 320px;
-    background: rgba(8, 12, 22, 0.96);
-  }
-
-  .ui-hud.open .ui-detail,
-  body[data-tutorial-step="power"] .ui-detail:not(.ui-development),
-  body[data-tutorial-step="lifeLine"] .ui-detail:not(.ui-development) {
-    display: block;
   }
 
   /* 右上：速さ・一時停止・言語を1列に。言語は切り替え先だけ見せる */
@@ -1416,4 +1371,40 @@ ol.nb-plan li {
     white-space: nowrap;
     font-size: 12px;
   }
+}
+
+/* ---- 3D の画面に常に出す数字は、ボンベと残りの時間だけ（docs/SPEC.md ステップ16） ----
+   くわしい数字はインベントリ画面（I キー）へ。くんれんで電力・生命維持を見る段だけ、左上に出す */
+.ui-hud .ui-detail {
+  display: none;
+}
+
+body[data-tutorial-step="power"] .ui-hud .ui-detail:not(.ui-development),
+body[data-tutorial-step="lifeLine"] .ui-hud .ui-detail:not(.ui-development) {
+  display: block;
+}
+
+/* 右上の様子は、宇宙天気の嵐のとき（緊急）と、くんれんで通信を見る段だけ */
+.ui-top .ui-status:not(.emergency) {
+  display: none;
+}
+
+body[data-tutorial-step="comm"] .ui-top .ui-status {
+  display: block;
+}
+
+.nb-head-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+/* インベントリ画面：3D の左上と同じパネルを並べる */
+.nb-inv {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.nb-inv .ui-panel {
+  margin: 0;
 }

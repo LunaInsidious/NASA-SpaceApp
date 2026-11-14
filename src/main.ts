@@ -1157,6 +1157,9 @@ window.addEventListener('keydown', (e) => {
     case 'c':
       ui.openMenu('crew');
       break;
+    case 'i':
+      ui.openMenu('status');
+      break;
   }
 });
 
