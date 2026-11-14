@@ -122,4 +122,13 @@ describe('ふりがな', () => {
       .map(([key]) => key);
     expect(inEnglish).toEqual([]);
   });
+
+  it('ja の漢字には、すべてふりがなが付いている', () => {
+    const bare = Object.entries(ja as Record<string, string>)
+      .filter(([, text]) =>
+        /[\u4e00-\u9fff々〆]/.test(text.replace(/｜[^｜《》]+《[^《》]+》/g, '')),
+      )
+      .map(([key]) => key);
+    expect(bare).toEqual([]);
+  });
 });
