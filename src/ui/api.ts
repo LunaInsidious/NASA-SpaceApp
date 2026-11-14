@@ -36,6 +36,24 @@ export interface MorningSummary {
   spaceWeather: ActiveEvent[];
 }
 
+/** マス目の地図の1マス（休息の画面の「建てる」。docs/SPEC.md ステップ15） */
+export interface GridCell {
+  col: number;
+  row: number;
+  /** マスの真ん中の位置（m） */
+  x: number;
+  z: number;
+  /** 今の太陽の位置で日なたか */
+  sunlit: boolean;
+  /** 地球が見えるか */
+  earth: boolean;
+  ice: boolean;
+  /** そのマスにある施設（なければ null）。着陸船は 'lander' */
+  facility: FacilityKind | 'lander' | null;
+  /** 選んだ施設をそこに建てたときの判定（選んでいなければ null） */
+  placement: Placement | null;
+}
+
 /** 休息フェーズの2D画面（居住モジュールの中）に出すもの。main が作る */
 export interface RestInfo {
   /** その日にもう外に出たか（出たあとなら振り返りから、朝なら明日の計画のページから見せる） */
@@ -61,6 +79,20 @@ export interface UiCallbacks {
   onContextAction(action: ContextAction): void;
   /** 休息の画面で、翌日のタスクを選ぶ・やめる */
   onTaskToggle(taskId: string): void;
+  /**
+   * マス目の地図。centerCol・centerRow は基地（最初の居住モジュール）から何マスずらして見ているか。
+   * kind を選んでいれば、マスごとの判定も入れる
+   */
+  gridCells(
+    kind: FacilityKind | null,
+    options: BuildOptions,
+    centerCol: number,
+    centerRow: number,
+  ): GridCell[];
+  /** マス目の地図で「ここに建てる」 */
+  onGridBuild(kind: FacilityKind, options: BuildOptions, x: number, z: number): void;
+  /** 地図を、いちばん近い氷の場所に合わせる（基地から何マスずらすか）。氷がなければ null */
+  iceOffset(): { col: number; row: number } | null;
   /** ミニゲームの音（当たった・外した・できた） */
   onMinigameSound(name: 'hit' | 'miss' | 'success'): void;
   onFlareChoice(choice: 'shelter' | 'continue'): void;

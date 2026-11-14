@@ -35,6 +35,7 @@ import {
   restUntilNextDay,
   step,
 } from './sim/index.ts';
+import { sunlitAt } from './sim/model.ts';
 import {
   completeTask,
   needsRepair as facilityNeedsRepair,
@@ -49,7 +50,7 @@ import { createTitle } from './title/index.ts';
 import { type Advice, createAdviceCard, pickAdvices } from './tutorial/advice.ts';
 import { type DeathAdvice, type DeathKind, diagnoseDeath } from './tutorial/death.ts';
 import { createTutorial, parseMissions } from './tutorial/index.ts';
-import type { ContextAction, MorningSummary, RestInfo } from './ui/api.ts';
+import type { ContextAction, GridCell, MorningSummary, RestInfo } from './ui/api.ts';
 import { createFx } from './ui/fx.ts';
 import { onLangChange, t, tPlain } from './ui/i18n.ts';
 import { createUi } from './ui/index.ts';
@@ -215,6 +216,26 @@ const ui = createUi(
       if (chosen !== undefined) {
         help.learn(taskDef(taskDefs, chosen.kind).terms, true);
       }
+    },
+    gridCells: (kind, options, centerCol, centerRow) =>
+      gridCells(kind, options, centerCol, centerRow),
+    onGridBuild: (kind, options, x, z) => {
+      if (!placementAt(kind, options, x, z).allowed) {
+        throw new Error('建てられないマスで「ここに建てる」が押された');
+      }
+      pending.push({ type: 'build', kind, x, z, ...options });
+      dayLog.push({ kind: 'build', facility: kind });
+      fx.sound('pop');
+    },
+    iceOffset: () => {
+      const home = mainHabitat();
+      const cell = values.build.mapCellMeters.value;
+      const ice = [...env.iceSpots].sort(
+        (a, b) => Math.hypot(a.x - home.x, a.z - home.z) - Math.hypot(b.x - home.x, b.z - home.z),
+      )[0];
+      return ice === undefined
+        ? null
+        : { col: Math.round((ice.x - home.x) / cell), row: Math.round(-(ice.z - home.z) / cell) };
     },
     onMinigameSound: (name) => {
       fx.sound(name === 'hit' ? 'pop' : name === 'miss' ? 'land' : 'star');
@@ -721,21 +742,55 @@ function currentPlacement(): { x: number; z: number; placement: Placement } | nu
     return null;
   }
   const spot = world.getBuildSpot();
-  // 着陸船の位置は SimState にないので、着陸船に重なる場所は main で止める
+  return { ...spot, placement: placementAt(buildMode.kind, buildMode.options, spot.x, spot.z) };
+}
+
+/** そこに建てたときの判定。着陸船の位置は SimState にないので、着陸船に重なる場所は main で止める */
+function placementAt(kind: FacilityKind, options: BuildOptions, x: number, z: number): Placement {
   const [landerX, landerZ] = env.landerPosition;
-  if (Math.hypot(spot.x - landerX, spot.z - landerZ) < values.terrain.landerClearanceMeters.value) {
-    return { ...spot, placement: { allowed: false, works: false, reason: 'tooClose' } };
+  if (Math.hypot(x - landerX, z - landerZ) < values.terrain.landerClearanceMeters.value) {
+    return { allowed: false, works: false, reason: 'tooClose' };
   }
-  const placement = checkPlacement(
-    state,
-    buildMode.kind,
-    spot.x,
-    spot.z,
-    buildMode.options,
-    values,
-    env,
-  );
-  return { ...spot, placement };
+  return checkPlacement(state, kind, x, z, options, values, env);
+}
+
+/**
+ * 休息の画面の「建てる」のマス目の地図。最初の居住モジュールを真ん中に、上が +z。
+ * centerCol・centerRow だけ、見ている場所をずらす
+ */
+function gridCells(
+  kind: FacilityKind | null,
+  options: BuildOptions,
+  centerCol: number,
+  centerRow: number,
+): GridCell[] {
+  const home = mainHabitat();
+  const size = values.build.mapCells.value;
+  const cell = values.build.mapCellMeters.value;
+  const half = Math.floor(size / 2);
+  const [landerX, landerZ] = env.landerPosition;
+  const inCell = (fx: number, fz: number, x: number, z: number) =>
+    Math.abs(fx - x) <= cell / 2 && Math.abs(fz - z) <= cell / 2;
+  const cells: GridCell[] = [];
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      const x = home.x + (col - half + centerCol) * cell;
+      const z = home.z - (row - half + centerRow) * cell;
+      const facility = state.facilities.find((f) => inCell(f.x, f.z, x, z));
+      cells.push({
+        col,
+        row,
+        x,
+        z,
+        sunlit: sunlitAt(env, x, z, state.sunAzimuthRad, values),
+        earth: env.isEarthVisible(x, z),
+        ice: env.isIceAt(x, z),
+        facility: facility?.kind ?? (inCell(landerX, landerZ, x, z) ? 'lander' : null),
+        placement: kind === null ? null : placementAt(kind, options, x, z),
+      });
+    }
+  }
+  return cells;
 }
 
 function needsRepair(f: Facility): boolean {

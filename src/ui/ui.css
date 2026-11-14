@@ -1280,6 +1280,115 @@ ol.nb-plan li {
   justify-content: flex-end;
 }
 
+/* ---- マス目で建てる（docs/SPEC.md ステップ15） ---- */
+.ui-warn {
+  color: #ffd27a;
+}
+
+.nb-facs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.ui-root button.nb-fac {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.ui-root button.nb-fac.on {
+  background: #3d7be0;
+  border-color: #8fb6ff;
+}
+
+.ui-root button.nb-fac.dim {
+  opacity: 0.55;
+}
+
+.nb-grid-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.nb-grid-wrap > div:first-child {
+  flex: 0 1 380px;
+  min-width: 0;
+}
+
+.nb-layers,
+.nb-pan {
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px 0;
+}
+
+.nb-grid {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.ui-root button.nb-cell {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(30, 36, 50, 0.95);
+  font-size: clamp(10px, 2.6vw, 18px);
+  line-height: 1;
+}
+
+/* 重ね表示：日なたは明るく、地球が見えるのは青、氷は水色 */
+.ui-root button.nb-cell.sun.lit {
+  background: rgba(214, 196, 140, 0.55);
+}
+
+.ui-root button.nb-cell.earth.lit {
+  background: rgba(70, 120, 220, 0.6);
+}
+
+.ui-root button.nb-cell.ice.lit {
+  background: rgba(140, 210, 240, 0.6);
+}
+
+/* 選んだ施設を置いたときの判定：緑・黄・赤の枠 */
+.ui-root button.nb-cell.ok {
+  box-shadow: inset 0 0 0 2px #6fd08c;
+}
+
+.ui-root button.nb-cell.warn {
+  box-shadow: inset 0 0 0 2px #ffd27a;
+}
+
+.ui-root button.nb-cell.bad {
+  box-shadow: inset 0 0 0 2px rgba(255, 110, 90, 0.7);
+}
+
+.ui-root button.nb-cell.picked {
+  outline: 3px solid #fff;
+  outline-offset: -1px;
+}
+
+.nb-detail {
+  display: flex;
+  flex: 1 1 200px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid rgba(143, 182, 255, 0.35);
+  border-radius: 10px;
+}
+
 /* スマホ：上の一時停止・ことばじてんのボタンと重ならないよう、上を空ける */
 @media (max-width: 600px) {
   .nb-layer {
@@ -1292,6 +1401,19 @@ ol.nb-plan li {
 
   .ui-root button.nb-step {
     padding: 3px 6px;
+    font-size: 12px;
+  }
+
+  /* 建てるものの一覧は1行にして横に動かす（地図が下に押し出されないように） */
+  .nb-facs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .ui-root button.nb-fac {
+    flex: none;
+    white-space: nowrap;
     font-size: 12px;
   }
 }

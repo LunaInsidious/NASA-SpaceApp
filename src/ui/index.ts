@@ -17,7 +17,7 @@ import type { DeathAdvice } from '../tutorial/death.ts';
 import { professorDeathAdviceHtml } from '../tutorial/deathView.ts';
 import { PROFESSOR_SVG } from '../tutorial/professor.ts';
 import type { PadInput } from '../world/api.ts';
-import type { ContextAction, MorningSummary, RestInfo, Ui, UiCallbacks } from './api.ts';
+import type { ContextAction, GridCell, MorningSummary, RestInfo, Ui, UiCallbacks } from './api.ts';
 import { getLang, onLangChange, setLang, t, tPlain } from './i18n.ts';
 import { type MinigameOutcome, openMinigame } from './minigame.ts';
 import { type NasaImages, photoFigureHtml } from './photo.ts';
@@ -59,6 +59,9 @@ const MENUS = ['build', 'data'] as const;
 const REST_PAGES = ['review', 'crew', 'launch', 'build', 'tasks', 'plan'] as const;
 const NOTEBOOK_PAGES = [...REST_PAGES, 'save'] as const;
 type RestPage = (typeof NOTEBOOK_PAGES)[number];
+// マス目の地図の重ね表示：日なた・地球が見える・氷
+const GRID_LAYERS = ['sun', 'earth', 'ice'] as const;
+type GridLayer = (typeof GRID_LAYERS)[number];
 const DEVELOPMENT_ELEMENTS = ['selfSufficiency', 'stability', 'safety', 'scale'] as const;
 const LIFE_SUPPORT_KEYS = ['oxygen', 'water', 'food'] as const;
 const SHIELD_MATERIALS = ['regolith', 'water'] as const;
@@ -281,6 +284,11 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   let restPage: RestPage = 'review';
   // 外で今日こなすタスク（main が setTaskList で渡す）
   let taskList: { label: string; done: boolean }[] = [];
+  // マス目の地図：選んだ施設、見ている重ね表示、基地からずらしているマス、選んだマス
+  let gridKind: FacilityKind | null = null;
+  let gridLayer: GridLayer = 'sun';
+  let gridOffset = { col: 0, row: 0 };
+  let gridPick: { col: number; row: number } | null = null;
   // 開いているミニゲームを閉じる関数
   let closeMinigame: (() => void) | null = null;
   const dialogs: Dialog[] = [];
@@ -941,6 +949,90 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     <ul class="nb-review">${info.review.map((line) => `<li>${line}</li>`).join('')}</ul>
     ${researchHtml(current, currentView)}`;
 
+  /** マス目で建てる（docs/SPEC.md ステップ15）：施設を選ぶ → マスを押す → 「ここに建てる」 */
+  const gridHtml = (current: SimState) => {
+    const cells = callbacks.gridCells(
+      gridKind,
+      gridKind === null ? { dustCover: false } : optionsFor(gridKind),
+      gridOffset.col,
+      gridOffset.row,
+    );
+    const size = values.build.mapCells.value;
+    const picker = FACILITY_KINDS.map((kind) => {
+      const cost = buildCost(kind, optionsFor(kind), values);
+      return `<button class="nb-fac ${gridKind === kind ? 'on' : ''} ${cost.materials <= current.stocks.materials ? '' : 'dim'}" data-action="gridKind" data-kind="${kind}">${t(`facilityIcon.${kind}`)} ${t(`facility.${kind}`)}<small>${t('build.cost', { materials: fmt(cost.materials) })}</small></button>`;
+    }).join('');
+    const layers = GRID_LAYERS.map(
+      (layer) =>
+        `<button class="${gridLayer === layer ? 'on' : ''}" data-action="gridLayer" data-layer="${layer}">${t(`grid.layer.${layer}`)}</button>`,
+    ).join('');
+    const cellHtml = (cell: GridCell) => {
+      const layerOn =
+        gridLayer === 'sun' ? cell.sunlit : gridLayer === 'earth' ? cell.earth : cell.ice;
+      const fit =
+        cell.placement === null
+          ? ''
+          : !cell.placement.allowed
+            ? 'bad'
+            : cell.placement.works
+              ? 'ok'
+              : 'warn';
+      const icon =
+        cell.facility === null
+          ? gridLayer === 'ice' && cell.ice
+            ? '🧊'
+            : ''
+          : t(`facilityIcon.${cell.facility}`);
+      const picked = gridPick?.col === cell.col && gridPick?.row === cell.row;
+      return `<button class="nb-cell ${layerOn ? 'lit' : ''} ${gridLayer} ${fit} ${picked ? 'picked' : ''}" data-action="gridCell" data-col="${cell.col}" data-row="${cell.row}" aria-label="${cell.col},${cell.row}">${icon}</button>`;
+    };
+    const pickedCell = cells.find((c) => c.col === gridPick?.col && c.row === gridPick?.row);
+    let detail = `<p class="ui-small">${t(gridKind === null ? 'grid.pickFacility' : 'grid.pickCell')}</p>`;
+    if (gridKind !== null && pickedCell !== undefined && pickedCell.placement !== null) {
+      const placement = pickedCell.placement;
+      const cost = buildCost(gridKind, optionsFor(gridKind), values);
+      const reason = placement.reason === null ? '' : t(`placement.${placement.reason}`);
+      const judge = !placement.allowed
+        ? `<div class="ui-bad">${t('build.blocked', { reason })}</div>`
+        : placement.works
+          ? `<div class="ui-ok">${t('build.good')}</div>`
+          : `<div class="ui-warn">${t('build.warn', { reason })}</div>`;
+      detail = `
+        <div class="nb-detail">
+          <b>${t(`facilityIcon.${gridKind}`)} ${t(`facility.${gridKind}`)}</b>
+          <div class="ui-small">${t('grid.cost', { materials: fmt(cost.materials), kwh: fmt(cost.energyKwh, 1) })}</div>
+          <div class="ui-small">${t(`facilityDesc.${gridKind}`)}</div>
+          ${judge}
+          <button class="primary" data-action="gridBuild" ${placement.allowed ? '' : 'disabled'}>${t('grid.build')}</button>
+        </div>`;
+    }
+    const shieldPick =
+      gridKind === 'shield'
+        ? `<div class="ui-row">${SHIELD_MATERIALS.map((m) => `<button class="${buildOptions.shieldMaterial === m ? 'on' : ''}" data-action="shieldMaterial" data-material="${m}">${t(`build.material.${m}`)}</button>`).join('')}</div>`
+        : '';
+    return `
+      <h2>${t('grid.title')}</h2>
+      <p class="ui-small">${t('build.have', { materials: fmt(current.stocks.materials) })}</p>
+      <div class="nb-facs">${picker}</div>
+      ${shieldPick}
+      <div class="nb-grid-wrap">
+        <div>
+          <div class="ui-row nb-layers">${layers}</div>
+          <div class="nb-grid" style="grid-template-columns:repeat(${size}, 1fr)">${cells.map(cellHtml).join('')}</div>
+          <div class="ui-row nb-pan">
+            <button data-action="gridPan" data-dir="left" aria-label="${tPlain('grid.pan.left')}">◀</button>
+            <button data-action="gridPan" data-dir="up" aria-label="${tPlain('grid.pan.up')}">▲</button>
+            <button data-action="gridPan" data-dir="down" aria-label="${tPlain('grid.pan.down')}">▼</button>
+            <button data-action="gridPan" data-dir="right" aria-label="${tPlain('grid.pan.right')}">▶</button>
+            <button data-action="gridPan" data-dir="home">${t('grid.home')}</button>
+            <button data-action="gridPan" data-dir="ice">${t('grid.findIce')}</button>
+          </div>
+          <p class="ui-small">${t(`grid.legend.${gridLayer}`)}</p>
+        </div>
+        ${detail}
+      </div>`;
+  };
+
   /** 翌日のタスクを選ぶ。外にいられる時間は限られるので、全部はできないかもしれない */
   const tasksHtml = (info: RestInfo) => {
     const rows = info.tasks
@@ -984,7 +1076,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       case 'launch':
         return launchMenuHtml(currentView);
       case 'build':
-        return `<h2>${t('notebook.page.build')}</h2><p class="ui-small">${t('notebook.soon')}</p>`;
+        return gridHtml(current);
       case 'tasks':
         return tasksHtml(info);
       case 'plan':
@@ -1181,6 +1273,63 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         const index = restPage === 'save' ? REST_PAGES.length : REST_PAGES.indexOf(restPage);
         restPage = REST_PAGES[Math.max(index - 1, 0)];
         renderNotebook();
+        break;
+      }
+      case 'gridKind': {
+        gridKind = pick(target.dataset.kind, FACILITY_KINDS, 'facility');
+        // 選んだ施設に合う重ね表示にする（太陽電池は日なた、アンテナは地球、採掘機は氷）
+        gridLayer = gridKind === 'antenna' ? 'earth' : gridKind === 'iceDrill' ? 'ice' : 'sun';
+        renderNotebook();
+        break;
+      }
+      case 'gridLayer':
+        gridLayer = pick(target.dataset.layer, GRID_LAYERS, 'grid layer');
+        renderNotebook();
+        break;
+      case 'gridCell':
+        gridPick = { col: Number(target.dataset.col), row: Number(target.dataset.row) };
+        renderNotebook();
+        break;
+      case 'gridPan': {
+        const dir = pick(
+          target.dataset.dir,
+          ['left', 'right', 'up', 'down', 'home', 'ice'] as const,
+          'pan',
+        );
+        const step = values.build.mapPanCells.value;
+        gridPick = null;
+        if (dir === 'home') {
+          gridOffset = { col: 0, row: 0 };
+        } else if (dir === 'ice') {
+          const ice = callbacks.iceOffset();
+          if (ice === null) {
+            toast(t('grid.noIce'), false);
+          } else {
+            gridOffset = ice;
+            gridLayer = 'ice';
+          }
+        } else {
+          gridOffset = {
+            col: gridOffset.col + (dir === 'left' ? -step : dir === 'right' ? step : 0),
+            row: gridOffset.row + (dir === 'up' ? -step : dir === 'down' ? step : 0),
+          };
+        }
+        renderNotebook();
+        break;
+      }
+      case 'gridBuild': {
+        if (gridKind === null || gridPick === null) {
+          throw new Error('ui：施設かマスを選ばずに「ここに建てる」が押された');
+        }
+        const pickedPick = gridPick;
+        const cell = callbacks
+          .gridCells(gridKind, optionsFor(gridKind), gridOffset.col, gridOffset.row)
+          .find((c) => c.col === pickedPick.col && c.row === pickedPick.row);
+        if (cell === undefined) {
+          throw new Error('ui：選んだマスが地図にない');
+        }
+        callbacks.onGridBuild(gridKind, optionsFor(gridKind), cell.x, cell.z);
+        gridPick = null;
         break;
       }
       case 'taskToggle': {
