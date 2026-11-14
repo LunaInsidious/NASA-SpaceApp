@@ -56,7 +56,7 @@ export function openMinigame(
   layer.innerHTML = `
     <div class="mg-card" role="dialog" aria-label="${t(`minigame.title.${kind}`).replace(/<[^>]*>/g, '')}">
       <h2>${t(`minigame.title.${kind}`)}</h2>
-      <p class="mg-howto">${t(`minigame.howto.${kind}`, { hits: values.minigame.timingHits.value })}</p>
+      <p class="mg-howto">${t(`minigame.howto.${kind}.${window.matchMedia('(pointer: coarse)').matches ? 'touch' : 'keys'}`, { hits: values.minigame.timingHits.value })}</p>
       <div class="mg-timer"><div></div></div>
       <div class="mg-area mg-${kind}" data-part="area"></div>
       <div class="mg-status" data-part="status"></div>

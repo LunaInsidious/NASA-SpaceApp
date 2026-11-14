@@ -363,4 +363,20 @@ describe('sim', () => {
     expect(state.launches).toHaveLength(0);
     expect(emitted.some((e) => e.type === 'launchArrived')).toBe(true);
   });
+
+  it('次に頼めるのは、間隔の日数がたった日の朝から（朝に翌日へで来たら頼める）', () => {
+    const env = fakeEnv();
+    const initial = { ...createInitialState(values, env, [0, 0]), commLinked: true };
+    const later = { ...initial, timeHours: 2.5 };
+    const ordered = step(
+      later,
+      0,
+      env,
+      [{ type: 'orderLaunch', items: [{ kind: 'food', quantity: 50 }] }],
+      values,
+      [],
+      rng,
+    ).state;
+    expect(ordered.nextLaunchAtHours).toBe(values.launch.intervalDays.value * 24);
+  });
 });

@@ -86,6 +86,8 @@ export interface Ui {
    * 倒れた・ゲームオーバーのときは、death にルナはかせのアドバイス（原因とつぎにやること）を渡す
    */
   showEvents(events: GameEvent[], state: SimState, death: DeathAdvice | null): void;
+  /** 中に入る前の確かめ（まだ外にいられる時間と、残っているタスクを出す）。「おしまいにする」なら onYes */
+  confirmRest(hoursLeft: number, tasksLeft: number, onYes: () => void): void;
   /** 「翌日へ」のあとの朝の窓 */
   showMorning(summary: MorningSummary): void;
   /** 太陽フレアの警報。退避するか作業を続けるかを選ばせる。出典（過去の実際のイベントと日付）を必ず見せる */

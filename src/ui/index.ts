@@ -90,7 +90,8 @@ type Dialog =
   | { type: 'downed'; advice: DeathAdvice }
   | { type: 'cleared'; total: number }
   | { type: 'gameOver'; advice: DeathAdvice }
-  | { type: 'morning'; summary: MorningSummary };
+  | { type: 'morning'; summary: MorningSummary }
+  | { type: 'confirmRest'; hoursLeft: number; tasksLeft: number; onYes: () => void };
 
 function esc(text: string): string {
   return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -543,7 +544,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       .map((action, index) => {
         const label = t(`action.${action}`);
         return index === 0
-          ? `<button data-action="context" data-context="${action}" class="primary">${t('action.withKey', { label })}</button>`
+          ? `<button data-action="context" data-context="${action}" class="primary">${isTouch ? label : t('action.withKey', { label })}</button>`
           : `<button data-action="context" data-context="${action}">${label}</button>`;
       })
       .join('');
@@ -581,8 +582,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       ${status}
       <div class="ui-small ui-buildhint">${t(isTouch ? 'build.hint.touch' : 'build.hint.mouse')}</div>
       <div class="ui-row">
-        <button data-action="buildConfirm" class="primary" ${placement.allowed ? '' : 'disabled'}>${t('build.place')}</button>
-        <button data-action="buildCancel">${t('build.cancel')}</button>
+        <button data-action="buildConfirm" class="primary" ${placement.allowed ? '' : 'disabled'}>${t(isTouch ? 'build.place.touch' : 'build.place')}</button>
+        <button data-action="buildCancel">${t(isTouch ? 'build.cancel.touch' : 'build.cancel')}</button>
       </div>`;
   };
 
@@ -704,7 +705,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         <span class="ui-grow"><b>${nameText}</b>${why} <span class="ui-small ui-cost">${costText}</span>${roomNote}</span>
         <span class="ui-stepper">
           <button data-action="cart" data-kind="${kind}" data-delta="-1" aria-label="${tPlain(`launchItem.${kind}`)} −">−</button>
-          <span class="ui-qty">${cart[kind]}</span>
+          <span class="ui-qty">${cart[kind]}${BULK_LAUNCH_ITEMS.includes(kind) && cart[kind] > 0 ? 'kg' : ''}</span>
           <button data-action="cart" data-kind="${kind}" data-delta="1" aria-label="${tPlain(`launchItem.${kind}`)} ＋" ${noRoom ? 'disabled' : ''}>＋</button>
         </span>
       </li>`;
@@ -851,6 +852,15 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           <div class="ui-actions"><button data-action="dialogOk" class="primary">${t('cleared.continue')}</button></div>`;
       case 'morning':
         return morningHtml(dialog.summary);
+      case 'confirmRest':
+        return `
+          <h2>${t('confirmRest.title')}</h2>
+          <p>${t('confirmRest.body', { hours: dialog.hoursLeft })}</p>
+          ${dialog.tasksLeft > 0 ? `<p class="ui-warn">${t('confirmRest.tasksLeft', { count: dialog.tasksLeft })}</p>` : ''}
+          <div class="ui-actions">
+            <button data-action="dialogOk">${t('confirmRest.stay')}</button>
+            <button class="primary" data-action="confirmRestYes">${t('confirmRest.yes')}</button>
+          </div>`;
       case 'gameOver': {
         const kind = dialog.advice.kind;
         // 宇宙飛行士が倒れた（ボンベ・放射線）か、基地の物資が尽きたか
@@ -1100,7 +1110,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     }
     notebookEl.innerHTML = `
       <div class="nb">
-        <div class="nb-head"><b>${t('notebook.title', { day: Math.floor(view.day) + 1 })}</b><span class="nb-head-buttons"><button data-action="nbGo" data-page="cards">${t('notebook.cardsButton')}</button><button data-action="nbGo" data-page="status">${t('notebook.statusButton')}</button><button data-action="nbGo" data-page="save">${t('notebook.saveButton')}</button></span></div>
+        <div class="nb-head"><b>${t('notebook.title', { day: Math.floor(view.day) + 1 })}</b><span class="nb-head-buttons">${(['cards', 'status', 'save'] as const).map((page) => `<button data-action="nbGo" data-page="${page}" aria-label="${tPlain(`notebook.page.${page}`)}"><span>${t(`notebook.icon.${page}`)}</span><span class="nb-head-label">${t(`notebook.page.${page}`)}</span></button>`).join('')}</span></div>
         ${guideHtml}
         <nav class="nb-steps">${steps}</nav>
         <section class="nb-page">${restPageHtml(restPage, rest, state, view)}</section>
@@ -1347,6 +1357,15 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       case 'dialogOk':
         closeTopDialog();
         break;
+      case 'confirmRestYes': {
+        const dialog = dialogs[0];
+        if (dialog?.type !== 'confirmRest') {
+          throw new Error('ui：中に入る確かめの窓がないのに「おしまいにする」が押された');
+        }
+        closeTopDialog();
+        dialog.onYes();
+        break;
+      }
       case 'backToTitle':
         dialogs.length = 0;
         menu = null;
@@ -1524,6 +1543,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       }
     },
     showEvents,
+    confirmRest(hoursLeft, tasksLeft, onYes) {
+      pushDialog({ type: 'confirmRest', hoursLeft, tasksLeft, onYes });
+    },
     showMorning(summary) {
       pushDialog({ type: 'morning', summary });
     },

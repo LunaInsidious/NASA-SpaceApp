@@ -328,7 +328,9 @@ function orderLaunch(state: SimState, items: LaunchItem[], values: Values): void
     totalCost,
     arrivesAtHours: state.timeHours + values.launch.deliveryDays.value * HOURS_PER_DAY,
   });
-  state.nextLaunchAtHours = state.timeHours + values.launch.intervalDays.value * HOURS_PER_DAY;
+  // 次に頼めるのは、間隔の日数がたった日の朝から（「翌日へ」で朝にしたのに「あと0.1日」で頼めない、とならないように）
+  const ready = state.timeHours + values.launch.intervalDays.value * HOURS_PER_DAY;
+  state.nextLaunchAtHours = Math.floor(ready / HOURS_PER_DAY + EPSILON) * HOURS_PER_DAY;
 }
 
 function deliver(state: SimState, items: LaunchItem[], values: Values): void {

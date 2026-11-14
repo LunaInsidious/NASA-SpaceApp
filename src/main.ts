@@ -42,7 +42,6 @@ import {
 import {
   completeTask,
   needsRepair as facilityNeedsRepair,
-  nextTask,
   type PlannedTask,
   parseTasks,
   type TaskKind,
@@ -467,12 +466,23 @@ function doAction(action: ContextAction): void {
   const p = world.getPlayer();
   const near = nearbyFacilities();
   switch (action) {
-    case 'enterHabitat':
-      indoors = true;
-      fx.sound('door');
-      deliverIce();
-      startRest();
+    case 'enterHabitat': {
+      const hoursLeft = state.player.tankOxygen * values.eva.maxHours.value;
+      const tasksLeft = todayPlan.filter((t) => !t.done).length;
+      const goIn = () => {
+        indoors = true;
+        fx.sound('door');
+        deliverIce();
+        startRest();
+        applyPlayerMode();
+      };
+      if (!tutorial.isTutorial() && hoursLeft > values.eva.warnHoursFirst.value) {
+        ui.confirmRest(Math.floor(hoursLeft), tasksLeft, goIn);
+      } else {
+        goIn();
+      }
       break;
+    }
     case 'nextDay':
       sleepUntilMorning();
       break;
@@ -848,18 +858,23 @@ function guideTarget(): { x: number; z: number } | null {
   if (currentAdvice?.kind === 'tankLow') {
     return nearestToPlayer(habitats);
   }
-  if (tutorial.guide() === null && !indoors) {
-    const task = nextTask(todayPlan);
-    if (task !== null) {
-      // 氷を掘ったあとは、持ち帰る（居住モジュールへ）
-      return task.kind === 'ice' && carriedIce !== null ? nearestToPlayer(habitats) : task;
-    }
+  if (tutorial.isTutorial() || indoors) {
+    return null;
+  }
+  // 氷を掘ったあとは、持ち帰る（居住モジュールの入口まで行けば水になる）
+  if (carriedIce !== null) {
+    return nearestToPlayer(habitats);
+  }
+  const task = nearestToPlayer(todayPlan.filter((t) => !t.done));
+  if (task !== null) {
+    return task;
   }
   if (currentAdvice !== null && currentAdvice.facilityId !== null) {
     const id = currentAdvice.facilityId;
     return state.facilities.find((f) => f.id === id) ?? null;
   }
-  return null;
+  // することがなければ、帰り道（家）を指す
+  return nearestToPlayer(habitats);
 }
 
 /** 跳んだ・着地した・歩いた音 */
@@ -1173,6 +1188,9 @@ engine.runRenderLoop(() => {
   updateBuildPreview();
   updateTutorial();
   updateFootSounds();
+  if (carriedIce !== null && !indoors && nearbyFacilities().some((f) => f.kind === 'habitat')) {
+    deliverIce();
+  }
   const actions = contextActions();
   updateRest();
   if (ui.isInventoryOpen()) {

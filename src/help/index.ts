@@ -95,9 +95,16 @@ export function createHelp(
     }
     const card = document.createElement('div');
     card.className = 'help-card';
+    // 一覧が長いので、閉じるボタンは上（✕）にも出す
+    const closeTop = document.createElement('button');
+    closeTop.type = 'button';
+    closeTop.className = 'help-close-x';
+    closeTop.setAttribute('aria-label', tPlain('help.close'));
+    closeTop.textContent = '✕';
+    closeTop.addEventListener('click', closeHelp);
     const title = document.createElement('h2');
     title.innerHTML = t('help.title');
-    card.append(title);
+    card.append(closeTop, title);
     for (const group of HELP_GROUPS) {
       const terms = group.terms.filter((id) => learned.has(id));
       if (terms.length === 0) {

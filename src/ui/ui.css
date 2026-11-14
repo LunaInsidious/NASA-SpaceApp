@@ -1337,3 +1337,31 @@ body[data-tutorial-step="comm"] .ui-top .ui-status {
   background: rgba(61, 123, 224, 0.25);
   cursor: pointer;
 }
+
+.ui-warn {
+  color: #ffd27a;
+}
+
+/* ---- スマホ：テストプレイで押しにくかった・重なったところ ---- */
+@media (max-width: 600px) {
+  /* 上の一時停止・音・ことばじてんのボタンと休息の画面が重ならないよう、もう少し下げる */
+  .nb-layer {
+    padding-top: 100px;
+  }
+
+  /* カード・くわしく・セーブは絵だけにする（文字が1文字ずつ折り返すので） */
+  .nb-head-label {
+    display: none;
+  }
+
+  /* ＋／−、タスクを選ぶボタンは、指で押しやすい大きさに */
+  .ui-stepper button,
+  .ui-root button[data-action="taskToggle"] {
+    min-width: 44px;
+    min-height: 40px;
+  }
+
+  .ui-root button.ui-jump {
+    white-space: nowrap;
+  }
+}

@@ -2,6 +2,8 @@
 import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
 import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera';
 import { CreatePickingRay } from '@babylonjs/core/Culling/ray.pure';
+// 地面を指す（scene.pick）のに要る副作用を読み込む（ないと Babylon が起動時に警告を出す）
+import '@babylonjs/core/Culling/ray';
 import type { IPointerEvent } from '@babylonjs/core/Events/deviceInputEvents';
 import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
