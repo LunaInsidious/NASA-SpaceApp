@@ -1216,6 +1216,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     },
     openMenu,
     closeMenus,
+    notify: toast,
     setNasaImages(images) {
       nasaImages = images;
     },

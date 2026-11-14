@@ -799,15 +799,3 @@
   padding: 12px 28px;
   font-size: 20px;
 }
-
-/* くんれん中の PC：窓を吹き出しの下に出して、「やること」を隠さない */
-@media (min-width: 900px) and (min-height: 600px) {
-  body[data-tutorial-step] .ui-modal-layer {
-    align-items: flex-start;
-    padding-top: 300px;
-  }
-
-  body[data-tutorial-step] .ui-modal {
-    max-height: calc(100vh - 320px);
-  }
-}

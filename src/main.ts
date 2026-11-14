@@ -373,10 +373,21 @@ function doAction(action: ContextAction): void {
       break;
     case 'repair': {
       const target = near.find(needsRepair);
-      if (target !== undefined) {
-        pending.push({ type: 'repair', facilityId: target.id });
-        fx.sound('repair');
+      if (target === undefined) {
+        break;
       }
+      // 点検には、傷んだ分の交換部品がいる（sim は足りないと何もしない）。足りなければそう知らせる
+      const need = (1 - target.condition) * values.maintenance.sparePartsPerFullRepair.value;
+      if (state.stocks.spareParts < need) {
+        ui.notify(
+          t('repair.noParts', { need: need.toFixed(1), have: state.stocks.spareParts.toFixed(1) }),
+          true,
+        );
+        fx.sound('warn');
+        break;
+      }
+      pending.push({ type: 'repair', facilityId: target.id });
+      fx.sound('repair');
       break;
     }
     case 'coverRegolith': {

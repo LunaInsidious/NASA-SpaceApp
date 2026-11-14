@@ -66,6 +66,8 @@ export interface Ui {
   /** NASA の本物の写真（data/nasa-images.json）。太陽フレアの警報に出す。起動時に main が1回呼ぶ */
   setNasaImages(images: NasaImages): void;
   closeMenus(): void;
+  /** 短いお知らせ（下の真ん中）。bad なら赤い線で出す */
+  notify(text: string, bad: boolean): void;
   isMenuOpen(): boolean;
   /** 「一時停止」のボタンで止めているか */
   isUserPaused(): boolean;
