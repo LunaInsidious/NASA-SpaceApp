@@ -130,9 +130,21 @@ export interface Tutorial {
   answerFlare(choice: 'shelter' | 'continue'): void;
   /** 「ゲームを さいしょから やりなおす」（セーブの窓のボタン）。本当にやり直すかを確かめる窓を出す */
   confirmRestart(): void;
+  /** タイトルの「はじめから」：新しいゲームにして「あそんだことがある？」から */
+  startNew(): void;
+  /** タイトルの「つづきから」：くんれんを終えていればミッション、まだなら「あそんだことがある？」から */
+  startContinue(): void;
 }
 
-type Mode = 'ask' | 'tutorial' | 'finishedModal' | 'missions' | 'confirmRestart' | 'failed';
+// title：タイトル画面で「はじめから」か「つづきから」を選ぶのを待っている（何も出さない）
+type Mode =
+  | 'title'
+  | 'ask'
+  | 'tutorial'
+  | 'finishedModal'
+  | 'missions'
+  | 'confirmRestart'
+  | 'failed';
 
 function readFinished(): boolean {
   try {
@@ -169,7 +181,7 @@ export function createTutorial(
   /** できた瞬間（段・ミッション・チュートリアルの完了）。main がお祝いの演出を出す */
   onCelebrate: (what: 'step' | 'mission' | 'trainingDone') => void,
 ): Tutorial {
-  let mode: Mode = readFinished() ? 'missions' : 'ask';
+  let mode: Mode = 'title';
   let index = 0;
   let stepYaw: number | null = null;
   let flareDrillRequested = false;
@@ -271,6 +283,10 @@ export function createTutorial(
     panel.hidden = false;
     reopen.hidden = true;
     delete document.body.dataset.tutorialStep;
+    if (mode === 'title') {
+      panel.hidden = true;
+      return;
+    }
     if (mode === 'ask') {
       panel.hidden = true;
       showModal('tutorial.welcome.title', 'tutorial.welcome.question', [
@@ -640,6 +656,13 @@ export function createTutorial(
   return {
     update,
     confirmRestart,
+    startNew() {
+      resetTo('ask');
+    },
+    startContinue() {
+      mode = readFinished() ? 'missions' : 'ask';
+      render();
+    },
     guide() {
       if (mode !== 'tutorial') {
         return null;

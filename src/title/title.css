@@ -1,0 +1,156 @@
+/* タイトル画面：うしろの月面を暗くして、真ん中にロゴとボタン */
+.title-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px;
+  overflow-y: auto;
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(20, 34, 64, 0.55), rgba(4, 6, 14, 0.92) 70%),
+    rgba(4, 6, 14, 0.4);
+  color: #f4f7fc;
+  font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  text-align: center;
+}
+
+.title-layer[hidden] {
+  display: none;
+}
+
+/* タイトルの間は、ゲームの表示とボタンを隠す */
+body[data-title="open"] .ui-root,
+body[data-title="open"] .help-toggle,
+body[data-title="open"] .fx-sound-toggle,
+body[data-title="open"] .tutorial-reopen,
+body[data-title="open"] .advice-card {
+  display: none;
+}
+
+.title-logo svg {
+  display: block;
+  width: min(360px, 80vw);
+  height: auto;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.6));
+  animation: title-float 4s ease-in-out infinite alternate;
+}
+
+@keyframes title-float {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-6px);
+  }
+}
+
+.title-name {
+  margin: 6px 0 0;
+  font-size: clamp(30px, 8vw, 52px);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #fff6d8;
+  text-shadow:
+    0 0 14px rgba(255, 200, 90, 0.55),
+    0 3px 0 #9a6a1c;
+}
+
+.title-subtitle {
+  margin: 2px 0 18px;
+  font-size: clamp(14px, 3.6vw, 18px);
+  color: #c9dcf0;
+}
+
+.title-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: min(340px, 86vw);
+}
+
+.title-menu h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  color: #9fd3ff;
+}
+
+.title-button {
+  padding: 14px 18px;
+  border: 2px solid rgba(159, 211, 255, 0.6);
+  border-radius: 14px;
+  background: rgba(20, 34, 54, 0.92);
+  color: #f4f7fc;
+  font: inherit;
+  font-size: 19px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.title-button.primary {
+  border-color: #8be0ad;
+  background: #2f9e5b;
+}
+
+.title-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.title-button.small {
+  padding: 8px 14px;
+  font-size: 15px;
+}
+
+.title-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 40vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.title-save {
+  width: 100%;
+  font-size: 16px;
+  text-align: left;
+}
+
+.title-setting {
+  padding: 8px 0;
+  text-align: left;
+}
+
+.title-setting-name {
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.title-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.title-choice {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  background: rgba(40, 52, 72, 0.95);
+  color: #f4f7fc;
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.title-choice.on {
+  border-color: #8fb6ff;
+  background: #3d7be0;
+}

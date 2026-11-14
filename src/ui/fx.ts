@@ -28,6 +28,9 @@ export interface Fx {
   banner(text: string, size: 'big' | 'small'): void;
   confetti(amount: 'burst' | 'shower'): void;
   sound(name: FxSound): void;
+  /** 音の切り替え（タイトルの「せってい」からも変える） */
+  soundMode(): SoundMode;
+  setSoundMode(mode: SoundMode): void;
 }
 
 const STORAGE_KEY = 'lunar-outpost-sound';
@@ -104,8 +107,8 @@ const SOUNDS: Record<FxSound, Voice[]> = {
   down: [{ wave: 'triangle', from: 620, to: 140, at: 0, seconds: 0.8, volume: 0.15 }],
 };
 // 音のボタンを押すたびに、音楽と効果音 → 効果音だけ → 音なし、と切り替わる
-const SOUND_MODES = ['all', 'sfx', 'off'] as const;
-type SoundMode = (typeof SOUND_MODES)[number];
+export const SOUND_MODES = ['all', 'sfx', 'off'] as const;
+export type SoundMode = (typeof SOUND_MODES)[number];
 const MODE_ICON: Record<SoundMode, string> = { all: '🎵', sfx: '🔊', off: '🔇' };
 
 function readSoundMode(): SoundMode {
@@ -151,16 +154,19 @@ export function createFx(root: HTMLElement): Fx {
   };
   renderToggle();
   onLangChange(renderToggle);
-  toggle.addEventListener('click', () => {
-    mode = SOUND_MODES[(SOUND_MODES.indexOf(mode) + 1) % SOUND_MODES.length];
+  const setSoundMode = (next: SoundMode) => {
+    mode = next;
     renderToggle();
     music.setOn(mode === 'all');
-    banner(t(`sound.${mode}`), 'small');
     try {
       localStorage.setItem(STORAGE_KEY, mode);
     } catch (error) {
       console.warn('音の設定を保存できない', error);
     }
+  };
+  toggle.addEventListener('click', () => {
+    setSoundMode(SOUND_MODES[(SOUND_MODES.indexOf(mode) + 1) % SOUND_MODES.length]);
+    banner(t(`sound.${mode}`), 'small');
   });
   root.append(toggle);
 
@@ -233,5 +239,7 @@ export function createFx(root: HTMLElement): Fx {
       window.setTimeout(() => layer.remove(), CONFETTI_MS);
     },
     sound,
+    soundMode: () => mode,
+    setSoundMode,
   };
 }

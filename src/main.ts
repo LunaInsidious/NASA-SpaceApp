@@ -27,6 +27,7 @@ import {
 import { createSaveStore } from './save/index.ts';
 import type { BuildOptions, Placement } from './sim/api.ts';
 import { checkPlacement, createInitialState, describe, step } from './sim/index.ts';
+import { createTitle } from './title/index.ts';
 import { type Advice, createAdviceCard, pickAdvices } from './tutorial/advice.ts';
 import { createTutorial, parseMissions } from './tutorial/index.ts';
 import type { ContextAction } from './ui/api.ts';
@@ -119,6 +120,17 @@ const tutorial = createTutorial(
   () => restartGame(),
   (what) => celebrate(what),
 );
+// タイトル画面。うしろには、いちばん新しいセーブ（なければ新しいゲーム）の月面を見せておく
+const title = createTitle(document.body, {
+  saves: () => saves.list(),
+  onNew: () => tutorial.startNew(),
+  onContinue: (saveId) => {
+    startFrom(saves.load(saveId));
+    tutorial.startContinue();
+  },
+  soundMode: () => fx.soundMode(),
+  setSoundMode: (mode) => fx.setSoundMode(mode),
+});
 // チュートリアルの「歩けたか」を測る起点
 const moveOrigin = { x: state.player.x, z: state.player.z };
 let lastGuideKey = '';
@@ -301,7 +313,9 @@ function startFrom(next: SimState): void {
 function applyPlayerMode(): void {
   carryBadge.hidden = carriedIce === null;
   world.setPlayerVisible(!indoors);
-  world.setMovementEnabled(!menuPaused && !tutorial.isBlocking() && !help.isOpen() && !indoors);
+  world.setMovementEnabled(
+    !menuPaused && !tutorial.isBlocking() && !help.isOpen() && !title.isOpen() && !indoors,
+  );
 }
 
 function distanceToPlayer(f: Facility): number {
@@ -744,7 +758,7 @@ refreshView();
 engine.runRenderLoop(() => {
   const dtSec = engine.getDeltaTime() / 1000;
   // チュートリアルの大きな窓を出している間は、時間も移動も止める
-  const blocking = tutorial.isBlocking() || help.isOpen();
+  const blocking = tutorial.isBlocking() || help.isOpen() || title.isOpen();
   if (blocking !== lastBlocking) {
     lastBlocking = blocking;
     applyPlayerMode();
