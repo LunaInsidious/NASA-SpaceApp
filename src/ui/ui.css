@@ -541,71 +541,25 @@
   }
 }
 
-/* 「?」：数値と出典 */
-.ui-src-wrap {
-  position: relative;
-  display: inline-block;
+/* 「データ」の窓：数値と出典の一覧 */
+.ui-modal h4 {
+  margin: 10px 0 2px;
+  font-size: 14px;
+  color: #9fd3ff;
 }
 
-.ui-root .ui-src {
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border-radius: 50%;
-  font-size: 11px;
-  line-height: 16px;
-  vertical-align: middle;
-}
-
-.ui-src-pop {
-  position: absolute;
-  top: 22px;
-  left: 0;
-  z-index: 8;
-  width: 280px;
-  padding: 8px 10px;
-  border: 1px solid #6fd3ff;
-  border-radius: 8px;
-  background: rgba(10, 16, 28, 0.97);
-  color: #eaf2fb;
-  font-size: 12px;
-  font-weight: 400;
-  text-align: left;
-  white-space: normal;
-  pointer-events: auto;
-}
-
-.ui-status .ui-src-pop {
-  left: auto;
-  right: 0;
-}
-
-.ui-src-pop ul {
-  margin: 4px 0 0;
+.ui-src-list {
+  margin: 2px 0 0;
   padding-left: 1.1em;
+  font-size: 13px;
 }
 
-.ui-src-pop li + li {
+.ui-src-list li + li {
   margin-top: 4px;
-}
-
-.ui-src-pop a {
-  color: #8fd3ff;
-}
-
-.ui-src-title {
-  font-weight: 700;
-  color: #6fd3ff;
 }
 
 .ui-src-tbd {
   color: #ffb08f;
-}
-
-/* 窓の中の「?」は、窓からはみ出さないよう上に開く */
-.ui-modal .ui-src-pop {
-  top: auto;
-  bottom: 22px;
 }
 
 /* 太陽フレアの警報：待つか、外にいるかを比べる */

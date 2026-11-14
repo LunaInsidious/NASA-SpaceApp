@@ -94,7 +94,7 @@ function pick<T extends string>(value: string | undefined, allowed: readonly T[]
   return found;
 }
 
-// 「?」で出典を見せる数値（HUD の項目ごと）
+// 「データ」の窓で、出典と並べて見せる数値（HUD の項目ごと）
 const SOURCE_KEYS = {
   tank: ['player.tankDurationHours'],
   lifeSupport: [
@@ -147,8 +147,8 @@ function valueAt(values: Values, path: string): ValueEntryLike {
   return node as ValueEntryLike;
 }
 
-/** 「?」の中身：数値と、その出典（リンクつき）。出典が決まっていなければそう書く */
-function sourcePopover(values: Values, section: SourceSection): string {
+/** 数値と、その出典（リンクつき）の一覧。出典が決まっていなければそう書く */
+function sourceListHtml(values: Values, section: SourceSection): string {
   const rows = SOURCE_KEYS[section].map((path) => {
     const entry = valueAt(values, path);
     const source =
@@ -161,7 +161,7 @@ function sourcePopover(values: Values, section: SourceSection): string {
             : esc(entry.source);
     return `<li><b>${t(`valueName.${path}`)}</b>：${esc(String(entry.value))} ${esc(entry.unit)}<br><span class="ui-small">${t('source.label')} ${source}</span></li>`;
   });
-  return `<div class="ui-src-pop"><div class="ui-src-title">${t('source.title')}</div><ul>${rows.join('')}</ul></div>`;
+  return `<ul class="ui-src-list">${rows.join('')}</ul>`;
 }
 
 /** 電力の差し引き。たまるか、へるかを＋と−、色、矢印で見せる */
@@ -321,7 +321,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     statusEl.hidden = false;
     const lines = [
       `<div>${t('hud.day', { day: Math.floor(view.day) + 1 })} · ${t(state.player.indoors ? 'hud.indoors' : 'hud.outdoors')}</div>`,
-      `<div class="${view.comm.linked ? 'ui-ok' : 'ui-bad'}">${t(view.comm.linked ? 'hud.commLinked' : 'hud.commLost')} ${sourceButton('comm')}</div>`,
+      `<div class="${view.comm.linked ? 'ui-ok' : 'ui-bad'}">${t(view.comm.linked ? 'hud.commLinked' : 'hud.commLost')}</div>`,
       ...(view.comm.linked
         ? []
         : [`<div class="ui-hint">${t(`commHint.${commLostReason(state, view)}`)}</div>`]),
@@ -347,10 +347,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
 
   // ---- 左上：資源と発展度 ----
   let lastLifeMin: number | null = null;
-  // 開いている「?」。HUD は時間が進むたびに描き直すので、開いたままにするために覚えておく
-  let openSource: SourceSection | null = null;
-  const sourceButton = (section: SourceSection) =>
-    `<span class="ui-src-wrap" data-src="${section}"><button class="ui-src" data-action="source" data-src="${section}" aria-label="?">?</button>${openSource === section ? sourcePopover(values, section) : ''}</span>`;
   /** 生き延びられる日数がふえた瞬間に、数字を弾ませ「＋N日」を飛ばして、きらきらを散らす */
   const celebrateLifeGain = (gainDays: number) => {
     const value = hudEl.querySelector<HTMLElement>('.ui-life-value');
@@ -412,7 +408,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     hudEl.classList.toggle('open', hudOpen);
     hudEl.innerHTML = `
       <div class="ui-panel ui-tank ui-tank-${tankLevel} ${state.player.indoors ? 'indoors' : ''}">
-        <div class="ui-tank-head"><span>🫧 <span class="ui-long">${t('hud.tankHp')}</span><span class="ui-short">${t('hud.tankShort')}</span> ${sourceButton('tank')}</span><span class="ui-tank-pct">${tankPct}%</span></div>
+        <div class="ui-tank-head"><span>🫧 <span class="ui-long">${t('hud.tankHp')}</span><span class="ui-short">${t('hud.tankShort')}</span></span><span class="ui-tank-pct">${tankPct}%</span></div>
         <div class="ui-tank-bar"><div style="width:${tankPct}%"></div></div>
         <div class="ui-small ui-long">${t(state.player.indoors ? 'hud.tankIndoors' : 'hud.tankOutdoors')}</div>
       </div>
@@ -425,18 +421,18 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       </button>
       <div class="ui-panel ui-detail">
         <div class="ui-stat" data-action="toggleBreakdown">
-          <span class="ui-label">${t('hud.lifeSupport')}</span> ${sourceButton('lifeSupport')}
+          <span class="ui-label">${t('hud.lifeSupport')}</span>
           <span class="ui-value ui-life-value ${life.min < LOW_DAYS ? 'ui-bad' : ''}">${daysText(life.min)}</span>
           ${breakdown}
         </div>
         <div class="ui-stat ui-power">
-          <span class="ui-label">${t('hud.power')}</span> ${sourceButton('power')}
+          <span class="ui-label">${t('hud.power')}</span>
           <div><span class="ui-ok">${t('hud.powerGen', { kw: fmt(power.generationKw, 1) })}</span>　<span class="ui-bad">${t('hud.powerUse', { kw: fmt(power.consumptionKw, 1) })}</span></div>
           ${powerNet(power.generationKw - power.consumptionKw)}
           ${battery}
         </div>
         <div class="ui-stat">
-          <span class="ui-label">${t('hud.shielding')}</span> ${sourceButton('shielding')}
+          <span class="ui-label">${t('hud.shielding')}</span>
           <div class="${doseWarn ? 'ui-bad' : ''}">${t('hud.dose', {
             dose: fmt(shielding.playerDoseMsv, 1),
             limit: fmt(shielding.doseLimitMsv),
@@ -446,7 +442,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       </div>
       <div class="ui-panel ui-detail ui-development">
         <div class="ui-stat">
-          <span class="ui-label">${t('development.total')}</span> ${sourceButton('development')}
+          <span class="ui-label">${t('development.total')}</span>
           <span class="ui-value">${fmt(development.total)}</span>
         </div>
         ${DEVELOPMENT_ELEMENTS.map(
@@ -687,8 +683,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <h2>${t(`flare.title.${event.kind}`)}</h2>
       <p>${t(`flare.explain.${event.kind}`)}</p>
       ${nasaImages.flare === undefined ? '' : photoFigureHtml(nasaImages.flare)}
-      <p><b>${t('flare.class', { value: esc(event.classOrIntensity) })}</b> ${sourceButton('flare')}</p>
-      <p class="ui-small">${source}<small>${t('flare.donkiId', { id: esc(event.donkiId) })}</small></p>
+      <p><b>${t('flare.class', { value: esc(event.classOrIntensity) })}</b></p>
+      <p class="ui-small">${source}</p>
       <p>${t('flare.hint')}</p>
       ${stormChoiceHtml(event)}
       <div class="ui-actions">
@@ -784,6 +780,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <h3>${t('data.spaceWeather')}</h3>
       <p class="ui-small">${t('data.spaceWeatherNote')}</p>
       <ul class="ui-list">${events}</ul>
+      <h3>${t('source.title')}</h3>
+      ${SOURCE_SECTIONS.map((section) => `<h4>${t(`source.section.${section}`)}</h4>${sourceListHtml(values, section)}`).join('')}
       <h3>${t('data.values')}</h3>
       ${sources === '' ? `<p class="ui-small">${t('data.valuesPending')}</p>` : `<ul class="ui-list">${sources}</ul>`}
       <h3>${t('data.terrainTitle')}</h3>
@@ -872,20 +870,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   };
 
   // ---- 入力 ----
-  root.addEventListener('mouseover', (e) => {
-    if (!(e.target instanceof Element)) {
-      return;
-    }
-    const wrap = e.target.closest<HTMLElement>('[data-src]');
-    const next = wrap === null ? null : pick(wrap.dataset.src, SOURCE_SECTIONS, 'source');
-    if (next !== openSource && (next !== null || !isTouch)) {
-      openSource = next;
-      renderHud();
-      renderStatus();
-      renderModal();
-    }
-  });
-
   root.addEventListener('click', (e) => {
     if (!(e.target instanceof Element)) {
       return;
@@ -895,14 +879,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       return;
     }
     switch (target.dataset.action) {
-      case 'source': {
-        const section = pick(target.dataset.src, SOURCE_SECTIONS, 'source');
-        openSource = openSource === section ? null : section;
-        renderHud();
-        renderStatus();
-        renderModal();
-        break;
-      }
       case 'speed':
         speed = pick(target.dataset.speed, ['1', '4'] as const, 'speed') === '4' ? 4 : 1;
         callbacks.onSpeedChange(speed);
