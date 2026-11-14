@@ -1604,8 +1604,8 @@ body.nb-open .ui-hud-tank {
 }
 
 .ui-root .ui-menu-grid button {
-  padding: 12px 8px;
-  font-size: 16px;
+  padding: 8px 8px;
+  font-size: 15px;
   font-weight: 700;
 }
 
@@ -1630,12 +1630,14 @@ body.nb-open .ui-hud-tank {
   }
 }
 
-/* メニューの中の項目：名前の下に小さく数（カードは 5/22）。新しいカードは NEW */
+/* メニューの中の項目：4つとも同じ高さの1行。数（カードは 5/22）と NEW は名前の横に小さく */
 .ui-root .ui-menu-grid button {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 2px;
+  justify-content: center;
+  gap: 2px 6px;
+  min-height: 44px;
 }
 
 .ui-menu-grid small {
@@ -1647,4 +1649,12 @@ body.nb-open .ui-hud-tank {
 .ui-new {
   color: #ffd27a;
   font-weight: 800;
+}
+
+/* スマホ：メニューの項目は横幅が足りないので、1列に並べて1行ずつにする */
+@media (max-width: 600px) {
+  .ui-menu-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
 }
