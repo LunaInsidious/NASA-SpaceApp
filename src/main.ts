@@ -39,7 +39,6 @@ import {
   restUntilNextDay,
   step,
 } from './sim/index.ts';
-import { sunlitAt } from './sim/model.ts';
 import {
   completeTask,
   needsRepair as facilityNeedsRepair,
@@ -54,7 +53,7 @@ import { createTitle } from './title/index.ts';
 import { type Advice, createAdviceCard, pickAdvices } from './tutorial/advice.ts';
 import { type DeathAdvice, type DeathKind, diagnoseDeath } from './tutorial/death.ts';
 import { createTutorial, parseMissions } from './tutorial/index.ts';
-import type { ContextAction, GridCell, MorningSummary, RestInfo } from './ui/api.ts';
+import type { ContextAction, MorningSummary, RestInfo } from './ui/api.ts';
 import { createFx } from './ui/fx.ts';
 import { onLangChange, t, tPlain } from './ui/i18n.ts';
 import { createUi } from './ui/index.ts';
@@ -141,9 +140,8 @@ let dayLog: DayLogEntry[] = [];
 // 休むときに見せた、休む理由（振り返りに「核になる知識の一言」として残す）
 let restReason: (typeof REST_REASONS)[number] | null = null;
 let lastRestKey = '';
-// くんれんの新しい段（インベントリ画面を開いた、マス目で建てた）
+// くんれんの新しい段（インベントリ画面を開いた）
 let inventoryOpened = false;
-let gridBuilt = false;
 // 休息の画面で選んだ、次に外に出たときのタスク（選んだ順）と、今日外でこなすタスク
 let selectedTaskIds: string[] = [];
 let todayPlan: PlannedTask[] = [];
@@ -229,27 +227,6 @@ const ui = createUi(
     },
     cardsHtml: () => cardsHtml(cardStore.list(), nasaImages),
     onOpenTerm: (term) => help.openTerm(asHelpTerm(term, '豆知識カード')),
-    gridCells: (kind, options, centerCol, centerRow) =>
-      gridCells(kind, options, centerCol, centerRow),
-    onGridBuild: (kind, options, x, z) => {
-      if (!placementAt(kind, options, x, z).allowed) {
-        throw new Error('建てられないマスで「ここに建てる」が押された');
-      }
-      pending.push({ type: 'build', kind, x, z, ...options });
-      dayLog.push({ kind: 'build', facility: kind });
-      gridBuilt = true;
-      fx.sound('pop');
-    },
-    iceOffset: () => {
-      const home = mainHabitat();
-      const cell = values.build.mapCellMeters.value;
-      const ice = [...env.iceSpots].sort(
-        (a, b) => Math.hypot(a.x - home.x, a.z - home.z) - Math.hypot(b.x - home.x, b.z - home.z),
-      )[0];
-      return ice === undefined
-        ? null
-        : { col: Math.round((ice.x - home.x) / cell), row: Math.round(-(ice.z - home.z) / cell) };
-    },
     onMinigameSound: (name) => {
       fx.sound(name === 'hit' ? 'pop' : name === 'miss' ? 'land' : 'star');
     },
@@ -771,45 +748,6 @@ function placementAt(kind: FacilityKind, options: BuildOptions, x: number, z: nu
   return checkPlacement(state, kind, x, z, options, values, env);
 }
 
-/**
- * 休息の画面の「建てる」のマス目の地図。最初の居住モジュールを真ん中に、上が +z。
- * centerCol・centerRow だけ、見ている場所をずらす
- */
-function gridCells(
-  kind: FacilityKind | null,
-  options: BuildOptions,
-  centerCol: number,
-  centerRow: number,
-): GridCell[] {
-  const home = mainHabitat();
-  const size = values.build.mapCells.value;
-  const cell = values.build.mapCellMeters.value;
-  const half = Math.floor(size / 2);
-  const [landerX, landerZ] = env.landerPosition;
-  const inCell = (fx: number, fz: number, x: number, z: number) =>
-    Math.abs(fx - x) <= cell / 2 && Math.abs(fz - z) <= cell / 2;
-  const cells: GridCell[] = [];
-  for (let row = 0; row < size; row++) {
-    for (let col = 0; col < size; col++) {
-      const x = home.x + (col - half + centerCol) * cell;
-      const z = home.z - (row - half + centerRow) * cell;
-      const facility = state.facilities.find((f) => inCell(f.x, f.z, x, z));
-      cells.push({
-        col,
-        row,
-        x,
-        z,
-        sunlit: sunlitAt(env, x, z, state.sunAzimuthRad, values),
-        earth: env.isEarthVisible(x, z),
-        ice: env.isIceAt(x, z),
-        facility: facility?.kind ?? (inCell(landerX, landerZ, x, z) ? 'lander' : null),
-        placement: kind === null ? null : placementAt(kind, options, x, z),
-      });
-    }
-  }
-  return cells;
-}
-
 function needsRepair(f: Facility): boolean {
   return facilityNeedsRepair(f, values);
 }
@@ -965,7 +903,6 @@ function updateTutorial(): void {
     userPaused: ui.isUserPaused(),
     readDictionary: help.hasRead(),
     inventoryOpened,
-    gridBuilt,
     tasksSelected: selectedTaskIds.length + todayPlan.length,
   });
   if (tutorial.takeFlareDrillRequest()) {

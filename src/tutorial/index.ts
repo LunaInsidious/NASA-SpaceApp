@@ -30,7 +30,6 @@ export const STEPS = [
   'waitArrival',
   'arrived',
   'assignCrew',
-  'gridBuild',
   'chooseTask',
   'toIce',
   'takeIce',
@@ -92,13 +91,6 @@ const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
     '[data-action="nbNext"]',
   ],
   inventory: ['[data-action="menu"][data-menu="status"]'],
-  gridBuild: [
-    '[data-action="gridBuild"]',
-    '.nb-cell.ok',
-    '[data-action="gridKind"][data-kind="solar"]',
-    '[data-action="nbGo"][data-page="build"]:not([disabled])',
-    '[data-action="nbNext"]',
-  ],
   chooseTask: [
     '[data-action="taskToggle"][data-task="ice"]:not(.on)',
     '[data-action="nbGo"][data-page="tasks"]:not([disabled])',
@@ -262,8 +254,6 @@ export interface TutorialProgress {
   restDays: number;
   /** インベントリ画面（くわしい様子）を開いたか */
   inventoryOpened: boolean;
-  /** 休息の画面のマス目の地図で建てたか */
-  gridBuilt: boolean;
   /** 選んだタスクの数（次に外に出るとき・今日の分） */
   tasksSelected: number;
   indoors: boolean;
@@ -788,8 +778,6 @@ export function createTutorial(
         return stepRest !== null && p.restDays > stepRest;
       case 'inventory':
         return p.inventoryOpened;
-      case 'gridBuild':
-        return p.gridBuilt;
       case 'chooseTask':
         return p.tasksSelected > 0;
       case 'waitArrival':
