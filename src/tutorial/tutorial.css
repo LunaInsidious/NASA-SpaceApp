@@ -1,0 +1,55 @@
+.tutorial {
+  position: fixed;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: 260px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(10, 14, 24, 0.78);
+  color: #e8eef8;
+  font:
+    13px / 1.45 system-ui,
+    sans-serif;
+  pointer-events: auto;
+  z-index: 5;
+}
+
+.tutorial[hidden] {
+  display: none;
+}
+
+.tutorial-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.tutorial ul {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.tutorial-done {
+  color: #8fd18f;
+}
+
+.tutorial-next {
+  margin-bottom: 6px;
+  color: #ffd27a;
+}
+
+.tutorial button {
+  font: inherit;
+  padding: 2px 10px;
+}
+
+@media (max-width: 640px) {
+  .tutorial {
+    top: auto;
+    bottom: 170px;
+    transform: none;
+    max-width: 200px;
+    font-size: 12px;
+  }
+}

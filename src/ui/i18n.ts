@@ -1,0 +1,61 @@
+// 文言（i18n/en.json、i18n/ja.json）。画面に出す文字はすべてここを通す
+import en from '../../i18n/en.json';
+import ja from '../../i18n/ja.json';
+
+export type Lang = 'en' | 'ja';
+
+const MESSAGES: Record<Lang, Record<string, string>> = { en, ja };
+const STORAGE_KEY = 'lang';
+// 仕様の「英語が基本」。保存された選択があればそれを使う
+const DEFAULT_LANG: Lang = 'en';
+
+const listeners: ((lang: Lang) => void)[] = [];
+let current: Lang = readSavedLang();
+
+function readSavedLang(): Lang {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved === 'en' || saved === 'ja' ? saved : DEFAULT_LANG;
+  } catch {
+    // localStorage が使えない環境（プライベートモードなど）では保存しないだけ
+    return DEFAULT_LANG;
+  }
+}
+
+/** key の文言。params の {name} を置き換える。キーや引数がなければ例外 */
+export function t(key: string, params?: Record<string, string | number>): string {
+  const text = MESSAGES[current][key];
+  if (text === undefined) {
+    throw new Error(`i18n にキーがない: ${key}`);
+  }
+  if (params === undefined) {
+    return text;
+  }
+  return text.replace(/\{(\w+)\}/g, (_match, name: string) => {
+    if (!(name in params)) {
+      throw new Error(`i18n の引数がない: ${key} の {${name}}`);
+    }
+    return String(params[name]);
+  });
+}
+
+export function getLang(): Lang {
+  return current;
+}
+
+export function setLang(lang: Lang): void {
+  current = lang;
+  document.documentElement.lang = lang;
+  try {
+    localStorage.setItem(STORAGE_KEY, lang);
+  } catch {
+    // 保存できなくても、この回の表示は切り替わる
+  }
+  for (const listener of listeners) {
+    listener(lang);
+  }
+}
+
+export function onLangChange(listener: (lang: Lang) => void): void {
+  listeners.push(listener);
+}

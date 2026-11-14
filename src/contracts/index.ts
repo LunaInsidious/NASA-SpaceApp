@@ -12,6 +12,29 @@ export type FacilityKind =
   | 'iceDrill'
   | 'shield';
 export type CrewTask = 'maintenance' | 'research' | 'farming';
+export type LaunchItemKind =
+  | 'oxygen'
+  | 'water'
+  | 'food'
+  | 'spareParts'
+  | 'materials'
+  | 'facilityKit'
+  | 'crew'
+  | 'relaySatellite';
+
+export interface LaunchItem {
+  kind: LaunchItemKind;
+  quantity: number;
+  facilityKind?: FacilityKind; // facilityKit のときだけ
+}
+
+/** コスト ＝ max(実際の重さ, 大きさを重さに換算した値)。値は values.json */
+export interface Launch {
+  id: string;
+  items: LaunchItem[];
+  totalCost: number;
+  arrivesAtHours: number;
+}
 
 export interface PlanetConfig {
   id: 'moon' | 'mars';
@@ -25,6 +48,9 @@ export interface PlanetConfig {
 
 export interface SiteConfig {
   id: string; // 着陸地点
+  stage: 1 | 2 | 3 | 4 | 5; // 解放の段階
+  latitudeDeg: number; // 太陽の動きの計算に使う
+  scale: number; // 縦横同じ縮尺（例 0.1）。距離の表示は実寸に戻す
   heightmapUrl: string; // 16bit PNG
   illuminationUrl: string; // 平均日照率の画像（表示と説明用）
   earthVisibilityUrl: string; // 地球が見えるかの画像
@@ -49,6 +75,8 @@ export interface Facility {
   z: number;
   condition: number; // 0〜1。劣化で下がり、点検で戻る
   dustCover: boolean; // ほこりよけの有無
+  shieldMaterial?: 'regolith' | 'water'; // 遮蔽の壁の材料
+  regolithCover?: boolean; // 居住モジュールにレゴリスを盛ったか
   sunlit: boolean; // 直前の判定結果（太陽電池等）
 }
 
@@ -77,7 +105,11 @@ export interface SimState {
     best: number;
   };
   activeEvents: ActiveEvent[];
-  pendingCrewOffer: boolean;
+  launches: Launch[]; // 注文済みで、まだ届いていない打ち上げ
+  nextLaunchAtHours: number; // 次に注文できる打ち上げ
+  relaySatellites: number; // 0〜2
+  commLinked: boolean; // 今、地球と通じているか
+  unsentResearch: number; // 通信が途切れて送れていない研究
   phase: 'tutorial' | 'main' | 'cleared' | 'gameOver';
 }
 
@@ -91,11 +123,19 @@ export interface DailyRecord {
 }
 
 export type SimCommand =
-  | { type: 'build'; kind: FacilityKind; x: number; z: number; dustCover: boolean }
+  | {
+      type: 'build';
+      kind: FacilityKind;
+      x: number;
+      z: number;
+      dustCover: boolean;
+      shieldMaterial?: 'regolith' | 'water';
+    }
+  | { type: 'coverWithRegolith'; facilityId: string }
   | { type: 'demolish'; facilityId: string }
   | { type: 'repair'; facilityId: string } // プレイヤーが自分で点検
   | { type: 'assignCrew'; crewId: string; task: CrewTask }
-  | { type: 'answerCrewOffer'; accept: boolean }
+  | { type: 'orderLaunch'; items: LaunchItem[] }
   | { type: 'collectIce'; x: number; z: number }
   | { type: 'setPlayer'; x: number; z: number; indoors: boolean };
 
@@ -110,7 +150,9 @@ export interface ActiveEvent {
 export type GameEvent =
   | { type: 'facilityStopped'; facilityId: string; reason: 'shadow' | 'condition' | 'noPower' }
   | { type: 'eventStarted'; event: ActiveEvent }
-  | { type: 'crewOffer' }
+  | { type: 'launchArrived'; launchId: string }
+  | { type: 'commLost' }
+  | { type: 'commRestored' }
   | { type: 'playerDowned'; reason: 'tankEmpty' | 'radiation' }
   | { type: 'developmentChanged'; total: number }
   | { type: 'cleared' }
@@ -150,8 +192,7 @@ export interface DonkiEvent {
   classOrIntensity: string; // フレアの等級（例：X1.0）。SEP は強さ
   // TODO(人間に確認): 仕様の項目にはないが、画面から DONKI の出典をたどれるように DONKI のページの URL を持たせた
   link: string;
-  gameDay: number; // ゲーム内で起こす日（着陸からの日数）
 }
 
-/** data/donki-events.json の型。弱いものから強いものの順に並べる */
+/** data/donki-events.json の型。ゲーム内で起こしてよいイベントの一覧（いつ起こすかはランダム） */
 export type DonkiTimeline = DonkiEvent[];

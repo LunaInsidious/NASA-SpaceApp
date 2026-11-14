@@ -1,39 +1,772 @@
 {
   "time": {
-    "secondsPerEarthDay": { "value": 20, "unit": "s", "source": "docs/SPEC.md 時間" },
-    "stepHours": { "value": 1, "unit": "h", "source": "TBD" },
-    "fastSpeedMultiplier": { "value": 4, "unit": "x", "source": "docs/SPEC.md 時間" }
+    "secondsPerEarthDay": {
+      "value": 20,
+      "unit": "s",
+      "source": "docs/SPEC.md 時間"
+    },
+    "stepHours": {
+      "value": 1,
+      "unit": "h",
+      "source": "TBD"
+    },
+    "fastSpeedMultiplier": {
+      "value": 4,
+      "unit": "x",
+      "source": "docs/SPEC.md 時間"
+    }
   },
   "moon": {
-    "gravity": { "value": 1.62, "unit": "m/s^2", "source": "TBD" },
-    "sunElevationDeg": { "value": 1.5, "unit": "deg", "source": "TBD" },
-    "sunPeriodDays": { "value": 29.5, "unit": "day", "source": "docs/SPEC.md 時間" },
-    "commDelaySec": { "value": 1.3, "unit": "s", "source": "TBD" },
-    "radiationMsvPerDay": { "value": 1.4, "unit": "mSv/day", "source": "TBD" }
+    "gravity": {
+      "value": 1.62,
+      "unit": "m/s^2",
+      "source": "TBD"
+    },
+    "sunElevationDeg": {
+      "value": 1.5,
+      "unit": "deg",
+      "source": "TBD"
+    },
+    "sunPeriodDays": {
+      "value": 29.5,
+      "unit": "day",
+      "source": "docs/SPEC.md 時間"
+    },
+    "commDelaySec": {
+      "value": 1.3,
+      "unit": "s",
+      "source": "TBD"
+    },
+    "radiationMsvPerDay": {
+      "value": 1.4,
+      "unit": "mSv/day",
+      "source": "TBD"
+    },
+    "earthElevationDeg": {
+      "value": 3,
+      "unit": "deg",
+      "source": "TBD"
+    }
   },
   "crew": {
-    "oxygenKgPerDay": { "value": 0.84, "unit": "kg/person/day", "source": "TBD" },
-    "waterKgPerDay": { "value": 2.5, "unit": "kg/person/day", "source": "TBD" },
-    "foodKgPerDay": { "value": 1.8, "unit": "kg/person/day", "source": "TBD" },
-    "doseLimitMsv": { "value": 600, "unit": "mSv", "source": "TBD" },
-    "maxCount": { "value": 10, "unit": "person", "source": "TBD" },
-    "offerMinDevelopment": { "value": 40, "unit": "pt", "source": "TBD" }
+    "oxygenKgPerDay": {
+      "value": 0.84,
+      "unit": "kg/person/day",
+      "source": "TBD"
+    },
+    "waterKgPerDay": {
+      "value": 2.5,
+      "unit": "kg/person/day",
+      "source": "TBD"
+    },
+    "foodKgPerDay": {
+      "value": 1.8,
+      "unit": "kg/person/day",
+      "source": "TBD"
+    },
+    "doseLimitMsv": {
+      "value": 600,
+      "unit": "mSv",
+      "source": "TBD"
+    },
+    "maxCount": {
+      "value": 10,
+      "unit": "person",
+      "source": "TBD"
+    }
   },
   "development": {
-    "elementMin": { "value": 5, "unit": "pt", "source": "docs/SPEC.md 発展度" },
-    "elementMax": { "value": 100, "unit": "pt", "source": "docs/SPEC.md 発展度" },
-    "clearThreshold": { "value": 60, "unit": "pt", "source": "docs/SPEC.md クリアとその後" },
-    "selfSufficiencyWindowDays": { "value": 7, "unit": "day", "source": "docs/SPEC.md 発展度" },
-    "stabilityBatteryWindowDays": { "value": 3, "unit": "day", "source": "docs/SPEC.md 発展度" },
-    "stabilityFullSupplyDays": { "value": 14, "unit": "day", "source": "docs/SPEC.md 発展度" },
-    "safetyDownedWindowDays": { "value": 7, "unit": "day", "source": "docs/SPEC.md 発展度" },
-    "safetyDownedFactor": { "value": 0.9, "unit": "x", "source": "docs/SPEC.md 発展度" },
-    "scalePerCrew": { "value": 20, "unit": "pt/person", "source": "docs/SPEC.md 発展度" },
+    "elementMin": {
+      "value": 5,
+      "unit": "pt",
+      "source": "docs/SPEC.md 発展度"
+    },
+    "elementMax": {
+      "value": 100,
+      "unit": "pt",
+      "source": "docs/SPEC.md 発展度"
+    },
+    "clearThreshold": {
+      "value": 60,
+      "unit": "pt",
+      "source": "docs/SPEC.md クリアとその後"
+    },
+    "selfSufficiencyWindowDays": {
+      "value": 7,
+      "unit": "day",
+      "source": "docs/SPEC.md 発展度"
+    },
+    "stabilityBatteryWindowDays": {
+      "value": 3,
+      "unit": "day",
+      "source": "docs/SPEC.md 発展度"
+    },
+    "stabilityFullSupplyDays": {
+      "value": 14,
+      "unit": "day",
+      "source": "docs/SPEC.md 発展度"
+    },
+    "safetyDownedWindowDays": {
+      "value": 7,
+      "unit": "day",
+      "source": "docs/SPEC.md 発展度"
+    },
+    "safetyDownedFactor": {
+      "value": 0.9,
+      "unit": "x",
+      "source": "docs/SPEC.md 発展度"
+    },
+    "scalePerCrew": {
+      "value": 20,
+      "unit": "pt/person",
+      "source": "docs/SPEC.md 発展度"
+    },
     "scalePerResearch": {
       "value": 10,
       "unit": "pt/(research/day)",
       "source": "docs/SPEC.md 発展度"
     },
-    "scaleResearchWindowDays": { "value": 7, "unit": "day", "source": "docs/SPEC.md 発展度" }
+    "scaleResearchWindowDays": {
+      "value": 7,
+      "unit": "day",
+      "source": "docs/SPEC.md 発展度"
+    }
+  },
+  "terrain": {
+    "sizeMeters": {
+      "value": 300,
+      "unit": "m",
+      "source": "docs/SPEC.md 未決事項（仮の値）"
+    },
+    "latitudeDeg": {
+      "value": -89.5,
+      "unit": "deg",
+      "source": "TBD"
+    },
+    "landerClearanceMeters": {
+      "value": 6,
+      "unit": "m",
+      "source": "TBD"
+    }
+  },
+  "player": {
+    "walkSpeedMps": {
+      "value": 3,
+      "unit": "m/s",
+      "source": "TBD"
+    },
+    "jumpSpeedMps": {
+      "value": 2.5,
+      "unit": "m/s",
+      "source": "TBD"
+    },
+    "buildDistanceMeters": {
+      "value": 6,
+      "unit": "m",
+      "source": "TBD"
+    },
+    "interactRadiusMeters": {
+      "value": 8,
+      "unit": "m",
+      "source": "TBD"
+    },
+    "tankDurationHours": {
+      "value": 72,
+      "unit": "h",
+      "source": "TBD"
+    },
+    "tankRefillOxygenKg": {
+      "value": 1.0,
+      "unit": "kg",
+      "source": "TBD"
+    },
+    "iceKgPerTrip": {
+      "value": 30,
+      "unit": "kg",
+      "source": "TBD"
+    },
+    "repairDoseHours": {
+      "value": 3,
+      "unit": "h",
+      "source": "TBD"
+    },
+    "regolithCoverDoseHours": {
+      "value": 6,
+      "unit": "h",
+      "source": "TBD"
+    },
+    "acuteDoseMsv": {
+      "value": 50,
+      "unit": "mSv",
+      "source": "TBD"
+    },
+    "repairPromptBelowCondition": {
+      "value": 0.8,
+      "unit": "ratio",
+      "source": "TBD"
+    }
+  },
+  "start": {
+    "oxygenKg": {
+      "value": 25,
+      "unit": "kg",
+      "source": "TBD"
+    },
+    "waterKg": {
+      "value": 80,
+      "unit": "kg",
+      "source": "TBD"
+    },
+    "foodKg": {
+      "value": 45,
+      "unit": "kg",
+      "source": "TBD"
+    },
+    "spareParts": {
+      "value": 10,
+      "unit": "unit",
+      "source": "TBD"
+    },
+    "materialsKg": {
+      "value": 600,
+      "unit": "kg",
+      "source": "TBD"
+    },
+    "habitatOffsetX": {
+      "value": 10,
+      "unit": "m",
+      "source": "TBD"
+    },
+    "habitatOffsetZ": {
+      "value": 0,
+      "unit": "m",
+      "source": "TBD"
+    },
+    "antennaOffsetX": {
+      "value": -8,
+      "unit": "m",
+      "source": "TBD"
+    },
+    "antennaOffsetZ": {
+      "value": 6,
+      "unit": "m",
+      "source": "TBD"
+    },
+    "playerOffsetX": {
+      "value": 0,
+      "unit": "m",
+      "source": "TBD"
+    },
+    "playerOffsetZ": {
+      "value": -8,
+      "unit": "m",
+      "source": "TBD"
+    }
+  },
+  "facilities": {
+    "common": {
+      "stopBelowCondition": {
+        "value": 0.3,
+        "unit": "ratio",
+        "source": "TBD"
+      },
+      "minSpacingMeters": {
+        "value": 4,
+        "unit": "m",
+        "source": "TBD"
+      },
+      "sunlitCheckHeightMeters": {
+        "value": 1.5,
+        "unit": "m",
+        "source": "TBD"
+      },
+      "demolishRefundRatio": {
+        "value": 0.5,
+        "unit": "ratio",
+        "source": "TBD"
+      }
+    },
+    "dustCover": {
+      "materialsMultiplier": {
+        "value": 1.3,
+        "unit": "x",
+        "source": "TBD"
+      },
+      "extraEnergyKwh": {
+        "value": 5,
+        "unit": "kWh",
+        "source": "TBD"
+      },
+      "degradationMultiplier": {
+        "value": 0.4,
+        "unit": "x",
+        "source": "TBD"
+      }
+    },
+    "habitat": {
+      "buildMaterialsKg": {
+        "value": 300,
+        "unit": "kg",
+        "source": "TBD"
+      },
+      "buildEnergyKwh": {
+        "value": 0,
+        "unit": "kWh",
+        "source": "TBD"
+      },
+      "powerKw": {
+        "value": 1.0,
+        "unit": "kW",
+        "source": "TBD"
+      },
+      "crewCapacity": {
+        "value": 4,
+        "unit": "person",
+        "source": "TBD"
+      },
+      "indoorProtection": {
+        "value": 0.5,
+        "unit": "ratio",
+        "source": "TBD"
+      },
+      "degradationPerDay": {
+        "value": 0.004,
+        "unit": "1/day",
+        "source": "TBD"
+      }
+    },
+    "solar": {
+      "buildMaterialsKg": {
+        "value": 80,
+        "unit": "kg",
+        "source": "TBD"
+      },
+      "buildEnergyKwh": {
+        "value": 0,
+        "unit": "kWh",
+        "source": "TBD"
+      },
+      "generationKw": {
+        "value": 4,
+        "unit": "kW",
+        "source": "TBD"
+      },
+      "degradationPerDay": {
+        "value": 0.01,
+        "unit": "1/day",
+        "source": "TBD"
+      }
+    },
+    "battery": {
+      "buildMaterialsKg": {
+        "value": 60,
+        "unit": "kg",
+        "source": "TBD"
+      },
+      "buildEnergyKwh": {
+        "value": 0,
+        "unit": "kWh",
+        "source": "TBD"
+      },
+      "capacityKwh": {
+        "value": 40,
+        "unit": "kWh",
+        "source": "TBD"
+      },
+      "degradationPerDay": {
+        "value": 0.003,
+        "unit": "1/day",
+        "source": "TBD"
+      }
+    },
+    "antenna": {
+      "buildMaterialsKg": {
+        "value": 50,
+        "unit": "kg",
+        "source": "TBD"
+      },
+      "buildEnergyKwh": {
+        "value": 0,
+        "unit": "kWh",
+        "source": "TBD"
+      },
+      "powerKw": {
+        "value": 0.2,
+        "unit": "kW",
+        "source": "TBD"
+      },
+      "degradationPerDay": {
+        "value": 0.005,
+        "unit": "1/day",
+        "source": "TBD"
+      }
+    },
+    "greenhouse": {
+      "buildMaterialsKg": {
+        "value": 150,
+        "unit": "kg",
+        "source": "TBD"
+      },
+      "buildEnergyKwh": {
+        "value": 0,
+        "unit": "kWh",
+        "source": "TBD"
+      },
+      "powerKw": {
+        "value": 1.5,
+        "unit": "kW",
+        "source": "TBD"
+      },
+      "foodKgPerDay": {
+        "value": 4,
+        "unit": "kg/day",
+        "source": "TBD"
+      },
+      "waterKgPerDay": {
+        "value": 1.0,
+        "unit": "kg/day",
+        "source": "TBD"
+      },
+      "farmersNeeded": {
+        "value": 1,
+        "unit": "person",
+        "source": "TBD"
+      },
+      "degradationPerDay": {
+        "value": 0.006,
+        "unit": "1/day",
+        "source": "TBD"
+      }
+    },
+    "lifeSupport": {
+      "buildMaterialsKg": {
+        "value": 120,
+        "unit": "kg",
+        "source": "TBD"
+      },
+      "buildEnergyKwh": {
+        "value": 0,
+        "unit": "kWh",
+        "source": "TBD"
+      },
+      "powerKw": {
+        "value": 1.2,
+        "unit": "kW",
+        "source": "TBD"
+      },
+      "oxygenKgPerDay": {
+        "value": 2.0,
+        "unit": "kg/day",
+        "source": "TBD"
+      },
+      "waterPerOxygen": {
+        "value": 1.125,
+        "unit": "kg/kg",
+        "source": "TBD"
+      },
+      "degradationPerDay": {
+        "value": 0.006,
+        "unit": "1/day",
+        "source": "TBD"
+      },
+      "waterRecoveryRatio": {
+        "value": 0.85,
+        "unit": "ratio",
+        "source": "TBD"
+      }
+    },
+    "iceDrill": {
+      "buildMaterialsKg": {
+        "value": 100,
+        "unit": "kg",
+        "source": "TBD"
+      },
+      "buildEnergyKwh": {
+        "value": 0,
+        "unit": "kWh",
+        "source": "TBD"
+      },
+      "powerKw": {
+        "value": 2.5,
+        "unit": "kW",
+        "source": "TBD"
+      },
+      "waterKgPerDay": {
+        "value": 6,
+        "unit": "kg/day",
+        "source": "TBD"
+      },
+      "degradationPerDay": {
+        "value": 0.02,
+        "unit": "1/day",
+        "source": "TBD"
+      }
+    },
+    "shield": {
+      "regolithMaterialsKg": {
+        "value": 200,
+        "unit": "kg",
+        "source": "TBD"
+      },
+      "waterFrameMaterialsKg": {
+        "value": 40,
+        "unit": "kg",
+        "source": "TBD"
+      },
+      "buildEnergyKwh": {
+        "value": 0,
+        "unit": "kWh",
+        "source": "TBD"
+      },
+      "waterKg": {
+        "value": 30,
+        "unit": "kg",
+        "source": "TBD"
+      },
+      "regolithProtection": {
+        "value": 0.15,
+        "unit": "ratio",
+        "source": "TBD"
+      },
+      "waterProtection": {
+        "value": 0.25,
+        "unit": "ratio",
+        "source": "TBD"
+      },
+      "degradationPerDay": {
+        "value": 0.001,
+        "unit": "1/day",
+        "source": "TBD"
+      }
+    }
+  },
+  "protection": {
+    "regolithCoverBonus": {
+      "value": 0.25,
+      "unit": "ratio",
+      "source": "TBD"
+    },
+    "max": {
+      "value": 0.9,
+      "unit": "ratio",
+      "source": "TBD"
+    }
+  },
+  "maintenance": {
+    "conditionPerPersonDay": {
+      "value": 0.05,
+      "unit": "1/person/day",
+      "source": "TBD"
+    },
+    "sparePartsPerFullRepair": {
+      "value": 1,
+      "unit": "unit",
+      "source": "TBD"
+    }
+  },
+  "research": {
+    "perPersonDay": {
+      "value": 1,
+      "unit": "research/person/day",
+      "source": "docs/SPEC.md 未決事項（仮の実装）"
+    }
+  },
+  "comm": {
+    "earthPeriodDays": {
+      "value": 27.3,
+      "unit": "day",
+      "source": "TBD"
+    },
+    "relayOrbitHours": {
+      "value": 12,
+      "unit": "h",
+      "source": "TBD"
+    },
+    "relayOneCoverage": {
+      "value": 0.8,
+      "unit": "ratio",
+      "source": "TBD"
+    },
+    "maxRelaySatellites": {
+      "value": 2,
+      "unit": "unit",
+      "source": "docs/SPEC.md 通信と中継衛星"
+    }
+  },
+  "launch": {
+    "intervalDays": {
+      "value": 10,
+      "unit": "day",
+      "source": "docs/SPEC.md 未決事項（仮の値）"
+    },
+    "deliveryDays": {
+      "value": 3,
+      "unit": "day",
+      "source": "docs/SPEC.md 未決事項（仮の値）"
+    },
+    "capacityKg": {
+      "value": 2000,
+      "unit": "kg",
+      "source": "TBD"
+    },
+    "volumetricKgPerM3": {
+      "value": 167,
+      "unit": "kg/m^3",
+      "source": "TBD"
+    },
+    "items": {
+      "oxygen": {
+        "massKg": {
+          "value": 1.5,
+          "unit": "kg/unit",
+          "source": "TBD"
+        },
+        "volumeM3": {
+          "value": 0.002,
+          "unit": "m^3/unit",
+          "source": "TBD"
+        }
+      },
+      "water": {
+        "massKg": {
+          "value": 1.05,
+          "unit": "kg/unit",
+          "source": "TBD"
+        },
+        "volumeM3": {
+          "value": 0.001,
+          "unit": "m^3/unit",
+          "source": "TBD"
+        }
+      },
+      "food": {
+        "massKg": {
+          "value": 1.2,
+          "unit": "kg/unit",
+          "source": "TBD"
+        },
+        "volumeM3": {
+          "value": 0.004,
+          "unit": "m^3/unit",
+          "source": "TBD"
+        }
+      },
+      "spareParts": {
+        "massKg": {
+          "value": 5,
+          "unit": "kg/unit",
+          "source": "TBD"
+        },
+        "volumeM3": {
+          "value": 0.03,
+          "unit": "m^3/unit",
+          "source": "TBD"
+        }
+      },
+      "materials": {
+        "massKg": {
+          "value": 1,
+          "unit": "kg/unit",
+          "source": "TBD"
+        },
+        "volumeM3": {
+          "value": 0.0005,
+          "unit": "m^3/unit",
+          "source": "TBD"
+        }
+      },
+      "facilityKit": {
+        "massPerMaterialKg": {
+          "value": 1,
+          "unit": "kg/kg",
+          "source": "TBD"
+        },
+        "volumeM3": {
+          "value": 2,
+          "unit": "m^3/unit",
+          "source": "TBD"
+        }
+      },
+      "crew": {
+        "massKg": {
+          "value": 500,
+          "unit": "kg/person",
+          "source": "TBD"
+        },
+        "volumeM3": {
+          "value": 3,
+          "unit": "m^3/person",
+          "source": "TBD"
+        }
+      },
+      "relaySatellite": {
+        "massKg": {
+          "value": 300,
+          "unit": "kg/unit",
+          "source": "TBD"
+        },
+        "volumeM3": {
+          "value": 3,
+          "unit": "m^3/unit",
+          "source": "TBD"
+        }
+      }
+    }
+  },
+  "events": {
+    "flareDurationHours": {
+      "value": 12,
+      "unit": "h",
+      "source": "TBD"
+    },
+    "sepDurationHours": {
+      "value": 36,
+      "unit": "h",
+      "source": "TBD"
+    },
+    "meanIntervalDays": {
+      "value": 10,
+      "unit": "day",
+      "source": "docs/SPEC.md 未決事項（仮の値）"
+    },
+    "flareMultiplierC": {
+      "value": 5,
+      "unit": "x",
+      "source": "TBD"
+    },
+    "flareMultiplierM": {
+      "value": 20,
+      "unit": "x",
+      "source": "TBD"
+    },
+    "flareMultiplierX": {
+      "value": 120,
+      "unit": "x",
+      "source": "TBD"
+    },
+    "sepMultiplier": {
+      "value": 150,
+      "unit": "x",
+      "source": "TBD"
+    }
+  },
+  "display": {
+    "maxLifeSupportDays": {
+      "value": 999,
+      "unit": "day",
+      "source": "TBD"
+    }
+  },
+  "save": {
+    "autoSaveDays": {
+      "value": 7,
+      "unit": "day",
+      "source": "docs/SPEC.md 未決事項（仮の値）"
+    },
+    "manualSlots": {
+      "value": 3,
+      "unit": "slot",
+      "source": "docs/SPEC.md 未決事項（仮の値）"
+    }
   }
 }

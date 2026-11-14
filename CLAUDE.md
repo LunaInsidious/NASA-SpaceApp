@@ -32,3 +32,10 @@ PRを出す前に `pnpm lint`、`pnpm test`、`pnpm build` を通す。
 - 文言のキーは `区分.名前` の平らな形（例：`facility.solar`）。名前は契約の識別子（`FacilityKind` など）にそろえる。`en.json` と `ja.json` は同じキーを持つ（`tests/data.test.ts` で確かめる）
 - `src/sim/` と `src/contracts/` は DOM のない設定（`tsconfig.pure.json`）でも型チェックする。Biome で Babylon とほかの層の読み込み、`Date`、`Math.random` を禁止している。`src/sim/` ではさらに `data/` の読み込みと、計算式に直接書いた数値も禁止（テストは対象外）
 - 自分のモジュールは拡張子 `.ts` を付けて読み込む
+
+## MVP（2026-11-14 15時）で決めたこと
+
+- モジュールのつなぎ目は `src/sim/api.ts`、`src/env/api.ts`、`src/world/api.ts`、`src/ui/api.ts`。Engine と Scene は `src/main.ts` が作り、`step` を固定の刻みで呼ぶ
+- 施設ごとの数値は当面 `data/values.json` の `facilities.<種類>` に置く。仕様のデータ表は `data/facilities.json` を別に置く形なので、どちらにするかは人間に確認する
+- `data/donki-events.json` は、DONKI のページで確かめた実際のフレア2件（M5.9、X8.7）。SEP はまだない。取り直すときは `tools/fetch-donki.ts`（1回の実行で NASA に2回問い合わせる。繰り返し実行しない）
+- 実データの地形（ステップ5）、セーブ、実績、ランキング、データ出典の画面はまだない
