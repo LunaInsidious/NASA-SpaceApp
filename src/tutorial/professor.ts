@@ -50,17 +50,37 @@ export interface Typing {
   isTyping(): boolean;
 }
 
+/** 要素の中身を、1文字ずつ出すための単位（HTML）に分ける。ふりがなの付いた言葉（<ruby>）はまとめて1つ */
+function units(el: HTMLElement): string[] {
+  const out: string[] = [];
+  for (const node of Array.from(el.childNodes)) {
+    if (node instanceof HTMLElement) {
+      out.push(node.outerHTML);
+    } else {
+      const holder = document.createElement('span');
+      for (const ch of Array.from(node.textContent ?? '')) {
+        // 文字は HTML として安全な形にしてから並べる
+        holder.textContent = ch;
+        out.push(holder.innerHTML);
+      }
+    }
+  }
+  return out;
+}
+
 /**
- * elements の文を、順番に1文字ずつ出す。onDone は出し終わったとき（finish で飛ばしたときも）に1回だけ呼ぶ
+ * elements の文を、順番に1文字ずつ出す（ふりがなの付いた言葉は1度に出す）。
+ * onDone は出し終わったとき（finish で飛ばしたときも）に1回だけ呼ぶ
  */
 export function typeText(elements: HTMLElement[], onDone: () => void): Typing {
-  const texts = elements.map((el) => el.textContent ?? '');
+  const texts = elements.map((el) => el.innerHTML);
+  const pieces = elements.map(units);
   // まだ出していない文字は透明にして置いておく。文の大きさが最初から決まり、下のボタンが動かない
   const parts = elements.map((el, i) => {
     const shownPart = document.createElement('span');
     const restPart = document.createElement('span');
     restPart.className = 'typing-rest';
-    restPart.textContent = texts[i];
+    restPart.innerHTML = texts[i];
     el.replaceChildren(shownPart, restPart);
     return { shownPart, restPart };
   });
@@ -72,17 +92,16 @@ export function typeText(elements: HTMLElement[], onDone: () => void): Typing {
     done = true;
     window.clearInterval(timer);
     elements.forEach((el, i) => {
-      el.textContent = texts[i];
+      el.innerHTML = texts[i];
     });
     onDone();
   };
   const timer = window.setInterval(() => {
-    // 文字の区切りが壊れないよう、文字列を配列にしてから数える
-    const chars = Array.from(texts[current]);
+    const list = pieces[current];
     shown++;
-    parts[current].shownPart.textContent = chars.slice(0, shown).join('');
-    parts[current].restPart.textContent = chars.slice(shown).join('');
-    if (shown >= chars.length) {
+    parts[current].shownPart.innerHTML = list.slice(0, shown).join('');
+    parts[current].restPart.innerHTML = list.slice(shown).join('');
+    if (shown >= list.length) {
       current++;
       shown = 0;
       if (current >= elements.length) finish();

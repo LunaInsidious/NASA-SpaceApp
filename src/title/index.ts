@@ -77,7 +77,7 @@ export function createTitle(root: HTMLElement, callbacks: TitleCallbacks): Title
     const b = document.createElement('button');
     b.type = 'button';
     b.className = className;
-    b.textContent = label;
+    b.innerHTML = label;
     b.disabled = disabled;
     b.addEventListener('click', onClick);
     return b;
@@ -105,7 +105,7 @@ export function createTitle(root: HTMLElement, callbacks: TitleCallbacks): Title
 
   function continueView(): HTMLElement[] {
     const heading = document.createElement('h2');
-    heading.textContent = t('title.continueTitle');
+    heading.innerHTML = t('title.continueTitle');
     const list = document.createElement('ul');
     list.className = 'title-list';
     for (const save of callbacks.saves()) {
@@ -130,13 +130,13 @@ export function createTitle(root: HTMLElement, callbacks: TitleCallbacks): Title
 
   function settingsView(): HTMLElement[] {
     const heading = document.createElement('h2');
-    heading.textContent = t('title.settingsTitle');
+    heading.innerHTML = t('title.settingsTitle');
     const row = (label: string, buttons: HTMLButtonElement[]) => {
       const box = document.createElement('div');
       box.className = 'title-setting';
       const name = document.createElement('div');
       name.className = 'title-setting-name';
-      name.textContent = label;
+      name.innerHTML = label;
       const choices = document.createElement('div');
       choices.className = 'title-choices';
       choices.append(...buttons);
@@ -177,10 +177,10 @@ export function createTitle(root: HTMLElement, callbacks: TitleCallbacks): Title
     logo.innerHTML = LOGO_SVG;
     const name = document.createElement('h1');
     name.className = 'title-name';
-    name.textContent = t('app.title');
+    name.innerHTML = t('app.title');
     const subtitle = document.createElement('p');
     subtitle.className = 'title-subtitle';
-    subtitle.textContent = t('title.subtitle');
+    subtitle.innerHTML = t('title.subtitle');
     const menu = document.createElement('div');
     menu.className = 'title-menu';
     menu.append(

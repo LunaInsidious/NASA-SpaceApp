@@ -33,7 +33,7 @@ import { type DeathAdvice, type DeathKind, diagnoseDeath } from './tutorial/deat
 import { createTutorial, parseMissions } from './tutorial/index.ts';
 import type { ContextAction } from './ui/api.ts';
 import { createFx } from './ui/fx.ts';
-import { onLangChange, t } from './ui/i18n.ts';
+import { onLangChange, t, tPlain } from './ui/i18n.ts';
 import { createUi } from './ui/index.ts';
 import { createPhotoCard, parseNasaImages } from './ui/photo.ts';
 import { createWorld } from './world/index.ts';
@@ -81,9 +81,9 @@ function requireElement<T extends HTMLElement>(id: string, type: new () => T): T
 const canvas = requireElement('renderCanvas', HTMLCanvasElement);
 const uiRoot = requireElement('ui', HTMLDivElement);
 
-document.title = t('app.title');
+document.title = tPlain('app.title');
 onLangChange(() => {
-  document.title = t('app.title');
+  document.title = tPlain('app.title');
 });
 
 const engine = new Engine(canvas, true);
@@ -288,7 +288,7 @@ carryBadge.className = 'carry-badge';
 carryBadge.hidden = true;
 uiRoot.append(carryBadge);
 const renderCarryBadge = () => {
-  carryBadge.textContent = t('carry.ice');
+  carryBadge.innerHTML = t('carry.ice');
 };
 renderCarryBadge();
 onLangChange(renderCarryBadge);
@@ -595,7 +595,7 @@ function updateTutorial(): void {
       (((relative % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) / (Math.PI / 2),
     );
     const direction = (['front', 'right', 'back', 'left'] as const)[quarter % 4];
-    guideArrowText.textContent = t(`guide.dir.${direction}.${isTouch ? 'touch' : 'keys'}`, {
+    guideArrowText.innerHTML = t(`guide.dir.${direction}.${isTouch ? 'touch' : 'keys'}`, {
       meters: Math.round(Math.hypot(target.x - p.x, target.z - p.z)),
     });
   }

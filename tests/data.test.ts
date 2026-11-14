@@ -8,6 +8,7 @@ import ja from '../i18n/ja.json';
 import type { ValueEntry } from '../src/contracts/index.ts';
 import { parseAchievements } from '../src/save/achievements.ts';
 import { parseMissions, STEPS } from '../src/tutorial/index.ts';
+import { stripRuby } from '../src/ui/i18n.ts';
 import { parseNasaImages } from '../src/ui/photo.ts';
 
 function isValueEntry(node: object): node is ValueEntry {
@@ -107,5 +108,18 @@ describe('チュートリアルの段', () => {
         .map(([lang]) => `${lang}: ${key}`),
     );
     expect(missing).toEqual([]);
+  });
+});
+
+describe('ふりがな', () => {
+  it('ja の「｜漢字《かんじ》」は閉じていて、外すと記号が残らない。en にはふりがながない', () => {
+    const broken = Object.entries(ja as Record<string, string>)
+      .filter(([, text]) => /[｜《》]/.test(stripRuby(text)))
+      .map(([key]) => key);
+    expect(broken).toEqual([]);
+    const inEnglish = Object.entries(en as Record<string, string>)
+      .filter(([, text]) => /[｜《》]/.test(text))
+      .map(([key]) => key);
+    expect(inEnglish).toEqual([]);
   });
 });

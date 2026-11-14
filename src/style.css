@@ -64,3 +64,10 @@ body {
     bottom: 230px;
   }
 }
+
+/* ふりがな（文言の「｜漢字《かんじ》」から作る <ruby>） */
+rt {
+  font-size: 0.5em;
+  font-weight: 400;
+  opacity: 0.9;
+}

@@ -84,7 +84,7 @@ export function createPhotoCard(root: HTMLElement, images: NasaImages): PhotoCar
     card.innerHTML = `<div class="nasa-photo-head">${t('photo.title')}</div>${photoFigureHtml(image)}`;
     const close = document.createElement('button');
     close.type = 'button';
-    close.textContent = t('photo.close');
+    close.innerHTML = t('photo.close');
     close.addEventListener('click', hide);
     card.append(close);
   };

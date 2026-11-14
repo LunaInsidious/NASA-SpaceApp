@@ -17,7 +17,7 @@ import type { DeathAdvice } from '../tutorial/death.ts';
 import { professorDeathAdviceHtml } from '../tutorial/deathView.ts';
 import type { PadInput } from '../world/api.ts';
 import type { ContextAction, Ui, UiCallbacks } from './api.ts';
-import { getLang, onLangChange, setLang, t } from './i18n.ts';
+import { getLang, onLangChange, setLang, t, tPlain } from './i18n.ts';
 import { type NasaImages, photoFigureHtml } from './photo.ts';
 import './ui.css';
 
@@ -306,7 +306,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   const toast = (text: string, bad: boolean) => {
     const el = document.createElement('div');
     el.className = bad ? 'ui-toast bad' : 'ui-toast';
-    el.textContent = text;
+    el.innerHTML = text;
     toastsEl.append(el);
     window.setTimeout(() => el.remove(), TOAST_MS);
   };
@@ -380,7 +380,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     pop.className = 'ui-gain';
     pop.style.left = `${rect.left}px`;
     pop.style.top = `${rect.top}px`;
-    pop.textContent = t('hud.lifeGain', { days: fmt(gainDays, 1) });
+    pop.innerHTML = t('hud.lifeGain', { days: fmt(gainDays, 1) });
     for (let i = 0; i < SPARKLES; i++) {
       const sparkle = document.createElement('span');
       sparkle.className = 'ui-sparkle';
@@ -839,7 +839,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       }
       modalEl.hidden = false;
       // 閉じるボタンは下にもあるが、見つけやすいよう右上にも出す
-      modalEl.innerHTML = `<div class="ui-modal"><button class="ui-modal-x" data-action="closeMenu" aria-label="${t('button.close')}">${t('button.closeIcon')}</button>${html}</div>`;
+      modalEl.innerHTML = `<div class="ui-modal"><button class="ui-modal-x" data-action="closeMenu" aria-label="${tPlain('button.close')}">${t('button.closeIcon')}</button>${html}</div>`;
       return;
     }
     modalEl.hidden = true;

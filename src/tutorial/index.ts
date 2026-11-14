@@ -5,7 +5,7 @@
 import type { FacilityKind, SimState, Values } from '../contracts/index.ts';
 import { asHelpTerm, HELP_TERMS, type HelpTerm } from '../help/terms.ts';
 import type { CommLostReason } from '../sim/api.ts';
-import { onLangChange, setLang, t } from '../ui/i18n.ts';
+import { onLangChange, setLang, t, tPlain } from '../ui/i18n.ts';
 import type { DeathAdvice } from './death.ts';
 import { deathAdviceHtml } from './deathView.ts';
 import { PROFESSOR_SVG, type Typing, typeText } from './professor.ts';
@@ -328,7 +328,7 @@ export function createTutorial(
   outdoorNote.className = 'tutorial-note';
   outdoorNote.hidden = true;
   const renderOutdoorNote = () => {
-    outdoorNote.textContent = t('tutorial.goOutsideFirst');
+    outdoorNote.innerHTML = t('tutorial.goOutsideFirst');
   };
   renderOutdoorNote();
   onLangChange(renderOutdoorNote);
@@ -382,7 +382,7 @@ export function createTutorial(
     const b = document.createElement('button');
     b.type = 'button';
     b.className = className;
-    b.textContent = label;
+    b.innerHTML = label;
     b.addEventListener('click', onClick);
     return b;
   }
@@ -395,9 +395,9 @@ export function createTutorial(
     const card = document.createElement('div');
     card.className = 'tutorial-modal';
     const title = document.createElement('h2');
-    title.textContent = titleText;
+    title.innerHTML = titleText;
     const body = document.createElement('p');
-    body.textContent = bodyText;
+    body.innerHTML = bodyText;
     const row = document.createElement('div');
     row.className = 'tutorial-modal-buttons';
     row.append(...buttons);
@@ -503,7 +503,7 @@ export function createTutorial(
     el.innerHTML = PROFESSOR_SVG;
     const name = document.createElement('div');
     name.className = 'tutorial-professor-name';
-    name.textContent = t('tutorial.professorName');
+    name.innerHTML = t('tutorial.professorName');
     el.append(name);
     return el;
   }
@@ -532,7 +532,7 @@ export function createTutorial(
     const head = document.createElement('div');
     head.className = 'tutorial-head';
     const title = document.createElement('span');
-    title.textContent = titleText;
+    title.innerHTML = titleText;
     const progress = document.createElement('span');
     progress.className = 'tutorial-progress';
     progress.textContent = progressText;
@@ -541,12 +541,12 @@ export function createTutorial(
     // スマホ幅では短い名前にして、見出しの行に収める（CSS で切り替える）
     const long = document.createElement('span');
     long.className = 'tutorial-long';
-    long.textContent = t('tutorial.reread');
+    long.innerHTML = t('tutorial.reread');
     const short = document.createElement('span');
     short.className = 'tutorial-short';
-    short.textContent = t('tutorial.rereadShort');
+    short.innerHTML = t('tutorial.rereadShort');
     reread.append(long, short);
-    reread.setAttribute('aria-label', t('tutorial.reread'));
+    reread.setAttribute('aria-label', tPlain('tutorial.reread'));
     head.append(title, progress, reread);
     return head;
   }
@@ -573,15 +573,15 @@ export function createTutorial(
     const card = document.createElement('div');
     card.className = 'tutorial-modal tutorial-reread';
     const title = document.createElement('h2');
-    title.textContent = t('tutorial.rereadTitle');
+    title.innerHTML = t('tutorial.rereadTitle');
     const list = document.createElement('ol');
     for (const s of STEPS.slice(0, last + 1)) {
       const item = document.createElement('li');
       const why = document.createElement('p');
       why.className = 'tutorial-why';
-      why.textContent = t(`tutorial.why.${s}`);
+      why.innerHTML = t(`tutorial.why.${s}`);
       const what = document.createElement('p');
-      what.textContent = t(`tutorial.step.${s}.${variant}`);
+      what.innerHTML = t(`tutorial.step.${s}.${variant}`);
       item.append(why, what);
       list.append(item);
     }
@@ -622,9 +622,9 @@ export function createTutorial(
     const commReason = lastProgress?.commReason ?? null;
     if (step() === 'comm' && commReason !== null) {
       // 地球と話せていないときは、そのわけを言う（画面の「地球と通信できない」と合わせる）
-      text.textContent = t('tutorial.step.commLost', { reason: t(`commHint.${commReason}`) });
+      text.innerHTML = t('tutorial.step.commLost', { reason: t(`commHint.${commReason}`) });
     } else {
-      text.textContent = t(
+      text.innerHTML = t(
         step() === 'flareDrill' && flareChoice === 'continue'
           ? 'tutorial.step.flareDrillRetry'
           : `tutorial.step.${step()}.${variant}`,
@@ -633,13 +633,13 @@ export function createTutorial(
     // 小学生が指示の意味を分かって進めるよう、「どうして？」（理由と新しい言葉の意味）を先に出す
     const whyLabel = document.createElement('div');
     whyLabel.className = 'tutorial-label';
-    whyLabel.textContent = t('tutorial.whyLabel');
+    whyLabel.innerHTML = t('tutorial.whyLabel');
     const why = document.createElement('p');
     why.className = 'tutorial-why';
-    why.textContent = t(`tutorial.why.${step()}`);
+    why.innerHTML = t(`tutorial.why.${step()}`);
     const doLabel = document.createElement('div');
     doLabel.className = 'tutorial-label';
-    doLabel.textContent = t('tutorial.doLabel');
+    doLabel.innerHTML = t('tutorial.doLabel');
     const skip = skipButton();
     const parts: HTMLElement[] = [
       professor(),
@@ -655,7 +655,7 @@ export function createTutorial(
       // 時間を止めていることを、見出しのすぐ下に小さく出す
       const frozen = document.createElement('div');
       frozen.className = 'tutorial-frozen';
-      frozen.textContent = t('tutorial.timeStopped');
+      frozen.innerHTML = t('tutorial.timeStopped');
       parts.splice(2, 0, frozen);
     }
     speak(`step:${index}:${flareChoice ?? ''}`, [why, text], skip);
@@ -675,7 +675,7 @@ export function createTutorial(
     }
     const text = document.createElement('p');
     text.className = 'tutorial-text';
-    text.textContent = mission === undefined ? t('mission.allDone') : t(mission.textKey);
+    text.innerHTML = mission === undefined ? t('mission.allDone') : t(mission.textKey);
     const skip = skipButton();
     const parts: HTMLElement[] = [
       professor(),

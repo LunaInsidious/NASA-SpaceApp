@@ -1,7 +1,7 @@
 // できた瞬間をお祝いする演出：大きな文字、紙ふぶき、短い効果音と BGM（WebAudio で合成。素材ファイルは使わない）。
 // ごほうびは「学んだ・できた」に結びつけ、運まかせの報酬は作らない
 import './fx.css';
-import { onLangChange, t } from './i18n.ts';
+import { onLangChange, t, tPlain } from './i18n.ts';
 import { createMusic, makeNoise } from './music.ts';
 
 export type FxSound =
@@ -149,8 +149,8 @@ export function createFx(root: HTMLElement): Fx {
   toggle.className = 'fx-sound-toggle';
   const renderToggle = () => {
     toggle.textContent = MODE_ICON[mode];
-    toggle.title = t(`sound.${mode}`);
-    toggle.setAttribute('aria-label', t(`sound.${mode}`));
+    toggle.title = tPlain(`sound.${mode}`);
+    toggle.setAttribute('aria-label', tPlain(`sound.${mode}`));
   };
   renderToggle();
   onLangChange(renderToggle);
@@ -180,7 +180,7 @@ export function createFx(root: HTMLElement): Fx {
   function banner(text: string, size: 'big' | 'small'): void {
     const el = document.createElement('div');
     el.className = `fx-banner fx-banner-${size}`;
-    el.textContent = text;
+    el.innerHTML = text;
     root.append(el);
     window.setTimeout(() => el.remove(), BANNER_MS[size]);
   }

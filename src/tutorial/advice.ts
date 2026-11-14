@@ -113,10 +113,10 @@ export function createAdviceCard(
       });
       const title = document.createElement('summary');
       title.className = 'advice-title';
-      title.textContent = `⚠ ${t(`advice.${kind}.title`)}`;
+      title.innerHTML = `⚠ ${t(`advice.${kind}.title`)}`;
       const label = document.createElement('div');
       label.className = 'advice-label';
-      label.textContent = t('advice.label');
+      label.innerHTML = t('advice.label');
       const todo = document.createElement('div');
       todo.className = 'advice-todo';
       todo.textContent =
@@ -128,7 +128,7 @@ export function createAdviceCard(
       if (menu !== undefined) {
         const button = document.createElement('button');
         button.type = 'button';
-        button.textContent = t(`advice.open.${menu}`);
+        button.innerHTML = t(`advice.open.${menu}`);
         button.addEventListener('click', () => openMenu(menu));
         item.append(button);
       }

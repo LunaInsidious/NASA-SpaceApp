@@ -24,8 +24,30 @@ function readSavedLang(): Lang {
   }
 }
 
-/** key の文言。params の {name} を置き換える。キーや引数がなければ例外 */
+// ふりがな：文言の中に「｜漢字《かんじ》」と書く（青空文庫と同じ書き方）
+const RUBY = /｜([^｜《》]+)《([^《》]+)》/g;
+
+/** ふりがなの書き方を、HTML の <ruby> にする */
+export function rubyHtml(text: string): string {
+  return text.replace(RUBY, '<ruby>$1<rt>$2</rt></ruby>');
+}
+
+/** ふりがなを外して、漢字だけにする（title や aria-label など、HTML を入れられない所に使う） */
+export function stripRuby(text: string): string {
+  return text.replace(RUBY, '$1');
+}
+
+/** key の文言を HTML で返す（ふりがなは <ruby>）。params の {name} を置き換える。キーや引数がなければ例外 */
 export function t(key: string, params?: Record<string, string | number>): string {
+  return rubyHtml(raw(key, params));
+}
+
+/** key の文言を、ふりがなを外した文字だけで返す（title、aria-label、タブの名前など） */
+export function tPlain(key: string, params?: Record<string, string | number>): string {
+  return stripRuby(raw(key, params));
+}
+
+function raw(key: string, params?: Record<string, string | number>): string {
   const text = MESSAGES[current][key];
   if (text === undefined) {
     throw new Error(`i18n にキーがない: ${key}`);
