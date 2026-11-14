@@ -450,6 +450,8 @@
   "sound.all": "🎵 Music and sound effects",
   "sound.sfx": "🔊 Sound effects only",
   "sound.off": "🔇 Sound off",
+  "help.learned": "📖 New in the Word guide: {names}",
+  "help.learnedMany": "📖 {count} new words in the Word guide",
   "help.icon": "❓",
   "help.label": "Word guide",
   "help.title": "Word guide",

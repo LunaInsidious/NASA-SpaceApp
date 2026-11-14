@@ -118,3 +118,63 @@ body:has(.ui-modal-layer:not([hidden])) .help-toggle,
 body:has(.ui-modal-layer:not([hidden])) .fx-sound-toggle {
   visibility: hidden;
 }
+
+.help-toggle[hidden] {
+  display: none;
+}
+
+/* 新しい言葉が足されたとき、少しのあいだ光らせる */
+.help-toggle.help-pulse {
+  animation: help-pulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes help-pulse {
+  from {
+    box-shadow: 0 0 0 0 rgba(255, 210, 122, 0);
+  }
+  to {
+    box-shadow: 0 0 0 6px rgba(255, 210, 122, 0.75);
+  }
+}
+
+/* 足した言葉のお知らせ：ことばじてんのボタンの上に出す吹き出し */
+.help-note {
+  position: fixed;
+  right: 12px;
+  bottom: 104px;
+  z-index: 1;
+  max-width: min(320px, calc(100vw - 24px));
+  padding: 8px 12px;
+  border: 2px solid #ffd27a;
+  border-radius: 12px;
+  background: rgba(20, 34, 54, 0.95);
+  color: #fff6d8;
+  font:
+    700 14px / 1.4 system-ui,
+    -apple-system,
+    "Hiragino Sans",
+    "Noto Sans JP",
+    sans-serif;
+  pointer-events: none;
+  animation: help-note-in 0.3s ease-out;
+}
+
+.help-note[hidden] {
+  display: none;
+}
+
+@keyframes help-note-in {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .help-note {
+    top: 88px;
+    right: 8px;
+    bottom: auto;
+    font-size: 13px;
+  }
+}

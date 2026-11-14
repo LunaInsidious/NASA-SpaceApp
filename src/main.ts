@@ -112,7 +112,7 @@ const achievementStore = createAchievementStore(parseAchievements(achievementsJs
 const pending: SimCommand[] = [];
 const isTouch = window.matchMedia('(pointer: coarse)').matches;
 const fx = createFx(document.body);
-const help = createHelp(document.body);
+const help = createHelp(document.body, () => fx.sound('chime'));
 const tutorial = createTutorial(
   document.body,
   isTouch,
@@ -120,6 +120,7 @@ const tutorial = createTutorial(
   parseMissions(missionsJson),
   () => restartGame(),
   (what) => celebrate(what),
+  (terms) => help.learn(terms),
 );
 // タイトル画面。うしろには、いちばん新しいセーブ（なければ新しいゲーム）の月面を見せておく
 const title = createTitle(document.body, {
@@ -226,6 +227,8 @@ function celebrateProgress(): void {
         fx.confetti('burst');
         fx.sound('pop');
         photoCard.show(f.kind);
+        // 建てた施設の言葉は、ことばじてんに足す（チュートリアルで出てこない施設も、建てれば引ける）
+        help.learn([f.kind]);
       }
     }
   }
@@ -651,6 +654,9 @@ function handleEvents(events: GameEvent[]): void {
       const donki = event.event.source === 'archived' ? findDonki(event.event.donkiId) : null;
       ui.showFlareAlert(event.event, donki);
       fx.sound('alarm');
+      if (event.event.kind === 'sep') {
+        help.learn(['sep']);
+      }
     }
     if (event.type === 'commLost') {
       fx.sound('warn');

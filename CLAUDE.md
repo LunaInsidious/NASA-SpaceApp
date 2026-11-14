@@ -42,5 +42,6 @@ PRを出す前に `pnpm lint`、`pnpm test`、`pnpm build` を通す。
 - セーブ（`src/save/`）：ゲーム内の1日ごとに自動セーブ、手動は `save.manualSlots` 枠。形式を変えたら `SAVE_VERSION` を上げる
 - 実績は `data/achievements.json`（条件の種類は `src/save/achievements.ts` の `ACHIEVEMENT_CONDITIONS`）。判定は main.ts
 - 画面の確認は、ヘッドレスの Chrome を DevTools のプロトコルで動かしてスクリーンショットを撮る（Chrome 拡張なしでできる）
+- ことばじてん（`src/help/`）は最初は空。チュートリアルの段（`STEP_TERMS`）、ミッション（`data/missions.json` の `terms`）、建てた施設、SEP の警報で説明した言葉を足す。「あそんだことがある」なら全部。覚えた言葉はブラウザに残す
 - 地球への注文の画面の名前は「ほきゅう」（英語は Supply）。施設のキットはメニューに出さない（届くものが資材と同じなので、資材を頼んでもらう。仕様の「頼める荷物」からの変更。sim と契約は facilityKit をそのまま扱える）
 - 実データの地形（ステップ5）、ランキング、結果画面はまだない

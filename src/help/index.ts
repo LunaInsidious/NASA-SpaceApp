@@ -1,24 +1,40 @@
 // ことばじてん：あとで見返したくなる言葉（蓄電池、太陽フレアなど）を、いつでも引けるようにする。
+// 最初は空で、チュートリアルやミッションで説明した言葉を足していく（覚えた言葉はブラウザに残す）。
 // 開いている間は main が時間を止める
 import { onLangChange, t } from '../ui/i18n.ts';
 import './help.css';
+import { HELP_GROUPS, HELP_TERMS, type HelpTerm } from './terms.ts';
 
-// 分類と、その中の言葉（文言は i18n の help.term.<id>.* と help.group.<id>）
-const GROUPS = [
-  { id: 'power', terms: ['solar', 'battery', 'power'] },
-  { id: 'life', terms: ['lifeSupport', 'habitat', 'tank', 'ice', 'iceDrill', 'greenhouse'] },
-  { id: 'protect', terms: ['radiation', 'flare', 'sep', 'dose', 'shield', 'regolith'] },
-  { id: 'build', terms: ['materials', 'repair', 'launch'] },
-  { id: 'earth', terms: ['antenna', 'horizon', 'relay'] },
-  { id: 'growth', terms: ['development', 'research', 'donki'] },
-] as const;
+const STORAGE_KEY = 'lunar-outpost-help-terms';
+// 新しい言葉が足されたときに、ボタンを光らせてお知らせを出す長さ
+const PULSE_MS = 4000;
+// お知らせに名前を並べるのは、この数まで（それより多いときは数だけ）
+const NOTE_MAX_NAMES = 3;
 
 export interface Help {
   isOpen(): boolean;
+  /** 説明した言葉を足す。新しく足した言葉があれば onLearned で知らせる */
+  learn(terms: readonly HelpTerm[]): void;
 }
 
-export function createHelp(root: HTMLElement): Help {
+function readLearned(): Set<HelpTerm> {
+  try {
+    const saved: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
+    // 前の版で使っていて、いまはない言葉は読まない
+    return new Set(Array.isArray(saved) ? HELP_TERMS.filter((term) => saved.includes(term)) : []);
+  } catch (error) {
+    console.warn('ことばじてんの覚えた言葉を読めない', error);
+    return new Set();
+  }
+}
+
+export function createHelp(
+  root: HTMLElement,
+  /** 新しく言葉を足したとき（main が音を鳴らす） */
+  onLearned: () => void,
+): Help {
   let open = false;
+  const learned = readLearned();
 
   const toggle = document.createElement('button');
   toggle.type = 'button';
@@ -31,7 +47,12 @@ export function createHelp(root: HTMLElement): Help {
   const layer = document.createElement('div');
   layer.className = 'help-layer';
   layer.hidden = true;
-  root.append(toggle, layer);
+  // 足した言葉のお知らせ（ボタンのそばの小さな吹き出し。建てたときのお祝いの文字と重ねない）
+  const note = document.createElement('div');
+  note.className = 'help-note';
+  note.hidden = true;
+  let noteTimer: number | null = null;
+  root.append(toggle, note, layer);
 
   function render(): void {
     // スマホでは「?」だけを見せる（CSS で名前を隠す）。名前は読み上げとホバーに残す
@@ -43,6 +64,8 @@ export function createHelp(root: HTMLElement): Help {
     toggle.replaceChildren(icon, label);
     toggle.title = t('help.label');
     toggle.setAttribute('aria-label', t('help.label'));
+    // まだ1つも言葉がなければ、ボタンも出さない
+    toggle.hidden = learned.size === 0;
     layer.hidden = !open;
     if (!open) {
       return;
@@ -52,12 +75,16 @@ export function createHelp(root: HTMLElement): Help {
     const title = document.createElement('h2');
     title.textContent = t('help.title');
     card.append(title);
-    for (const group of GROUPS) {
+    for (const group of HELP_GROUPS) {
+      const terms = group.terms.filter((id) => learned.has(id));
+      if (terms.length === 0) {
+        continue;
+      }
       const section = document.createElement('section');
       const heading = document.createElement('h3');
       heading.textContent = t(`help.group.${group.id}`);
       section.append(heading);
-      for (const id of group.terms) {
+      for (const id of terms) {
         const item = document.createElement('details');
         const name = document.createElement('summary');
         name.textContent = t(`help.term.${id}.name`);
@@ -86,5 +113,38 @@ export function createHelp(root: HTMLElement): Help {
   onLangChange(render);
   render();
 
-  return { isOpen: () => open };
+  return {
+    isOpen: () => open,
+    learn(terms) {
+      const added = terms.filter((term) => !learned.has(term));
+      if (added.length === 0) {
+        return;
+      }
+      for (const term of added) {
+        learned.add(term);
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify([...learned]));
+      } catch (error) {
+        console.warn('ことばじてんの覚えた言葉を保存できない', error);
+      }
+      render();
+      toggle.classList.add('help-pulse');
+      note.textContent =
+        added.length > NOTE_MAX_NAMES
+          ? t('help.learnedMany', { count: added.length })
+          : t('help.learned', {
+              names: added.map((term) => t(`help.term.${term}.name`)).join('・'),
+            });
+      note.hidden = false;
+      if (noteTimer !== null) {
+        window.clearTimeout(noteTimer);
+      }
+      noteTimer = window.setTimeout(() => {
+        toggle.classList.remove('help-pulse');
+        note.hidden = true;
+      }, PULSE_MS);
+      onLearned();
+    },
+  };
 }

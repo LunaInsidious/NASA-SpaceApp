@@ -3,6 +3,7 @@
 // 終わったら（経験者はすぐに）data/missions.json の目標をミッションとして順に出す。
 // 押すボタンは光らせ（tutorial.css）、行く場所には world の光の柱を立てる（guide()）
 import type { FacilityKind, SimState, Values } from '../contracts/index.ts';
+import { asHelpTerm, HELP_TERMS, type HelpTerm } from '../help/terms.ts';
 import { onLangChange, setLang, t } from '../ui/i18n.ts';
 import type { DeathAdvice } from './death.ts';
 import { deathAdviceHtml } from './deathView.ts';
@@ -36,6 +37,21 @@ const STEPS = [
   'data',
 ] as const;
 type Step = (typeof STEPS)[number];
+// その段で説明する言葉。段を見せたときに、ことばじてんに足す
+const STEP_TERMS: Partial<Record<Step, readonly HelpTerm[]>> = {
+  buildSolar: ['solar', 'materials'],
+  power: ['power'],
+  battery: ['battery'],
+  comm: ['antenna', 'horizon'],
+  order: ['launch'],
+  goInsideWait: ['tank'],
+  assignCrew: ['repair', 'research'],
+  toIce: ['ice'],
+  goHome: ['habitat'],
+  flareDrill: ['flare', 'radiation', 'dose'],
+  regolith: ['regolith'],
+  data: ['donki'],
+};
 // 読んで「わかった」を押すと進む段
 const ACK_STEPS: readonly Step[] = ['power', 'comm'];
 const STORAGE_KEY = 'lunar-outpost-tutorial';
@@ -63,7 +79,8 @@ const FACILITY_KINDS: readonly FacilityKind[] = [
   'shield',
 ];
 
-export type Mission = { id: string; textKey: string } & (
+/** terms：そのミッションで説明する言葉（ことばじてんに足す） */
+export type Mission = { id: string; textKey: string; terms: readonly HelpTerm[] } & (
   | { condition: 'hasFacility'; kind: FacilityKind }
   | { condition: 'farmingRunning' | 'cleared' }
   | { condition: 'crewAtLeast' | 'relayAtLeast' | 'developmentAtLeast'; threshold: number }
@@ -75,22 +92,28 @@ export function parseMissions(json: unknown): Mission[] {
     throw new Error('data/missions.json が配列ではない');
   }
   return json.map((entry: Record<string, unknown>, i): Mission => {
-    const { id, condition, kind, threshold, textKey } = entry;
+    const { id, condition, kind, threshold, textKey, terms: rawTerms } = entry;
     const known: MissionCondition | undefined = MISSION_CONDITIONS.find((c) => c === condition);
     const bad = () => new Error(`data/missions.json の ${i} 件目の形が違う`);
-    if (typeof id !== 'string' || typeof textKey !== 'string' || known === undefined) {
+    if (
+      typeof id !== 'string' ||
+      typeof textKey !== 'string' ||
+      known === undefined ||
+      !Array.isArray(rawTerms)
+    ) {
       throw bad();
     }
+    const terms = rawTerms.map((term) => asHelpTerm(term, `data/missions.json の ${id}`));
     if (known === 'hasFacility') {
       const facility = FACILITY_KINDS.find((k) => k === kind);
       if (facility === undefined) throw bad();
-      return { id, textKey, condition: known, kind: facility };
+      return { id, textKey, terms, condition: known, kind: facility };
     }
     if (known === 'farmingRunning' || known === 'cleared') {
-      return { id, textKey, condition: known };
+      return { id, textKey, terms, condition: known };
     }
     if (typeof threshold !== 'number') throw bad();
-    return { id, textKey, condition: known, threshold };
+    return { id, textKey, terms, condition: known, threshold };
   });
 }
 
@@ -182,6 +205,8 @@ export function createTutorial(
   onRestart: () => void,
   /** できた瞬間（段・ミッション・チュートリアルの完了）。main がお祝いの演出を出す */
   onCelebrate: (what: 'step' | 'mission' | 'trainingDone') => void,
+  /** 段やミッションで説明した言葉。main がことばじてんに足す */
+  onLearn: (terms: readonly HelpTerm[]) => void,
 ): Tutorial {
   let mode: Mode = 'title';
   let index = 0;
@@ -296,6 +321,8 @@ export function createTutorial(
         button(t('tutorial.welcome.firstTime'), 'tutorial-big primary', () => resetTo('tutorial')),
         button(t('tutorial.welcome.played'), 'tutorial-big', () => {
           saveFinished();
+          // あそんだことがあるなら、ことばじてんは全部の言葉を見せる
+          onLearn(HELP_TERMS);
           mode = 'missions';
           render();
         }),
@@ -458,6 +485,7 @@ export function createTutorial(
 
   function renderStep(): void {
     document.body.dataset.tutorialStep = step();
+    onLearn(STEP_TERMS[step()] ?? []);
     const text = document.createElement('p');
     text.className = 'tutorial-text';
     const key =
@@ -497,6 +525,9 @@ export function createTutorial(
 
   function renderMission(): void {
     const mission = missions[missionIndex];
+    if (mission !== undefined) {
+      onLearn(mission.terms);
+    }
     const text = document.createElement('p');
     text.className = 'tutorial-text';
     text.textContent = mission === undefined ? t('mission.allDone') : t(mission.textKey);
