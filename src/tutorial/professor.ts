@@ -55,9 +55,15 @@ export interface Typing {
  */
 export function typeText(elements: HTMLElement[], onDone: () => void): Typing {
   const texts = elements.map((el) => el.textContent ?? '');
-  for (const el of elements) {
-    el.textContent = '';
-  }
+  // まだ出していない文字は透明にして置いておく。文の大きさが最初から決まり、下のボタンが動かない
+  const parts = elements.map((el, i) => {
+    const shownPart = document.createElement('span');
+    const restPart = document.createElement('span');
+    restPart.className = 'typing-rest';
+    restPart.textContent = texts[i];
+    el.replaceChildren(shownPart, restPart);
+    return { shownPart, restPart };
+  });
   let current = 0;
   let shown = 0;
   let done = false;
@@ -74,7 +80,8 @@ export function typeText(elements: HTMLElement[], onDone: () => void): Typing {
     // 文字の区切りが壊れないよう、文字列を配列にしてから数える
     const chars = Array.from(texts[current]);
     shown++;
-    elements[current].textContent = chars.slice(0, shown).join('');
+    parts[current].shownPart.textContent = chars.slice(0, shown).join('');
+    parts[current].restPart.textContent = chars.slice(shown).join('');
     if (shown >= chars.length) {
       current++;
       shown = 0;

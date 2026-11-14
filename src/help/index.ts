@@ -35,6 +35,8 @@ export function createHelp(
 ): Help {
   let open = false;
   let read = false;
+  // 開いている言葉。言葉が足されて一覧を作り直しても、開いたままにする
+  const openTerms = new Set<HelpTerm>();
   const learned = readLearned();
 
   const toggle = document.createElement('button');
@@ -57,6 +59,7 @@ export function createHelp(
 
   function closeHelp(): void {
     open = false;
+    openTerms.clear();
     render();
   }
 
@@ -112,9 +115,13 @@ export function createHelp(
         why.className = 'help-why';
         why.textContent = `${t('help.whyLabel')} ${t(`help.term.${id}.why`)}`;
         item.dataset.term = id;
+        item.open = openTerms.has(id);
         item.addEventListener('toggle', () => {
           if (item.open) {
             read = true;
+            openTerms.add(id);
+          } else {
+            openTerms.delete(id);
           }
         });
         item.append(name, what, why);

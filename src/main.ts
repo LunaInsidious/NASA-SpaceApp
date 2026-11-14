@@ -25,8 +25,8 @@ import {
   parseAchievements,
 } from './save/achievements.ts';
 import { createSaveStore } from './save/index.ts';
-import type { BuildOptions, Placement } from './sim/api.ts';
-import { checkPlacement, createInitialState, describe, step } from './sim/index.ts';
+import type { BuildOptions, CommLostReason, Placement } from './sim/api.ts';
+import { checkPlacement, commLostReason, createInitialState, describe, step } from './sim/index.ts';
 import { createTitle } from './title/index.ts';
 import { type Advice, createAdviceCard, pickAdvices } from './tutorial/advice.ts';
 import { type DeathAdvice, type DeathKind, diagnoseDeath } from './tutorial/death.ts';
@@ -131,9 +131,9 @@ const title = createTitle(document.body, {
   soundMode: () => fx.soundMode(),
   setSoundMode: (mode) => fx.setSoundMode(mode),
 });
-// チュートリアルの「歩けたか」を測る起点
-const moveOrigin = { x: state.player.x, z: state.player.z };
 let lastGuideKey = '';
+// 地球と話せないときの理由（くんれんの「アンテナ」の段の文に使う）
+let commReason: CommLostReason | null = null;
 let manualSaveCount = 0;
 let lastBlocking: boolean | null = null;
 let currentAdvices: Advice[] = [];
@@ -246,8 +246,6 @@ function celebrateProgress(): void {
 /** 「さいしょから」：新しいゲームにする（セーブは消さない） */
 function restartGame(): void {
   startFrom(createInitialState(values, env, env.landerPosition));
-  moveOrigin.x = state.player.x;
-  moveOrigin.z = state.player.z;
   manualSaveCount = 0;
 }
 
@@ -561,7 +559,9 @@ function updateTutorial(): void {
   const p = world.getPlayer();
   tutorial.update({
     state,
-    movedMeters: Math.hypot(p.x - moveOrigin.x, p.z - moveOrigin.z),
+    playerX: p.x,
+    playerZ: p.z,
+    commReason,
     viewYawRad: world.getViewYawRad(),
     airborne: p.y > env.heightAt(p.x, p.z) + values.tutorial.airborneMeters.value,
     placing: buildMode === null ? null : buildMode.kind,
@@ -706,7 +706,9 @@ function tick(dtHours: number): void {
   ];
   const dayBefore = Math.floor(state.timeHours / HOURS_PER_DAY);
   const launchesBefore = state.launches.length;
-  const result = step(state, dtHours, env, commands, values, timeline, Math.random);
+  // くんれん中は、本物の宇宙天気は起こさない（太陽フレアは訓練の警報で教える）
+  const events = tutorial.isTutorial() ? [] : timeline;
+  const result = step(state, dtHours, env, commands, values, events, Math.random);
   state = result.state;
   // 宇宙飛行士が倒れたら（ボンベの酸素切れ、大量の被ばく）ゲームオーバー（docs/SPEC.md）。
   // sim は居住モジュールで目を覚まさせるので、それはチュートリアル中だけにする
@@ -736,6 +738,7 @@ function refreshView(): void {
   world.syncFacilities(state.facilities, working);
   // チュートリアル中や大きな窓を出している間は、命に関わるボンベの警告だけにする
   const adviceBefore = new Set(currentAdvices.map((a) => a.kind));
+  commReason = view.comm.linked ? null : commLostReason(state, view);
   currentAdvices = pickAdvices(
     state,
     view,

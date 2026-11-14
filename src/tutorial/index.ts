@@ -4,6 +4,7 @@
 // 押すボタンは光らせ（tutorial.css）、行く場所には world の光の柱を立てる（guide()）
 import type { FacilityKind, SimState, Values } from '../contracts/index.ts';
 import { asHelpTerm, HELP_TERMS, type HelpTerm } from '../help/terms.ts';
+import type { CommLostReason } from '../sim/api.ts';
 import { onLangChange, setLang, t } from '../ui/i18n.ts';
 import type { DeathAdvice } from './death.ts';
 import { deathAdviceHtml } from './deathView.ts';
@@ -128,9 +129,12 @@ function pointTarget(step: Step): HTMLElement | null {
   return null;
 }
 
+// 外でやる段。中にいるときは「外に出る」を指して、ひとこと出す
+const OUTDOOR_STEPS: readonly Step[] = ['move', 'look', 'jump', 'toIce', 'takeIce', 'regolith'];
+const MS_PER_SECOND = 1000;
+
 // 読んで「わかった」を押すと進む段
 const ACK_STEPS: readonly Step[] = ['power', 'comm', 'lifeLine'];
-const STORAGE_KEY = 'lunar-outpost-tutorial';
 // 大きな窓が出たときに、博士の口が動く長さ（見た目だけ）
 const MODAL_SPEAK_MS = 1500;
 
@@ -195,8 +199,11 @@ export function parseMissions(json: unknown): Mission[] {
 
 export interface TutorialProgress {
   state: SimState;
-  /** 最初の位置から歩いた距離 */
-  movedMeters: number;
+  /** 宇宙飛行士の位置（「あるく」の段で、段を始めた場所から歩いた距離を測る） */
+  playerX: number;
+  playerZ: number;
+  /** 地球と話せないときの理由（話せていれば null） */
+  commReason: CommLostReason | null;
   /** カメラが見ている水平の向き */
   viewYawRad: number;
   /** 宇宙飛行士が地面から離れているか（ジャンプ中） */
@@ -249,31 +256,6 @@ type Mode =
   | 'confirmRestart'
   | 'failed';
 
-function readFinished(): boolean {
-  try {
-    return localStorage.getItem(STORAGE_KEY) === 'finished';
-  } catch (error) {
-    console.warn('チュートリアルの進み具合を読めない', error);
-    return false;
-  }
-}
-
-function clearFinished(): void {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch (error) {
-    console.warn('チュートリアルの進み具合を消せない', error);
-  }
-}
-
-function saveFinished(): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, 'finished');
-  } catch (error) {
-    console.warn('チュートリアルの進み具合を保存できない', error);
-  }
-}
-
 export function createTutorial(
   root: HTMLElement,
   isTouch: boolean,
@@ -289,6 +271,10 @@ export function createTutorial(
   let mode: Mode = 'title';
   let index = 0;
   let stepYaw: number | null = null;
+  // 「あるく」の段を始めた場所
+  let stepOrigin: { x: number; z: number } | null = null;
+  // いまの段を出した時刻（読み終わる前に次の段へ進まないように使う）
+  let stepShownAt = performance.now();
   let flareDrillRequested = false;
   let flareChoice: 'shelter' | 'continue' | null = null;
   let dataOpened = false;
@@ -323,6 +309,16 @@ export function createTutorial(
   const modal = document.createElement('div');
   modal.className = 'tutorial-modal-layer';
   root.append(panel, modal);
+  // 外でやる段なのに中にいるときの、ひとこと
+  const outdoorNote = document.createElement('p');
+  outdoorNote.className = 'tutorial-note';
+  outdoorNote.hidden = true;
+  const renderOutdoorNote = () => {
+    outdoorNote.textContent = t('tutorial.goOutsideFirst');
+  };
+  renderOutdoorNote();
+  onLangChange(renderOutdoorNote);
+
   // いま押すボタンを指す矢印（ボタンの上に出し、上に場所がなければ下に出す）
   const pointer = document.createElement('div');
   pointer.className = 'tutorial-pointer';
@@ -330,7 +326,13 @@ export function createTutorial(
   root.append(pointer);
 
   function placePointer(): void {
-    const target = mode === 'tutorial' && !rereading ? pointTarget(step()) : null;
+    const mustGoOut = lastProgress?.indoors === true && OUTDOOR_STEPS.includes(step());
+    const target =
+      mode !== 'tutorial' || rereading
+        ? null
+        : mustGoOut
+          ? visibleElement('[data-action="context"][data-context="exitHabitat"]')
+          : pointTarget(step());
     if (target === null) {
       pointer.hidden = true;
       return;
@@ -426,7 +428,6 @@ export function createTutorial(
         // 初めてなら、セーブがあっても新しいゲームで始める（途中の状態だと、今はできない指示が出る）
         button(t('tutorial.welcome.firstTime'), 'tutorial-big primary', () => resetTo('tutorial')),
         button(t('tutorial.welcome.played'), 'tutorial-big', () => {
-          saveFinished();
           // あそんだことがあるなら、ことばじてんは全部の言葉を見せる（自分で選んだので、お知らせは出さない）
           onLearn(HELP_TERMS, false);
           mode = 'missions';
@@ -585,10 +586,11 @@ export function createTutorial(
   }
 
   function resetTo(next: Mode): void {
-    clearFinished();
     mode = next;
     index = 0;
     stepYaw = null;
+    stepOrigin = null;
+    stepShownAt = performance.now();
     flareDrillRequested = false;
     flareChoice = null;
     dataOpened = false;
@@ -603,11 +605,17 @@ export function createTutorial(
     onLearn(STEP_TERMS[step()] ?? [], true);
     const text = document.createElement('p');
     text.className = 'tutorial-text';
-    const key =
-      step() === 'flareDrill' && flareChoice === 'continue'
-        ? 'tutorial.step.flareDrillRetry'
-        : `tutorial.step.${step()}.${variant}`;
-    text.textContent = t(key);
+    const commReason = lastProgress?.commReason ?? null;
+    if (step() === 'comm' && commReason !== null) {
+      // 地球と話せていないときは、そのわけを言う（画面の「地球と通信できない」と合わせる）
+      text.textContent = t('tutorial.step.commLost', { reason: t(`commHint.${commReason}`) });
+    } else {
+      text.textContent = t(
+        step() === 'flareDrill' && flareChoice === 'continue'
+          ? 'tutorial.step.flareDrillRetry'
+          : `tutorial.step.${step()}.${variant}`,
+      );
+    }
     // 小学生が指示の意味を分かって進めるよう、「どうして？」（理由と新しい言葉の意味）を先に出す
     const whyLabel = document.createElement('div');
     whyLabel.className = 'tutorial-label';
@@ -626,6 +634,7 @@ export function createTutorial(
       why,
       doLabel,
       text,
+      outdoorNote,
       skip,
     ];
     speak(`step:${index}:${flareChoice ?? ''}`, [why, text], skip);
@@ -677,11 +686,12 @@ export function createTutorial(
 
   function advance(): void {
     stepYaw = null;
+    stepOrigin = null;
+    stepShownAt = performance.now();
     panel.classList.remove('tutorial-cleared');
     // 再描画のあとにつけ直して、アニメーションをもう一度動かす
     requestAnimationFrame(() => panel.classList.add('tutorial-cleared'));
     if (index === STEPS.length - 1) {
-      saveFinished();
       mode = 'finishedModal';
       onCelebrate('trainingDone');
     } else {
@@ -694,8 +704,15 @@ export function createTutorial(
   function stepDone(s: Step, p: TutorialProgress): boolean {
     const has = (kind: FacilityKind) => p.state.facilities.some((f) => f.kind === kind);
     switch (s) {
-      case 'move':
-        return p.movedMeters >= values.tutorial.moveMeters.value;
+      case 'move': {
+        if (stepOrigin === null) {
+          stepOrigin = { x: p.playerX, z: p.playerZ };
+        }
+        return (
+          Math.hypot(p.playerX - stepOrigin.x, p.playerZ - stepOrigin.z) >=
+          values.tutorial.moveMeters.value
+        );
+      }
       case 'look': {
         if (stepYaw === null) {
           stepYaw = p.viewYawRad;
@@ -789,9 +806,14 @@ export function createTutorial(
         index = STEPS.indexOf('toIce');
         render();
       }
-      while (mode === 'tutorial' && !ACK_STEPS.includes(step()) && stepDone(step(), progress)) {
+      // 1回に1段だけ。文を出し終えて、少し時間がたってから進む（すでにできていた段も、読む前に飛ばさない）
+      const readEnough =
+        typing?.isTyping() !== true &&
+        performance.now() - stepShownAt >= values.tutorial.minStepSeconds.value * MS_PER_SECOND;
+      if (readEnough && !ACK_STEPS.includes(step()) && stepDone(step(), progress)) {
         advance();
       }
+      outdoorNote.hidden = !(OUTDOOR_STEPS.includes(step()) && progress.indoors);
       return;
     }
     if (mode === 'missions') {
@@ -820,7 +842,8 @@ export function createTutorial(
       resetTo('ask');
     },
     startContinue() {
-      mode = readFinished() ? 'missions' : 'ask';
+      // セーブを選んで続けるので、「あそんだことがある？」は聞かずにミッションへ
+      mode = 'missions';
       render();
     },
     guide() {

@@ -554,10 +554,6 @@ body[data-tutorial-step="comm"] .ui-status::before {
   padding: 1px 10px;
 }
 
-.tutorial .tutorial-skip[hidden] {
-  display: none;
-}
-
 /* 広い画面：博士と吹き出しをひとかたまりで真ん中に置く（博士が左の HUD に重ならない） */
 @media (min-width: 1200px) {
   .tutorial {
@@ -757,4 +753,29 @@ body[data-tutorial-step="comm"] .ui-status::before {
   to {
     transform: translateX(8px);
   }
+}
+
+/* 1文字ずつ出す途中の、まだ出していない文字（場所だけ取る） */
+.typing-rest {
+  visibility: hidden;
+}
+
+/* 「ぜんぶ よむ」は、消えても場所を残して、下のボタンを動かさない */
+.tutorial .tutorial-skip[hidden] {
+  display: block;
+  visibility: hidden;
+}
+
+/* 外でやる段なのに中にいるときの、ひとこと */
+.tutorial-note {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 210, 122, 0.15);
+  color: #ffd27a;
+  font-weight: 700;
+}
+
+.tutorial-note[hidden] {
+  display: none;
 }
