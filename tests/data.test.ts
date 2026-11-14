@@ -9,6 +9,7 @@ import type { ValueEntry } from '../src/contracts/index.ts';
 import { parseAchievements } from '../src/save/achievements.ts';
 import { parseMissions, STEPS } from '../src/tutorial/index.ts';
 import { stripRuby } from '../src/ui/i18n.ts';
+import { SOURCE_KEYS } from '../src/ui/index.ts';
 import { parseNasaImages } from '../src/ui/photo.ts';
 
 function isValueEntry(node: object): node is ValueEntry {
@@ -139,5 +140,21 @@ describe('ふりがな', () => {
       )
       .map(([key]) => key);
     expect(bare).toEqual([]);
+  });
+
+  it('「データ」の窓に出す数値はどれも values.json にあり、単位の言葉が i18n にある（ratio は % にする）', () => {
+    for (const path of Object.values(SOURCE_KEYS).flat()) {
+      const entry = path
+        .split('.')
+        .reduce<unknown>(
+          (node, key) => (node as Record<string, unknown>)[key],
+          values,
+        ) as ValueEntry;
+      expect(entry, path).toBeDefined();
+      if (entry.unit !== 'ratio') {
+        expect(Object.keys(ja), path).toContain(`unit.${entry.unit}`);
+        expect(Object.keys(en), path).toContain(`unit.${entry.unit}`);
+      }
+    }
   });
 });

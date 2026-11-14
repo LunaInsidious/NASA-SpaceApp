@@ -171,10 +171,21 @@ const TIME_STEPS: readonly Step[] = ['toIce', 'takeIce', 'goHome', 'pause', 'res
 
 // 外でやる段。中にいるときは「外に出る」を指して、ひとこと出す
 const OUTDOOR_STEPS: readonly Step[] = ['move', 'look', 'jump', 'toIce', 'takeIce', 'regolith'];
+// 中（休息の画面）でやる段。外にいたら、居住モジュールへ光の柱で案内し、「中に入る」を指す
+const INDOOR_STEPS: readonly Step[] = [
+  'order',
+  'nextDay',
+  'waitArrival',
+  'arrived',
+  'assignCrew',
+  'chooseTask',
+  'save',
+  'sleepAgain',
+];
 const MS_PER_SECOND = 1000;
 
 // 読んで「わかった」を押すと進む段
-const ACK_STEPS: readonly Step[] = ['power', 'comm', 'lifeLine', 'arrived'];
+const ACK_STEPS: readonly Step[] = ['power', 'comm', 'lifeLine'];
 // 大きな窓が出たときに、博士の口が動く長さ（見た目だけ）
 const MODAL_SPEAK_MS = 1500;
 
@@ -264,6 +275,12 @@ export interface TutorialProgress {
   manualSaves: number;
   /** ことばじてんで、言葉を1つでも開いて読んだか */
   readDictionary: boolean;
+  /** ことばじてんを開いているか（読んで閉じたら進む） */
+  helpOpen: boolean;
+  /** インベントリ画面を開いているか（見て閉じたら進む） */
+  inventoryOpen: boolean;
+  /** 窓（メニュー・説明の窓・ミニゲーム）を開いているか */
+  windowOpen: boolean;
   /** 「一時停止」のボタンで止めているか（メニューや窓で止まっているのは含まない） */
   userPaused: boolean;
 }
@@ -321,6 +338,10 @@ export function createTutorial(
   let stepOrigin: { x: number; z: number } | null = null;
   // 段を出したときの「翌日へ」の回数
   let stepRest: number | null = null;
+  // 「ジャンプ」の段で、一度でも跳んだか（文を読み終える前に跳んでも数える）
+  let jumped = false;
+  // 前に指したもの（変わったら、見える位置までスクロールする）
+  let lastPointed: HTMLElement | null = null;
   // いまの段を出した時刻（読み終わる前に次の段へ進まないように使う）
   let stepShownAt = performance.now();
   let flareDrillRequested = false;
@@ -379,15 +400,34 @@ export function createTutorial(
 
   function placePointer(): void {
     const mustGoOut = lastProgress?.indoors === true && OUTDOOR_STEPS.includes(step());
-    const target =
-      mode !== 'tutorial' || rereading
-        ? null
-        : mustGoOut
-          ? visibleElement('[data-action="context"][data-context="exitHabitat"]')
-          : pointTarget(step());
+    const mustGoIn = lastProgress?.indoors === false && INDOOR_STEPS.includes(step());
+    let target: HTMLElement | null = null;
+    if (mode === 'tutorial' && !rereading) {
+      if (mustGoOut) {
+        target =
+          visibleElement('[data-action="context"][data-context="exitHabitat"]') ??
+          visibleElement('[data-action="nbGo"][data-page="plan"]:not([disabled])') ??
+          visibleElement('[data-action="nbNext"]');
+      } else if (mustGoIn) {
+        target = visibleElement('[data-action="context"][data-context="enterHabitat"]');
+      } else {
+        target = pointTarget(step());
+      }
+    }
+    // 説明の窓（朝の窓など）が開いている間は、その下に隠れたボタンを指さない
+    const dialog = document.querySelector('.ui-modal-layer:not([hidden])');
+    if (target !== null && dialog !== null && !dialog.contains(target)) {
+      target = null;
+    }
     if (target === null) {
       pointer.hidden = true;
+      lastPointed = null;
       return;
+    }
+    // 窓の中で下に隠れていたら、見えるところまで動かす（「注文を送る」が下の帯に隠れるなど）
+    if (target !== lastPointed) {
+      lastPointed = target;
+      target.scrollIntoView({ block: 'nearest' });
     }
     const rect = target.getBoundingClientRect();
     const room = POINTER_SIZE_PX + POINTER_GAP_PX;
@@ -621,6 +661,7 @@ export function createTutorial(
     stepYaw = null;
     stepOrigin = null;
     stepRest = null;
+    jumped = false;
     stepShownAt = performance.now();
     flareDrillRequested = false;
     flareChoice = null;
@@ -726,6 +767,7 @@ export function createTutorial(
     stepYaw = null;
     stepOrigin = null;
     stepRest = null;
+    jumped = false;
     stepShownAt = performance.now();
     panel.classList.remove('tutorial-cleared');
     // 再描画のあとにつけ直して、アニメーションをもう一度動かす
@@ -759,7 +801,7 @@ export function createTutorial(
         return turned >= values.tutorial.lookTurnRad.value;
       }
       case 'jump':
-        return p.airborne;
+        return jumped;
       case 'buildSolar':
         return p.placing === 'solar' || has('solar');
       case 'placeSolar':
@@ -777,7 +819,7 @@ export function createTutorial(
       case 'sleepAgain':
         return stepRest !== null && p.restDays > stepRest;
       case 'inventory':
-        return p.inventoryOpened;
+        return p.inventoryOpened && !p.inventoryOpen;
       case 'chooseTask':
         return p.tasksSelected > 0;
       case 'waitArrival':
@@ -797,7 +839,7 @@ export function createTutorial(
       case 'regolith':
         return p.state.facilities.some((f) => f.kind === 'habitat' && f.regolithCover === true);
       case 'dictionary':
-        return p.readDictionary;
+        return p.readDictionary && !p.helpOpen;
       case 'pause':
         return p.userPaused;
       case 'resume':
@@ -808,8 +850,9 @@ export function createTutorial(
         return dataOpened;
       case 'power':
       case 'comm':
-      case 'lifeLine':
       case 'arrived':
+        return !p.windowOpen;
+      case 'lifeLine':
         return false;
     }
   }
@@ -851,6 +894,9 @@ export function createTutorial(
       // 段を出したときの場所と向き（読み終わる前に歩いたり見回したりしても数える）
       stepOrigin ??= { x: progress.playerX, z: progress.playerZ };
       stepRest ??= progress.restDays;
+      if (step() === 'jump' && progress.airborne) {
+        jumped = true;
+      }
       stepYaw ??= progress.viewYawRad;
       // 1回に1段だけ。文を出し終えて、少し時間がたってから進む（すでにできていた段も、読む前に飛ばさない）
       const readEnough =
@@ -932,7 +978,8 @@ export function createTutorial(
         case 'regolith':
           return 'home';
         default:
-          return null;
+          // 中でやる段なのに外にいたら、居住モジュールへ
+          return INDOOR_STEPS.includes(step()) && lastProgress?.indoors === false ? 'home' : null;
       }
     },
     isBlocking() {

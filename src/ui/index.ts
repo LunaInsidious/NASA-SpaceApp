@@ -110,7 +110,7 @@ function pick<T extends string>(value: string | undefined, allowed: readonly T[]
 }
 
 // 「データ」の窓で、出典と並べて見せる数値（HUD の項目ごと）
-const SOURCE_KEYS = {
+export const SOURCE_KEYS = {
   tank: ['eva.maxHours', 'crew.sleepHours', 'eva.weeklyHoursPerPerson'],
   lifeSupport: [
     'crew.oxygenKgPerDay',
@@ -697,7 +697,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       const noRoom = kind === 'crew' && crewRoom <= 0;
       const roomNote =
         kind === 'crew'
-          ? `<small class="${noRoom ? 'ui-bad' : 'ui-ok'}">${noRoom ? t('launch.crewNoRoom') : t('launch.crewRoom', { count: crewRoom })}</small>`
+          ? `<small class="${noRoom && cart.crew === 0 ? 'ui-bad' : 'ui-ok'}">${noRoom ? t(cart.crew > 0 ? 'launch.crewFull' : 'launch.crewNoRoom') : t('launch.crewRoom', { count: crewRoom })}</small>`
           : '';
       // 名前と −/＋ を1つのわくに入れ、どの数を増やすのかが分かるようにする
       return `<li class="ui-supply-row${cart[kind] > 0 ? ' picked' : ''}">
@@ -1089,10 +1089,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     } else if (restPage === 'plan') {
       // 「外に出る」「翌日へ」は 3D の画面と同じボタン（data-action="context"）にして、E キーとくんれんの矢印もそのまま使う
       const goOut = rest.canGoOut
-        ? `<button class="primary nb-next" data-action="context" data-context="exitHabitat">${t('action.exitHabitat')}</button>`
+        ? `<button class="${rest.wentOutToday && rest.canNextDay ? '' : 'primary nb-next'}" data-action="context" data-context="exitHabitat">${t('action.exitHabitat')}</button>`
         : '';
       const nextDay = rest.canNextDay
-        ? `<button class="${rest.canGoOut ? '' : 'primary nb-next'}" data-action="context" data-context="nextDay">${t('action.nextDay')}</button>`
+        ? `<button class="${rest.canGoOut && !rest.wentOutToday ? '' : 'primary nb-next'}" data-action="context" data-context="nextDay">${t('action.nextDay')}</button>`
         : '';
       forward = `<span class="nb-foot-actions">${goOut}${nextDay}</span>`;
     } else {

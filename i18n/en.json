@@ -290,8 +290,8 @@
   "tutorial.step.flareDrill.keys": "Training alarm! It uses a real solar flare record from 2024. Choose 'Go inside now' to stay safe.",
   "tutorial.step.flareDrill.touch": "Training alarm! It uses a real solar flare record from 2024. Choose 'Go inside now' to stay safe.",
   "tutorial.step.flareDrillRetry": "That's dangerous! In a real storm, go inside. Try again and choose 'Go inside now'.",
-  "tutorial.step.goOutside.keys": "Well done! Now go back outside: press E (Go outside).",
-  "tutorial.step.goOutside.touch": "Well done! Now go back outside: tap Go outside.",
+  "tutorial.step.goOutside.keys": "It is morning. Let's go outside. Press E (\"Go outside\").",
+  "tutorial.step.goOutside.touch": "It is morning. Let's go outside. Press \"Go outside\".",
   "tutorial.step.regolith.keys": "Moon soil (regolith) blocks radiation. Next to the habitat, press the glowing 'Pile regolith on the habitat' button.",
   "tutorial.step.regolith.touch": "Moon soil (regolith) blocks radiation. Next to the habitat, press the glowing 'Pile regolith on the habitat' button.",
   "tutorial.step.pause.keys": "Press the glowing 'Pause' button.",
@@ -572,8 +572,8 @@
   "tutorial.step.nextDay.keys": "Press the glowing \"Next day\" to sleep. Time moves on until morning.",
   "tutorial.step.nextDay.touch": "Press the glowing \"Next day\" to sleep. Time moves on until morning.",
   "tutorial.why.nextDay": "Time stops while you are inside, so you can think slowly. When you press \"Next day\", the crew works while you sleep, and supplies get used.",
-  "tutorial.step.arrived.keys": "It arrived! The morning window showed the supplies that came in.",
-  "tutorial.step.arrived.touch": "It arrived! The morning window showed the supplies that came in.",
+  "tutorial.step.arrived.keys": "It arrived! Look at the supplies that came in, in the morning window. Then press \"Let's go!\".",
+  "tutorial.step.arrived.touch": "It arrived! Look at the supplies that came in, in the morning window. Then press \"Let's go!\".",
   "tutorial.why.arrived": "The morning window shows what went up and down while you slept. Check it every morning.",
   "notebook.title": "Inside the habitat · Day {day}",
   "notebook.insideOnly": "\"{name}\" opens inside the habitat.",
@@ -661,5 +661,9 @@
   "card.evaHours.body": "In the Artemis program, one outside work session on the Moon is planned to last about 6 to 8 hours. Spacesuit oxygen is limited too, so watch the time and come back.",
   "card.evaHours.hint": "How to get it: come back to the habitat after working outside",
   "notebook.inOrder": "Go step by step with \"Next\" at the bottom.",
-  "notebook.buildOutside": "Building is done outside. Go outside, then press \"Build\"."
+  "notebook.buildOutside": "Building is done outside. Go outside, then press \"Build\".",
+  "unit.h/week": "{value} hours a week",
+  "launch.sent": "🚀 Order sent! It arrives in {days} days.",
+  "launch.crewFull": "That fills all the places to live",
+  "save.saved": "💾 Saved to {number}."
 }

@@ -258,6 +258,7 @@ const ui = createUi(
     onSave: (slot) => {
       saves.manualSave(state, slot);
       manualSaveCount++;
+      ui.notify(t('save.saved', { number: slot + 1 }), false);
       ui.setSaves(saves.list());
     },
     onLoad: (saveId) => {
@@ -902,6 +903,9 @@ function updateTutorial(): void {
     manualSaves: manualSaveCount,
     userPaused: ui.isUserPaused(),
     readDictionary: help.hasRead(),
+    helpOpen: help.isOpen(),
+    inventoryOpen: ui.isInventoryOpen(),
+    windowOpen: ui.isMenuOpen(),
     inventoryOpened,
     tasksSelected: selectedTaskIds.length + todayPlan.length,
   });
@@ -916,7 +920,7 @@ function updateTutorial(): void {
   }
   // 行く方向の矢印（カメラの向きに対して）と、のこりの距離
   // メニューや窓が開いている間は、矢印で文字を隠さない
-  guideArrow.hidden = target === null || ui.isMenuOpen() || tutorial.isBlocking();
+  guideArrow.hidden = target === null || indoors || ui.isMenuOpen() || tutorial.isBlocking();
   if (target !== null) {
     const bearing = Math.atan2(target.x - p.x, target.z - p.z);
     const relative = bearing - world.getViewYawRad();
@@ -1049,6 +1053,7 @@ function tick(dtHours: number): void {
   // 注文が通ってロケットが飛び立った
   if (state.launches.length > launchesBefore) {
     fx.sound('launch');
+    ui.notify(t('launch.sent', { days: values.launch.deliveryDays.value }), false);
   }
   handleEvents(result.emitted);
   warnTank();
