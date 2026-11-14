@@ -1,0 +1,39 @@
+{
+  "time": {
+    "secondsPerEarthDay": { "value": 20, "unit": "s", "source": "docs/SPEC.md 時間" },
+    "stepHours": { "value": 1, "unit": "h", "source": "TBD" },
+    "fastSpeedMultiplier": { "value": 4, "unit": "x", "source": "docs/SPEC.md 時間" }
+  },
+  "moon": {
+    "gravity": { "value": 1.62, "unit": "m/s^2", "source": "TBD" },
+    "sunElevationDeg": { "value": 1.5, "unit": "deg", "source": "TBD" },
+    "sunPeriodDays": { "value": 29.5, "unit": "day", "source": "docs/SPEC.md 時間" },
+    "commDelaySec": { "value": 1.3, "unit": "s", "source": "TBD" },
+    "radiationMsvPerDay": { "value": 1.4, "unit": "mSv/day", "source": "TBD" }
+  },
+  "crew": {
+    "oxygenKgPerDay": { "value": 0.84, "unit": "kg/person/day", "source": "TBD" },
+    "waterKgPerDay": { "value": 2.5, "unit": "kg/person/day", "source": "TBD" },
+    "foodKgPerDay": { "value": 1.8, "unit": "kg/person/day", "source": "TBD" },
+    "doseLimitMsv": { "value": 600, "unit": "mSv", "source": "TBD" },
+    "maxCount": { "value": 10, "unit": "person", "source": "TBD" },
+    "offerMinDevelopment": { "value": 40, "unit": "pt", "source": "TBD" }
+  },
+  "development": {
+    "elementMin": { "value": 5, "unit": "pt", "source": "docs/SPEC.md 発展度" },
+    "elementMax": { "value": 100, "unit": "pt", "source": "docs/SPEC.md 発展度" },
+    "clearThreshold": { "value": 60, "unit": "pt", "source": "docs/SPEC.md クリアとその後" },
+    "selfSufficiencyWindowDays": { "value": 7, "unit": "day", "source": "docs/SPEC.md 発展度" },
+    "stabilityBatteryWindowDays": { "value": 3, "unit": "day", "source": "docs/SPEC.md 発展度" },
+    "stabilityFullSupplyDays": { "value": 14, "unit": "day", "source": "docs/SPEC.md 発展度" },
+    "safetyDownedWindowDays": { "value": 7, "unit": "day", "source": "docs/SPEC.md 発展度" },
+    "safetyDownedFactor": { "value": 0.9, "unit": "x", "source": "docs/SPEC.md 発展度" },
+    "scalePerCrew": { "value": 20, "unit": "pt/person", "source": "docs/SPEC.md 発展度" },
+    "scalePerResearch": {
+      "value": 10,
+      "unit": "pt/(research/day)",
+      "source": "docs/SPEC.md 発展度"
+    },
+    "scaleResearchWindowDays": { "value": 7, "unit": "day", "source": "docs/SPEC.md 発展度" }
+  }
+}

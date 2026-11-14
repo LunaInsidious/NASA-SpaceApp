@@ -1,0 +1,3 @@
+`Math.random` as $random where {
+  register_diagnostic(span=$random, message="乱数は step の rng 引数だけを使う（docs/SPEC.md 契約）")
+}
