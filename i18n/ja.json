@@ -335,5 +335,6 @@
   "fx.starUp": "{name}の ★が ふえた！",
   "fx.iceWater": "こおりが 水に なった！ ＋{kg} kg",
   "fx.achievement": "じっせき ゲット！ {name}",
-  "fx.arrived": "ロケット とうちゃく！"
+  "fx.arrived": "ロケット とうちゃく！",
+  "mission.closePanel": "この パネルを とじる"
 }

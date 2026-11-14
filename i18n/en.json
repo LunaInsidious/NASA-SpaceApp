@@ -335,5 +335,6 @@
   "fx.starUp": "{name} ★ up!",
   "fx.iceWater": "Ice became water! +{kg} kg",
   "fx.achievement": "Achievement! {name}",
-  "fx.arrived": "The rocket has arrived!"
+  "fx.arrived": "The rocket has arrived!",
+  "mission.closePanel": "Close this panel"
 }

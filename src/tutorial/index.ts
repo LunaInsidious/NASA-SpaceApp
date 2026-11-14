@@ -173,6 +173,18 @@ export function createTutorial(
 
   const panel = document.createElement('div');
   panel.className = 'tutorial';
+  // ミッションのパネルを閉じたあと、また開くための小さなボタン（記号だけ）
+  let panelClosed = false;
+  const reopen = document.createElement('button');
+  reopen.type = 'button';
+  reopen.className = 'tutorial-reopen';
+  reopen.textContent = '📋';
+  reopen.hidden = true;
+  reopen.addEventListener('click', () => {
+    panelClosed = false;
+    render();
+  });
+  root.append(reopen);
   const modal = document.createElement('div');
   modal.className = 'tutorial-modal-layer';
   root.append(panel, modal);
@@ -224,6 +236,7 @@ export function createTutorial(
   function render(): void {
     modal.hidden = true;
     panel.hidden = false;
+    reopen.hidden = true;
     delete document.body.dataset.tutorialStep;
     if (mode === 'ask') {
       panel.hidden = true;
@@ -272,6 +285,8 @@ export function createTutorial(
       renderStep();
       return;
     }
+    panel.hidden = panelClosed;
+    reopen.hidden = !panelClosed;
     renderMission();
   }
 
@@ -310,6 +325,7 @@ export function createTutorial(
     flareChoice = null;
     dataOpened = false;
     missionIndex = 0;
+    panelClosed = false;
     onRestart();
     render();
   }
@@ -354,7 +370,7 @@ export function createTutorial(
     const text = document.createElement('p');
     text.className = 'tutorial-text';
     text.textContent = mission === undefined ? t('mission.allDone') : t(mission.textKey);
-    panel.replaceChildren(
+    const parts: HTMLElement[] = [
       header(
         t('mission.title'),
         t('tutorial.progress', {
@@ -363,7 +379,20 @@ export function createTutorial(
         }),
       ),
       text,
-    );
+    ];
+    // 全部おわったら、パネルを閉じられるようにする（閉じても 📋 からまた開ける）
+    if (mission === undefined) {
+      const row = document.createElement('div');
+      row.className = 'tutorial-buttons';
+      row.append(
+        button(t('mission.closePanel'), 'tutorial-ok', () => {
+          panelClosed = true;
+          render();
+        }),
+      );
+      parts.push(row);
+    }
+    panel.replaceChildren(...parts);
   }
 
   function advance(): void {

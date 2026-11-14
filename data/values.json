@@ -610,7 +610,7 @@
       "source": "docs/SPEC.md 未決事項（仮の値）"
     },
     "capacityKg": {
-      "value": 2000,
+      "value": 800,
       "unit": "kg",
       "source": "TBD"
     },
