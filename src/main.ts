@@ -715,6 +715,11 @@ function tick(dtHours: number): void {
   const launchesBefore = state.launches.length;
   const result = step(state, dtHours, env, commands, values, timeline, Math.random);
   state = result.state;
+  // 宇宙飛行士が倒れたら（ボンベの酸素切れ、大量の被ばく）ゲームオーバー（docs/SPEC.md）。
+  // sim は居住モジュールで目を覚まさせるので、それはチュートリアル中だけにする
+  if (result.emitted.some((e) => e.type === 'playerDowned') && !tutorial.isTutorial()) {
+    state = { ...state, phase: 'gameOver' };
+  }
   // 注文が通ってロケットが飛び立った
   if (state.launches.length > launchesBefore) {
     fx.sound('launch');

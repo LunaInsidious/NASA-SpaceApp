@@ -653,7 +653,8 @@
   }
 
   .ui-hud.open .ui-detail,
-  body[data-tutorial-step="power"] .ui-detail:not(.ui-development) {
+  body[data-tutorial-step="power"] .ui-detail:not(.ui-development),
+  body[data-tutorial-step="lifeLine"] .ui-detail:not(.ui-development) {
     display: block;
   }
 

@@ -7,7 +7,6 @@ import type {
   GameEvent,
   LaunchItem,
   LaunchItemKind,
-  ResourceKey,
   SimState,
   Values,
 } from '../contracts/index.ts';
@@ -77,7 +76,7 @@ type Dialog =
   | { type: 'flare'; event: ActiveEvent; donki: DonkiEvent | null }
   | { type: 'downed'; advice: DeathAdvice }
   | { type: 'cleared'; total: number }
-  | { type: 'gameOver'; reason: ResourceKey; advice: DeathAdvice };
+  | { type: 'gameOver'; advice: DeathAdvice };
 
 function esc(text: string): string {
   return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -422,7 +421,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         <span class="ui-chips-more">${hudOpen ? '▲' : '▼'}</span>
       </button>
       <div class="ui-panel ui-detail">
-        <div class="ui-stat" data-action="toggleBreakdown">
+        <div class="ui-stat ui-life" data-action="toggleBreakdown">
           <span class="ui-label">${t('hud.lifeSupport')}</span>
           <span class="ui-value ui-life-value ${life.min < LOW_DAYS ? 'ui-bad' : ''}">${daysText(life.min)}</span>
           ${breakdown}
@@ -711,13 +710,17 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           <p>${t('cleared.body', { value: fmt(dialog.total) })}</p>
           <p>${t('cleared.next')}</p>
           <div class="ui-actions"><button data-action="dialogOk" class="primary">${t('cleared.continue')}</button></div>`;
-      case 'gameOver':
+      case 'gameOver': {
+        const kind = dialog.advice.kind;
+        // 宇宙飛行士が倒れた（ボンベ・放射線）か、基地の物資が尽きたか
+        const playerDown = kind === 'tankEmpty' || kind === 'radiation';
         return `
-          <h2>${t('gameOver.title')}</h2>
-          <p>${t('gameOver.reason', { resource: t(`resource.${dialog.reason}`) })}</p>
+          <h2>${t(playerDown ? 'gameOver.playerTitle' : 'gameOver.title')}</h2>
+          <p>${playerDown ? t(`gameOver.player.${kind}`) : t('gameOver.reason', { resource: t(`resource.${kind}`) })}</p>
           ${professorDeathAdviceHtml(dialog.advice)}
           ${saves.length > 0 ? `<p>${t('gameOver.resumeFrom')}</p>${saveListHtml()}` : ''}
           <div class="ui-actions"><button data-action="restart" class="primary">${t('gameOver.restart')}</button></div>`;
+      }
     }
   };
 
@@ -1101,17 +1104,22 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           toast(t('event.commRestored'), false);
           break;
         case 'playerDowned':
-          pushDialog({ type: 'downed', advice: adviceFor('倒れた') });
+          // 同じときに基地の物資も尽きたら、そちらのゲームオーバーの窓だけを出す
+          if (events.some((e) => e.type === 'gameOver')) {
+            break;
+          }
+          // チュートリアルの外で倒れたら、main がゲームオーバーにしている
+          pushDialog(
+            eventState.phase === 'gameOver'
+              ? { type: 'gameOver', advice: adviceFor('倒れた') }
+              : { type: 'downed', advice: adviceFor('倒れた') },
+          );
           break;
         case 'cleared':
           pushDialog({ type: 'cleared', total: eventState.development.total });
           break;
         case 'gameOver':
-          pushDialog({
-            type: 'gameOver',
-            reason: event.reason,
-            advice: adviceFor('ゲームオーバー'),
-          });
+          pushDialog({ type: 'gameOver', advice: adviceFor('ゲームオーバー') });
           break;
         case 'achievement':
           toast(t('event.achievement', { name: t(`achievement.${event.id}`) }), false);

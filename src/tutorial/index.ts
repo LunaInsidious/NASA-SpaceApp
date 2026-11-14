@@ -10,7 +10,7 @@ import { deathAdviceHtml } from './deathView.ts';
 import { PROFESSOR_SVG, type Typing, typeText } from './professor.ts';
 import './tutorial.css';
 
-const STEPS = [
+export const STEPS = [
   'move',
   'look',
   'jump',
@@ -20,6 +20,7 @@ const STEPS = [
   'dictionary',
   'battery',
   'comm',
+  'lifeLine',
   'order',
   'goInsideWait',
   'fastForward',
@@ -54,7 +55,7 @@ const STEP_TERMS: Partial<Record<Step, readonly HelpTerm[]>> = {
   data: ['donki'],
 };
 // 読んで「わかった」を押すと進む段
-const ACK_STEPS: readonly Step[] = ['power', 'comm'];
+const ACK_STEPS: readonly Step[] = ['power', 'comm', 'lifeLine'];
 const STORAGE_KEY = 'lunar-outpost-tutorial';
 // 大きな窓が出たときに、博士の口が動く長さ（見た目だけ）
 const MODAL_SPEAK_MS = 1500;
@@ -419,7 +420,16 @@ export function createTutorial(
     progress.className = 'tutorial-progress';
     progress.textContent = progressText;
     // 説明を読み直すだけ（ゲームは進めも戻しもしない）
-    const reread = button(t('tutorial.reread'), 'tutorial-restart', openReread);
+    const reread = button('', 'tutorial-restart', openReread);
+    // スマホ幅では短い名前にして、見出しの行に収める（CSS で切り替える）
+    const long = document.createElement('span');
+    long.className = 'tutorial-long';
+    long.textContent = t('tutorial.reread');
+    const short = document.createElement('span');
+    short.className = 'tutorial-short';
+    short.textContent = t('tutorial.rereadShort');
+    reread.append(long, short);
+    reread.setAttribute('aria-label', t('tutorial.reread'));
     head.append(title, progress, reread);
     return head;
   }
@@ -638,6 +648,7 @@ export function createTutorial(
         return dataOpened;
       case 'power':
       case 'comm':
+      case 'lifeLine':
         return false;
     }
   }

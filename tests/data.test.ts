@@ -7,7 +7,7 @@ import en from '../i18n/en.json';
 import ja from '../i18n/ja.json';
 import type { ValueEntry } from '../src/contracts/index.ts';
 import { parseAchievements } from '../src/save/achievements.ts';
-import { parseMissions } from '../src/tutorial/index.ts';
+import { parseMissions, STEPS } from '../src/tutorial/index.ts';
 import { parseNasaImages } from '../src/ui/photo.ts';
 
 function isValueEntry(node: object): node is ValueEntry {
@@ -90,6 +90,22 @@ describe('data/nasa-images.json', () => {
     const missing = Object.values(parseNasaImages(nasaImages))
       .map((image) => image.file)
       .filter((file) => !present.includes(`../public/nasa/${file}`));
+    expect(missing).toEqual([]);
+  });
+});
+
+describe('チュートリアルの段', () => {
+  it('どの段にも「どうして？」と「やること」（キーボード・タッチ）の文言が en と ja にある', () => {
+    const keys = STEPS.flatMap((step) => [
+      `tutorial.why.${step}`,
+      `tutorial.step.${step}.keys`,
+      `tutorial.step.${step}.touch`,
+    ]);
+    const missing = keys.flatMap((key) =>
+      Object.entries({ en, ja })
+        .filter(([, messages]) => !(key in messages))
+        .map(([lang]) => `${lang}: ${key}`),
+    );
     expect(missing).toEqual([]);
   });
 });
