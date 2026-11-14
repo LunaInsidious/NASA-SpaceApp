@@ -248,7 +248,10 @@ export function launchItemCost(item: LaunchItem, values: Values): number {
     const spec = lv.items[item.kind];
     unitCost = Math.max(spec.massKg.value, spec.volumeM3.value * volumetric);
   }
-  return unitCost * item.quantity;
+  // 荷物ごとに、きりのよい数（costRoundTo の倍数）に丸める。画面とメーターと注文の判定は、この同じ数を使う。
+  // 荷物があるなら、少なくとも1単位は使う（0 にならない）
+  const step = lv.costRoundTo.value;
+  return Math.max(step, Math.round((unitCost * item.quantity) / step) * step);
 }
 
 export function checkPlacement(

@@ -13,6 +13,7 @@ import { computeDevelopment } from './development.ts';
 import {
   createInitialState,
   describe as describeState,
+  launchItemCost,
   outdoorDoseMsvPerHour,
   step,
 } from './index.ts';
@@ -111,7 +112,13 @@ describe('sim', () => {
       [
         {
           type: 'orderLaunch',
-          items: [{ kind: 'materials', quantity: values.launch.capacityKg.value + 1 }],
+          // 場所は costRoundTo の倍数に丸めるので、丸めても上限を超える量にする
+          items: [
+            {
+              kind: 'materials',
+              quantity: values.launch.capacityKg.value + values.launch.costRoundTo.value,
+            },
+          ],
         },
       ],
       values,
@@ -304,5 +311,20 @@ describe('sim', () => {
     expect(view.lifeSupportDaysIfStopped.food).toBeCloseTo(
       inside.stocks.food / (values.crew.foodKgPerDay.value * inside.crew.length),
     );
+  });
+
+  it('ロケットの場所は荷物ごとに costRoundTo の倍数に丸め、0 にはしない', () => {
+    const step = values.launch.costRoundTo.value;
+    for (const item of [
+      { kind: 'crew', quantity: 1 },
+      { kind: 'relaySatellite', quantity: 1 },
+      { kind: 'water', quantity: values.launch.bulkOrderStep.value },
+      { kind: 'oxygen', quantity: values.launch.bulkOrderStep.value },
+      { kind: 'spareParts', quantity: 1 },
+    ] as const) {
+      const cost = launchItemCost(item, values);
+      expect(cost % step).toBe(0);
+      expect(cost).toBeGreaterThanOrEqual(step);
+    }
   });
 });

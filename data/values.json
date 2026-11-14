@@ -612,6 +612,11 @@
       "unit": "kg",
       "source": "TBD"
     },
+    "costRoundTo": {
+      "value": 10,
+      "unit": "kg",
+      "source": "docs/SPEC.md（ゲームデザイン：子どもに分かりやすい数にする）"
+    },
     "volumetricKgPerM3": {
       "value": 167,
       "unit": "kg/m^3",
