@@ -83,37 +83,44 @@ const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
   goInsideWait: ['[data-action="context"][data-context="enterHabitat"]'],
   nextDay: [
     '[data-action="context"][data-context="nextDay"]',
-    '[data-action="nbGo"][data-page="plan"]',
+    '[data-action="nbGo"][data-page="plan"]:not([disabled])',
+    '[data-action="nbNext"]',
   ],
   sleepAgain: [
     '[data-action="context"][data-context="nextDay"]',
-    '[data-action="nbGo"][data-page="plan"]',
+    '[data-action="nbGo"][data-page="plan"]:not([disabled])',
+    '[data-action="nbNext"]',
   ],
   inventory: ['[data-action="menu"][data-menu="status"]'],
   gridBuild: [
     '[data-action="gridBuild"]',
     '.nb-cell.ok',
     '[data-action="gridKind"][data-kind="solar"]',
-    '[data-action="nbGo"][data-page="build"]',
+    '[data-action="nbGo"][data-page="build"]:not([disabled])',
+    '[data-action="nbNext"]',
   ],
   chooseTask: [
     '[data-action="taskToggle"][data-task="ice"]:not(.on)',
-    '[data-action="nbGo"][data-page="tasks"]',
+    '[data-action="nbGo"][data-page="tasks"]:not([disabled])',
+    '[data-action="nbNext"]',
   ],
   waitArrival: [
     '[data-action="context"][data-context="nextDay"]',
-    '[data-action="nbGo"][data-page="plan"]',
+    '[data-action="nbGo"][data-page="plan"]:not([disabled])',
+    '[data-action="nbNext"]',
   ],
   assignCrew: [
     '[data-action="assign"][data-task="farming"]',
-    '[data-action="nbGo"][data-page="crew"]',
+    '[data-action="nbGo"][data-page="crew"]:not([disabled])',
+    '[data-action="nbNext"]',
   ],
   takeIce: ['[data-action="context"][data-context="collectIce"]'],
   goHome: ['[data-action="context"][data-context="enterHabitat"]'],
   flareDrill: ['[data-action="flare"][data-choice="shelter"]'],
   goOutside: [
     '[data-action="context"][data-context="exitHabitat"]',
-    '[data-action="nbGo"][data-page="plan"]',
+    '[data-action="nbGo"][data-page="plan"]:not([disabled])',
+    '[data-action="nbNext"]',
   ],
   regolith: ['[data-action="context"][data-context="coverRegolith"]'],
   pause: ['[data-action="pause"]'],
@@ -153,7 +160,8 @@ function pointTarget(step: Step): HTMLElement | null {
     }
     return (
       visibleElement('[data-action="order"]') ??
-      visibleElement('[data-action="nbGo"][data-page="launch"]')
+      visibleElement('[data-action="nbGo"][data-page="launch"]:not([disabled])') ??
+      visibleElement('[data-action="nbNext"]')
     );
   }
   for (const selector of STEP_POINTS[step] ?? []) {

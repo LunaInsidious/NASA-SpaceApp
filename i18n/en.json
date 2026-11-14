@@ -690,5 +690,6 @@
   "card.radiation.hint": "How to get it: take shelter during a solar flare alert",
   "card.evaHours.title": "How long can you stay outside in a spacesuit?",
   "card.evaHours.body": "In the Artemis program, one outside work session on the Moon is planned to last about 6 to 8 hours. Spacesuit oxygen is limited too, so watch the time and come back.",
-  "card.evaHours.hint": "How to get it: come back to the habitat after working outside"
+  "card.evaHours.hint": "How to get it: come back to the habitat after working outside",
+  "notebook.inOrder": "Go step by step with \"Next\" at the bottom."
 }

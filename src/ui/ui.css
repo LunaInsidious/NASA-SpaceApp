@@ -1020,6 +1020,11 @@ body.nb-open .ui-top .ui-status {
   opacity: 0.75;
 }
 
+.ui-root button.nb-step:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .ui-root button.nb-step.past {
   opacity: 1;
   border-color: #6fd08c;

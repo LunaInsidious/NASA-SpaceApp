@@ -61,6 +61,7 @@ const NOTEBOOK_PAGES = [...REST_PAGES, 'save', 'status', 'cards'] as const;
 // インベントリ画面に出す物資
 const INVENTORY_STOCKS = ['oxygen', 'water', 'food', 'spareParts', 'materials'] as const;
 type RestPage = (typeof NOTEBOOK_PAGES)[number];
+type RestStep = (typeof REST_PAGES)[number];
 // マス目の地図の重ね表示：日なた・地球が見える・氷
 const GRID_LAYERS = ['sun', 'earth', 'ice'] as const;
 type GridLayer = (typeof GRID_LAYERS)[number];
@@ -283,6 +284,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   // 休息フェーズの2D画面（居住モジュールの中）。main が setRest で開け閉めする
   let rest: RestInfo | null = null;
   let restPage: RestPage = 'review';
+  // 順に進むページのどこまで来たか。先のページへは「次へ」でしか進めない（戻るのはできる）。
+  // セーブ・くわしい様子・カード（順の外）を開いている間も、ここを覚えておいて戻る
+  let restStep: RestStep = 'review';
   // 外で今日こなすタスク（main が setTaskList で渡す）
   let taskList: { label: string; done: boolean }[] = [];
   // マス目の地図：選んだ施設、見ている重ね表示、基地からずらしているマス、選んだマス
@@ -1130,7 +1134,23 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   };
 
   /** 順に進むページの何番目か。セーブ・くわしい様子（順の外）なら -1 */
-  const restPageIndex = () => (REST_PAGES as readonly string[]).indexOf(restPage);
+  /**
+   * そのページを開く。順のページは、今いるところか、それより前（戻る）だけ。先へは「次へ」でしか進めないので false を返す。
+   * 順の外のページ（セーブ・くわしい様子・カード）はいつでも開ける
+   */
+  const openRestPage = (page: RestPage): boolean => {
+    const step = REST_PAGES.find((p) => p === page);
+    if (step === undefined) {
+      restPage = page;
+    } else if (REST_PAGES.indexOf(step) <= REST_PAGES.indexOf(restStep)) {
+      restStep = step;
+      restPage = step;
+    } else {
+      return false;
+    }
+    renderNotebook();
+    return true;
+  };
 
   const renderNotebook = () => {
     if (rest === null || state === null || view === null) {
@@ -1141,12 +1161,12 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     }
     notebookEl.hidden = false;
     document.body.classList.add('nb-open');
-    // 上の進み具合：番号と名前。押すとそのページへ戻れる（ふだんは「次へ」で順に進む）
-    const outOfOrder = restPageIndex() < 0;
-    const index = outOfOrder ? REST_PAGES.length - 1 : restPageIndex();
+    // 上の進み具合：番号と名前。前のページへは押して戻れる。先のページは押せない（「次へ」で順に進む）
+    const outOfOrder = restPage !== restStep;
+    const index = REST_PAGES.indexOf(restStep);
     const steps = REST_PAGES.map(
       (page, i) =>
-        `<button class="nb-step ${page === restPage ? 'on' : i < index ? 'past' : ''}" data-action="nbGo" data-page="${page}"><span class="nb-step-no">${i + 1}</span>${t(`notebook.page.${page}`)}</button>`,
+        `<button class="nb-step ${page === restPage ? 'on' : i <= index ? 'past' : ''}" data-action="nbGo" data-page="${page}" ${i > index ? 'disabled' : ''}><span class="nb-step-no">${i + 1}</span>${t(`notebook.page.${page}`)}</button>`,
     ).join('');
     const guideHtml =
       guide === null
@@ -1157,7 +1177,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         ? `<button data-action="nbBack">${t('notebook.back')}</button>`
         : '<span></span>';
     let forward: string;
-    if (restPage === 'plan') {
+    if (outOfOrder) {
+      // セーブ・くわしい様子・カードからは、「もどる」で順のページに戻るだけ
+      forward = '<span></span>';
+    } else if (restPage === 'plan') {
       // 「外に出る」「翌日へ」は 3D の画面と同じボタン（data-action="context"）にして、E キーとくんれんの矢印もそのまま使う
       const goOut = rest.canGoOut
         ? `<button class="primary nb-next" data-action="context" data-context="exitHabitat">${t('action.exitHabitat')}</button>`
@@ -1242,8 +1265,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const menuKind = MENUS.find((m) => m === kind);
     // 中にいる間は、建設も中の画面の「建てる」タブで（3D の地面は指せない）
     if ((menuKind === 'build' || menuKind === 'status') && rest !== null) {
-      restPage = menuKind;
-      renderNotebook();
+      if (!openRestPage(menuKind)) {
+        toast(t('notebook.inOrder'), false);
+      }
       return;
     }
     if (menuKind === undefined) {
@@ -1252,8 +1276,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         toast(t('notebook.insideOnly', { name: t(`notebook.page.${page}`) }), false);
         return;
       }
-      restPage = page;
-      renderNotebook();
+      // 中では順に進むので、先のページ（キーや困りごとカードから）は開かず、「次へ」で進むよう伝える
+      if (!openRestPage(page)) {
+        toast(t('notebook.inOrder'), false);
+      }
       return;
     }
     if (state === null || view === null) {
@@ -1309,18 +1335,23 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         closeMenus();
         break;
       case 'nbGo':
-        restPage = pick(target.dataset.page, NOTEBOOK_PAGES, 'notebook page');
-        renderNotebook();
+        // 先のページのボタンは押せないようにしているので、ここで開けないのは作りの誤り
+        if (!openRestPage(pick(target.dataset.page, NOTEBOOK_PAGES, 'notebook page'))) {
+          throw new Error(`ui：先のページ ${String(target.dataset.page)} へ飛ぼうとした`);
+        }
         break;
       case 'nbNext': {
-        const index = restPageIndex() < 0 ? REST_PAGES.length - 1 : restPageIndex();
-        restPage = REST_PAGES[Math.min(index + 1, REST_PAGES.length - 1)];
+        restStep = REST_PAGES[Math.min(REST_PAGES.indexOf(restStep) + 1, REST_PAGES.length - 1)];
+        restPage = restStep;
         renderNotebook();
         break;
       }
       case 'nbBack': {
-        const index = restPageIndex() < 0 ? REST_PAGES.length : restPageIndex();
-        restPage = REST_PAGES[Math.max(index - 1, 0)];
+        // 順の外のページからは、開く前にいたページへ。順のページからは1つ前へ
+        if (restPage === restStep) {
+          restStep = REST_PAGES[Math.max(REST_PAGES.indexOf(restStep) - 1, 0)];
+        }
+        restPage = restStep;
         renderNotebook();
         break;
       }
@@ -1738,7 +1769,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       }
       if (rest === null && next !== null) {
         // 夕方に中に入ったら振り返りから。朝（まだ外に出ていない）なら、さいごのページ（明日の計画と「外に出る」）から
-        restPage = next.wentOutToday ? 'review' : 'plan';
+        restStep = next.wentOutToday ? 'review' : 'plan';
+        restPage = restStep;
       }
       rest = next;
       renderNotebook();
