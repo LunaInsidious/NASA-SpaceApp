@@ -19,11 +19,12 @@ function seededRandom(seed: number): () => number {
 }
 
 describe('sim と env の結合', () => {
-  it('着陸直後の発展度は仕様の参考値（約24）に近い', () => {
+  it('着陸直後：宇宙飛行士は決めた位置に出て、生命維持の日数がある', () => {
     const env = createProceduralEnv(values, SEED);
     const state = createInitialState(values, env, env.landerPosition);
     expect(state.phase).toBe('main');
-    expect(state.player.x).toBeCloseTo(env.landerPosition[0], -1);
+    expect(state.player.x).toBeCloseTo(env.landerPosition[0] + values.start.playerOffsetX.value);
+    expect(state.player.z).toBeCloseTo(env.landerPosition[1] + values.start.playerOffsetZ.value);
     const view = describeView(state, values, env);
     expect(view.lifeSupportDays.min).toBeGreaterThan(0);
   });
