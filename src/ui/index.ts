@@ -1252,6 +1252,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         renderModal();
       }
     },
+    setSpeed(next) {
+      speed = next;
+      renderTopButtons();
+    },
     isUserPaused() {
       return userPaused;
     },

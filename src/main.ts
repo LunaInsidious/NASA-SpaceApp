@@ -373,6 +373,12 @@ function doAction(action: ContextAction): void {
     case 'exitHabitat':
       indoors = false;
       fx.sound('door');
+      // 外で 4× のままだと歩くのもボンベの減りも速すぎるので、外に出たら 1× に戻す（外で自分で 4× にはできる）
+      if (speed === 4) {
+        speed = 1;
+        ui.setSpeed(1);
+        ui.notify(t('speed.backToNormal'), false);
+      }
       break;
     case 'collectIce':
       // 氷は手で運ぶ（docs/SPEC.md「水と酸素」）。居住モジュールに持ち帰ると水になる

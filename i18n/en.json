@@ -76,6 +76,7 @@
   "action.exitHabitat": "Go outside",
   "action.collectIce": "Collect ice",
   "repair.noParts": "Not enough spare parts (this repair needs {need}, you have {have}). Order Spare parts with Supply.",
+  "speed.backToNormal": "You went outside, so time is back to 1×.",
   "action.repair": "Repair",
   "action.coverRegolith": "Pile regolith on the habitat",
   "action.withKey": "{label} (E)",
