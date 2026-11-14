@@ -787,6 +787,11 @@
       "value": 0.4,
       "unit": "m",
       "source": "TBD"
+    },
+    "minStepSeconds": {
+      "value": 1.5,
+      "unit": "s",
+      "source": "TBD"
     }
   },
   "build": {
