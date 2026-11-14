@@ -5,6 +5,7 @@ import achievementsJson from '../data/achievements.json';
 import donkiJson from '../data/donki-events.json';
 import valuesJson from '../data/values.json';
 import type {
+  ActiveEvent,
   DonkiEvent,
   DonkiTimeline,
   Facility,
@@ -409,6 +410,10 @@ function updateTutorial(): void {
   }
 }
 
+function needsShelterAlert(event: ActiveEvent): boolean {
+  return event.kind === 'sep' || event.classOrIntensity.startsWith('X');
+}
+
 function findDonki(donkiId: string): DonkiEvent {
   const found = timeline.find((e) => e.donkiId === donkiId);
   if (found === undefined) {
@@ -419,7 +424,8 @@ function findDonki(donkiId: string): DonkiEvent {
 
 function handleEvents(events: GameEvent[]): void {
   for (const event of events) {
-    if (event.type === 'eventStarted') {
+    // 退避が必要な警報は SEP と X 級のフレアだけ。ほかは HUD の「宇宙天気の嵐」だけで知らせる（docs/SPEC.md）
+    if (event.type === 'eventStarted' && needsShelterAlert(event.event)) {
       const donki = event.event.source === 'archived' ? findDonki(event.event.donkiId) : null;
       ui.showFlareAlert(event.event, donki);
     }
