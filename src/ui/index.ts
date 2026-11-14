@@ -39,6 +39,7 @@ const LAUNCH_ITEM_KINDS: readonly LaunchItemKind[] = [
   'crew',
   'relaySatellite',
 ];
+const BULK_LAUNCH_ITEMS: readonly LaunchItemKind[] = ['oxygen', 'water', 'food', 'materials'];
 const CREW_TASKS: readonly CrewTask[] = ['maintenance', 'research', 'farming'];
 const CONTEXT_ACTIONS: readonly ContextAction[] = [
   'enterHabitat',
@@ -751,7 +752,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       case 'cart': {
         const kind = pick(target.dataset.kind, LAUNCH_ITEM_KINDS, 'launch item');
         const delta = pick(target.dataset.delta, ['1', '-1'] as const, 'delta') === '1' ? 1 : -1;
-        cart[kind] = Math.max(0, cart[kind] + delta);
+        // 酸素・水・食料・資材は 1 個が 1 kg なので、1 回の押しでまとまった量を増減する
+        const step = BULK_LAUNCH_ITEMS.includes(kind) ? values.launch.bulkOrderStep.value : 1;
+        cart[kind] = Math.max(0, cart[kind] + delta * step);
         renderModal();
         break;
       }

@@ -711,6 +711,11 @@
           "source": "TBD"
         }
       }
+    },
+    "bulkOrderStep": {
+      "value": 50,
+      "unit": "kg",
+      "source": "TBD"
     }
   },
   "events": {
