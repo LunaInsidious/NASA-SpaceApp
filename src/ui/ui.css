@@ -1,6 +1,8 @@
 .ui-root {
   position: fixed;
   inset: 0;
+  /* チュートリアルの一覧（z-index 0）より上に、メニューや窓を出す */
+  z-index: 1;
   pointer-events: none;
   color: #f2f4f8;
   font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
@@ -330,7 +332,9 @@
 }
 
 .ui-grow {
-  flex: 1 1 auto;
+  /* 説明が長くても、右の +/− ボタンを次の行に押し出さず、文字のほうを折り返す */
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .ui-actions {
