@@ -1,6 +1,9 @@
 // 3D の世界。座標は x が東、z が北（地球の向き）、y が上。単位は m
 import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
 import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera';
+import { CreatePickingRay } from '@babylonjs/core/Culling/ray.pure';
+import type { IPointerEvent } from '@babylonjs/core/Events/deviceInputEvents';
+import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
@@ -39,6 +42,7 @@ import {
   CAMERA_RADIUS_M,
   CAMERA_TARGET_HEIGHT_M,
   CELESTIAL_DISTANCE_M,
+  CLICK_SLOP_PX,
   EARTH_DIAMETER_M,
   GUIDE_ALPHA,
   GUIDE_COLOR,
@@ -47,6 +51,9 @@ import {
   HOP_SPEED_MPS,
   ICE_BRIGHTNESS,
   ICE_COLOR,
+  PICK_MAX_DISTANCE_M,
+  PICK_REFINE_STEPS,
+  PICK_STEP_M,
   PLAYER_BOUNDS_MARGIN_M,
   PREVIEW_ALPHA,
   PREVIEW_BAD,
@@ -494,6 +501,64 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
   guide.isPickable = false;
   guide.setEnabled(false);
 
+  // 置く場所：建設モードの間、マウス（PC）やタップ（スマホ）が指す地面を、格子にそろえて使う
+  const grid = values.build.gridMeters.value;
+  const snap = (v: number) => clampToMap(Math.round(v / grid) * grid);
+  let buildCursor = false;
+  let cursorSpot: { x: number; z: number } | null = null;
+  const groundClickListeners: (() => void)[] = [];
+  let pointerPress: { x: number; y: number } | null = null;
+
+  /** 画面の点 (x, y) が指す地面。地面に当たらなければ null（空を指している） */
+  const groundAt = (screenX: number, screenY: number): { x: number; z: number } | null => {
+    const ray = CreatePickingRay(scene, screenX, screenY, null, camera);
+    const at = (d: number) => ({
+      x: ray.origin.x + ray.direction.x * d,
+      y: ray.origin.y + ray.direction.y * d,
+      z: ray.origin.z + ray.direction.z * d,
+    });
+    for (let d = PICK_STEP_M; d <= PICK_MAX_DISTANCE_M; d += PICK_STEP_M) {
+      const p = at(d);
+      if (p.y <= env.heightAt(p.x, p.z)) {
+        // 1歩前と今のあいだを細かくして、地面との交わりを求める
+        let lo = d - PICK_STEP_M;
+        let hi = d;
+        for (let i = 0; i < PICK_REFINE_STEPS; i++) {
+          const mid = (lo + hi) / 2;
+          const q = at(mid);
+          if (q.y <= env.heightAt(q.x, q.z)) hi = mid;
+          else lo = mid;
+        }
+        const hit = at(hi);
+        return { x: snap(hit.x), z: snap(hit.z) };
+      }
+    }
+    return null;
+  };
+
+  scene.onPointerObservable.add((info) => {
+    if (!buildCursor) return;
+    const event = info.event;
+    const pointerType = 'pointerType' in event ? (event as IPointerEvent).pointerType : null;
+    if (info.type === PointerEventTypes.POINTERMOVE && pointerType === 'mouse') {
+      cursorSpot = groundAt(scene.pointerX, scene.pointerY) ?? cursorSpot;
+    } else if (info.type === PointerEventTypes.POINTERDOWN) {
+      pointerPress = event.button === 0 ? { x: event.clientX, y: event.clientY } : null;
+    } else if (info.type === PointerEventTypes.POINTERUP && pointerPress !== null) {
+      const moved = Math.hypot(event.clientX - pointerPress.x, event.clientY - pointerPress.y);
+      pointerPress = null;
+      // ドラッグ（カメラを回した）ならそのまま。クリックやタップなら、そこを置く場所にする
+      if (moved > CLICK_SLOP_PX) return;
+      const spot = groundAt(scene.pointerX, scene.pointerY);
+      if (spot === null) return;
+      cursorSpot = spot;
+      // PC はクリックで置く。スマホのタップは場所を選ぶだけで、「ここに置く」で置く
+      if (pointerType === 'mouse') {
+        for (const listener of groundClickListeners) listener();
+      }
+    }
+  });
+
   return {
     frame(dtSec) {
       const dt = Math.min(dtSec, 0.1);
@@ -568,10 +633,22 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
       placeOnGround(ghost.visual.root, preview.x, preview.z);
     },
     getBuildSpot() {
+      if (cursorSpot !== null) {
+        return cursorSpot;
+      }
+      // 建設モードに入った直後で、まだマウスやタップで選んでいないときは宇宙飛行士の前
       return {
-        x: clampToMap(player.x + Math.sin(player.heading) * buildDistance),
-        z: clampToMap(player.z + Math.cos(player.heading) * buildDistance),
+        x: snap(player.x + Math.sin(player.heading) * buildDistance),
+        z: snap(player.z + Math.cos(player.heading) * buildDistance),
       };
+    },
+    setBuildCursor(enabled) {
+      buildCursor = enabled;
+      cursorSpot = null;
+      pointerPress = null;
+    },
+    onGroundClick(listener) {
+      groundClickListeners.push(listener);
     },
     getPlayer(): PlayerPose {
       return { x: player.x, y: player.y, z: player.z, headingRad: player.heading };

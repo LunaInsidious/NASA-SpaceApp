@@ -235,7 +235,8 @@
 /* トースト */
 .ui-toasts {
   position: absolute;
-  top: calc(8px + env(safe-area-inset-top));
+  /* 上の真ん中はチュートリアルとミッションの案内が使うので、通知は下の真ん中に出す */
+  bottom: calc(150px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -371,4 +372,21 @@
 .ui-modal h3 {
   margin: 12px 0 4px;
   font-size: 15px;
+}
+
+/* 建設のバー：置き方の説明 */
+.ui-buildhint {
+  margin-top: 4px;
+  opacity: 0.85;
+}
+
+@media (max-width: 640px) {
+  /* スマホ幅：建設のバーは、下のボタン列と仮想パッドより上に出す */
+  .ui-buildbar {
+    left: 8px;
+    right: 8px;
+    bottom: calc(180px + env(safe-area-inset-bottom));
+    transform: none;
+    max-width: none;
+  }
 }

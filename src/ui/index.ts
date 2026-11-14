@@ -361,6 +361,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     buildbarEl.innerHTML = `
       <div><b>${t('build.placing', { name: t(`facility.${kind}`) })}</b></div>
       ${status}
+      <div class="ui-small ui-buildhint">${t(isTouch ? 'build.hint.touch' : 'build.hint.mouse')}</div>
       <div class="ui-row">
         <button data-action="buildConfirm" class="primary" ${placement.allowed ? '' : 'disabled'}>${t('build.place')}</button>
         <button data-action="buildCancel">${t('build.cancel')}</button>

@@ -3,6 +3,7 @@ import { Engine } from '@babylonjs/core/Engines/engine';
 import { Scene } from '@babylonjs/core/scene';
 import achievementsJson from '../data/achievements.json';
 import donkiJson from '../data/donki-events.json';
+import missionsJson from '../data/missions.json';
 import valuesJson from '../data/values.json';
 import type {
   ActiveEvent,
@@ -24,7 +25,8 @@ import {
 import { createSaveStore } from './save/index.ts';
 import type { BuildOptions, Placement } from './sim/api.ts';
 import { checkPlacement, createInitialState, describe, step } from './sim/index.ts';
-import { createTutorial } from './tutorial/index.ts';
+import { type Advice, createAdviceCard, pickAdvice } from './tutorial/advice.ts';
+import { createTutorial, parseMissions } from './tutorial/index.ts';
 import type { ContextAction } from './ui/api.ts';
 import { onLangChange, t } from './ui/i18n.ts';
 import { createUi } from './ui/index.ts';
@@ -80,6 +82,8 @@ const engine = new Engine(canvas, true);
 const scene = new Scene(engine);
 const env = createProceduralEnv(values, TERRAIN_SEED);
 const world = createWorld(scene, env, values);
+// 建設モードの間、PC で地面をクリックしたらそこに置く（confirmBuild は下で定義。呼ばれるのは起動のあと）
+world.onGroundClick(() => confirmBuild());
 
 const saves = createSaveStore(values);
 // セーブがあれば、いちばん新しいものから続ける（リロードしても続きから遊べる）
@@ -99,10 +103,15 @@ let downedThisRun = false;
 const achievementStore = createAchievementStore(parseAchievements(achievementsJson));
 const pending: SimCommand[] = [];
 const isTouch = window.matchMedia('(pointer: coarse)').matches;
-const tutorial = createTutorial(document.body, isTouch, values);
+const tutorial = createTutorial(document.body, isTouch, values, parseMissions(missionsJson), () =>
+  restartGame(),
+);
 // チュートリアルの「歩けたか」を測る起点
 const moveOrigin = { x: state.player.x, z: state.player.z };
 let lastGuideKey = '';
+let manualSaveCount = 0;
+let lastBlocking: boolean | null = null;
+let currentAdvice: Advice | null = null;
 
 world.teleportPlayer(state.player.x, state.player.z);
 
@@ -119,6 +128,7 @@ const ui = createUi(
     onBuildSelect: (kind, options) => {
       buildMode = { kind, options };
       lastPlacement = null;
+      world.setBuildCursor(true);
     },
     onBuildConfirm: confirmBuild,
     onBuildCancel: cancelBuild,
@@ -132,14 +142,19 @@ const ui = createUi(
     onFlareChoice: (choice) => {
       if (choice === 'shelter') {
         shelter();
-        earn('shelterDuringFlare');
+        // チュートリアルの訓練の警報では実績を取らない（本当のイベントのときだけ）
+        if (state.activeEvents.length > 0) {
+          earn('shelterDuringFlare');
+        }
       }
+      tutorial.answerFlare(choice);
     },
     onRestart: () => {
       startFrom(createInitialState(values, env, env.landerPosition));
     },
     onSave: (slot) => {
       saves.manualSave(state, slot);
+      manualSaveCount++;
       ui.setSaves(saves.list());
     },
     onLoad: (saveId) => {
@@ -150,6 +165,33 @@ const ui = createUi(
 );
 ui.setSaves(saves.list());
 ui.setDonkiEvents(timeline);
+const adviceCard = createAdviceCard(document.body, (menu) => ui.openMenu(menu));
+
+/** 「さいしょから」：新しいゲームにする（セーブは消さない） */
+function restartGame(): void {
+  startFrom(createInitialState(values, env, env.landerPosition));
+  moveOrigin.x = state.player.x;
+  moveOrigin.z = state.player.z;
+  manualSaveCount = 0;
+}
+
+/** チュートリアルの訓練の警報。本物の記録（SEP か X 級）を見せるが、sim では何も起こさない */
+function showFlareDrill(): void {
+  const record = timeline.find((e) => e.kind === 'sep' || e.classOrIntensity.startsWith('X'));
+  if (record === undefined) {
+    throw new Error('data/donki-events.json に SEP か X 級のフレアがない（訓練の警報に使う）');
+  }
+  ui.showFlareAlert(
+    {
+      kind: record.kind,
+      source: 'archived',
+      donkiId: record.donkiId,
+      classOrIntensity: record.classOrIntensity,
+      endsAtHours: state.timeHours,
+    },
+    record,
+  );
+}
 
 const guideArrow = document.createElement('div');
 guideArrow.className = 'guide-arrow';
@@ -189,7 +231,7 @@ function startFrom(next: SimState): void {
 function applyPlayerMode(): void {
   carryBadge.hidden = carriedIce === null;
   world.setPlayerVisible(!indoors);
-  world.setMovementEnabled(!menuPaused && !indoors);
+  world.setMovementEnabled(!menuPaused && !tutorial.isBlocking() && !indoors);
 }
 
 function distanceToPlayer(f: Facility): number {
@@ -339,6 +381,7 @@ function earn(condition: AchievementCondition): void {
 function cancelBuild(): void {
   buildMode = null;
   lastPlacement = null;
+  world.setBuildCursor(false);
   world.setBuildPreview(null);
   ui.setBuildMode(null);
 }
@@ -375,24 +418,46 @@ function nearestToPlayer<T extends { x: number; z: number }>(items: T[]): T | nu
   return best;
 }
 
+/** 光の柱を立てる場所：チュートリアルの行き先。なければアクシデントの行き先（ボンベなら居住モジュール、壊れかけならその施設） */
+function guideTarget(): { x: number; z: number } | null {
+  const habitats = state.facilities.filter((f) => f.kind === 'habitat');
+  const guide = tutorial.guide();
+  if (guide === 'ice') {
+    return nearestToPlayer(env.iceSpots);
+  }
+  if (guide === 'home') {
+    return nearestToPlayer(habitats);
+  }
+  if (currentAdvice?.kind === 'tankLow') {
+    return nearestToPlayer(habitats);
+  }
+  if (currentAdvice !== null && currentAdvice.facilityId !== null) {
+    const id = currentAdvice.facilityId;
+    return state.facilities.find((f) => f.id === id) ?? null;
+  }
+  return null;
+}
+
 /** チュートリアルを進め、行く場所に光の柱を立てる */
 function updateTutorial(): void {
   const p = world.getPlayer();
   tutorial.update({
     state,
     movedMeters: Math.hypot(p.x - moveOrigin.x, p.z - moveOrigin.z),
+    viewYawRad: world.getViewYawRad(),
+    airborne: p.y > env.heightAt(p.x, p.z) + values.tutorial.airborneMeters.value,
     placing: buildMode === null ? null : buildMode.kind,
+    speed,
+    indoors,
     onIce: env.isIceAt(p.x, p.z),
     carryingIce: carriedIce !== null,
     deliveredIce: collectedIce,
+    manualSaves: manualSaveCount,
   });
-  const guide = tutorial.guide();
-  const target =
-    guide === 'ice'
-      ? nearestToPlayer(env.iceSpots)
-      : guide === 'home'
-        ? nearestToPlayer(state.facilities.filter((f) => f.kind === 'habitat'))
-        : null;
+  if (tutorial.takeFlareDrillRequest()) {
+    showFlareDrill();
+  }
+  const target = guideTarget();
   const key = target === null ? '' : `${target.x},${target.z}`;
   if (key !== lastGuideKey) {
     lastGuideKey = key;
@@ -471,6 +536,15 @@ function refreshView(): void {
     working[id] = status.working;
   }
   world.syncFacilities(state.facilities, working);
+  // チュートリアル中や大きな窓を出している間は、命に関わるボンベの警告だけにする
+  currentAdvice = pickAdvice(
+    state,
+    view,
+    indoors,
+    values,
+    tutorial.isTutorial() || tutorial.isBlocking(),
+  );
+  adviceCard.show(currentAdvice);
 }
 
 // ボタンにフォーカスが残ると、Space（ジャンプ）や Enter でそのボタンがまた押されるので外す
@@ -524,7 +598,13 @@ refreshView();
 
 engine.runRenderLoop(() => {
   const dtSec = engine.getDeltaTime() / 1000;
-  if (!menuPaused && state.phase !== 'gameOver') {
+  // チュートリアルの大きな窓を出している間は、時間も移動も止める
+  const blocking = tutorial.isBlocking();
+  if (blocking !== lastBlocking) {
+    lastBlocking = blocking;
+    applyPlayerMode();
+  }
+  if (!menuPaused && !blocking && state.phase !== 'gameOver') {
     const stepHours = values.time.stepHours.value;
     accumulatedHours += dtSec * speed * (HOURS_PER_DAY / values.time.secondsPerEarthDay.value);
     let steps = 0;

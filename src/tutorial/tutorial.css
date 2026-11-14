@@ -1,13 +1,14 @@
+/* チュートリアルとミッションの案内（上の真ん中） */
 .tutorial {
   position: fixed;
   left: 50%;
   top: 12px;
   transform: translateX(-50%);
-  width: min(440px, calc(100vw - 24px));
+  width: min(460px, calc(100vw - 24px));
   padding: 12px 14px;
   border: 2px solid #ffd27a;
   border-radius: 12px;
-  background: rgba(10, 14, 24, 0.9);
+  background: rgba(10, 14, 24, 0.92);
   color: #f4f7fc;
   font:
     17px / 1.55 system-ui,
@@ -19,39 +20,154 @@
   z-index: 0;
 }
 
-.tutorial[hidden] {
+.tutorial[hidden],
+.tutorial-modal-layer[hidden],
+.advice-card[hidden] {
   display: none;
 }
 
 .tutorial-head {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
   font-weight: 700;
   color: #ffd27a;
 }
 
+.tutorial-progress {
+  margin-left: auto;
+}
+
 .tutorial-text {
-  margin: 6px 0 10px;
+  margin: 6px 0 4px;
 }
 
 .tutorial-buttons {
   display: flex;
-  gap: 8px;
   justify-content: flex-end;
+  margin-top: 6px;
 }
 
-.tutorial button {
+.tutorial button,
+.tutorial-modal button,
+.advice-card button {
   font: inherit;
   font-size: 15px;
   padding: 4px 14px;
   border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(40, 52, 72, 0.95);
+  color: #f4f7fc;
+  cursor: pointer;
 }
 
-.tutorial-ok {
+.tutorial .tutorial-ok {
   background: #2e9d5b;
-  color: #fff;
   border: none;
   font-weight: 700;
+}
+
+.tutorial .tutorial-restart {
+  font-size: 12px;
+  padding: 2px 8px;
+  font-weight: 400;
+}
+
+/* 大きな窓（あそんだことがある？／くんれん かんりょう／さいしょから） */
+.tutorial-modal-layer {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.tutorial-modal {
+  width: min(520px, calc(100vw - 32px));
+  padding: 24px;
+  border: 3px solid #ffd27a;
+  border-radius: 16px;
+  background: #0e1422;
+  color: #f4f7fc;
+  text-align: center;
+  font:
+    18px / 1.6 system-ui,
+    -apple-system,
+    "Hiragino Sans",
+    "Noto Sans JP",
+    sans-serif;
+}
+
+.tutorial-modal h2 {
+  margin: 0 0 8px;
+  font-size: 26px;
+  color: #ffd27a;
+}
+
+.tutorial-modal-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.tutorial-modal .tutorial-big {
+  font-size: 20px;
+  padding: 14px 18px;
+  border-radius: 12px;
+}
+
+.tutorial-modal .primary {
+  background: #2e9d5b;
+  border: none;
+  font-weight: 700;
+}
+
+.tutorial-modal .danger {
+  background: #b9473c;
+  border: none;
+  font-weight: 700;
+}
+
+/* アクシデントのカード（案内の下） */
+.advice-card {
+  position: fixed;
+  left: 50%;
+  top: 150px;
+  transform: translateX(-50%);
+  width: min(460px, calc(100vw - 24px));
+  padding: 10px 14px;
+  border: 2px solid #ff8a5c;
+  border-radius: 12px;
+  background: rgba(40, 14, 8, 0.92);
+  color: #fff3ec;
+  font:
+    16px / 1.5 system-ui,
+    -apple-system,
+    "Hiragino Sans",
+    "Noto Sans JP",
+    sans-serif;
+  pointer-events: auto;
+  z-index: 0;
+}
+
+.advice-title {
+  font-weight: 700;
+  font-size: 18px;
+  color: #ffb08f;
+}
+
+.advice-label {
+  margin-top: 4px;
+  font-weight: 700;
+}
+
+.advice-todo {
+  white-space: pre-line;
+  margin-bottom: 8px;
 }
 
 /* いま押すボタンを光らせる */
@@ -65,15 +181,38 @@
   }
 }
 
-body[data-tutorial-step="build"] [data-action="menu"][data-menu="build"],
-body[data-tutorial-step="build"] [data-action="buildSelect"][data-kind="solar"],
-body[data-tutorial-step="place"] [data-action="buildConfirm"],
+body[data-tutorial-step="move"] .ui-pad,
+body[data-tutorial-step="jump"] [data-action="jump"],
+body[data-tutorial-step="buildSolar"] [data-action="menu"][data-menu="build"],
+body[data-tutorial-step="buildSolar"] [data-action="buildSelect"][data-kind="solar"],
+body[data-tutorial-step="placeSolar"] [data-action="buildConfirm"],
+body[data-tutorial-step="power"] .ui-hud,
 body[data-tutorial-step="battery"] [data-action="menu"][data-menu="build"],
 body[data-tutorial-step="battery"] [data-action="buildSelect"][data-kind="battery"],
 body[data-tutorial-step="battery"] [data-action="buildConfirm"],
+body[data-tutorial-step="comm"] .ui-status,
+body[data-tutorial-step="order"] [data-action="menu"][data-menu="launch"],
+body[data-tutorial-step="order"] [data-action="cart"][data-kind="food"][data-delta="1"],
+body[data-tutorial-step="order"] [data-action="cart"][data-kind="crew"][data-delta="1"],
+body[data-tutorial-step="order"] [data-action="order"],
+body[data-tutorial-step="fastForward"] [data-action="speed"][data-speed="4"],
+body[data-tutorial-step="normalSpeed"] [data-action="speed"][data-speed="1"],
+body[data-tutorial-step="assignCrew"] [data-action="menu"][data-menu="crew"],
+body[data-tutorial-step="assignCrew"] [data-action="assign"],
 body[data-tutorial-step="takeIce"] [data-action="context"],
 body[data-tutorial-step="goHome"] [data-action="context"],
-body[data-tutorial-step="move"] .ui-pad {
+body[data-tutorial-step="flareDrill"] [data-action="flare"],
+body[data-tutorial-step="goOutside"] [data-action="context"],
+body[data-tutorial-step="regolith"] [data-action="context"][data-context="coverRegolith"],
+body[data-tutorial-step="save"] [data-action="menu"][data-menu="save"],
+body[data-tutorial-step="save"] [data-action="save"],
+body[data-tutorial-step="data"] [data-action="menu"][data-menu="data"],
+body[data-advice="noPower"] [data-action="menu"][data-menu="build"],
+body[data-advice="oxygenLow"] [data-action="menu"][data-menu="build"],
+body[data-advice="waterLow"] [data-action="menu"][data-menu="launch"],
+body[data-advice="foodLow"] [data-action="menu"][data-menu="launch"],
+body[data-advice="noParts"] [data-action="menu"][data-menu="launch"],
+body[data-advice="broken"] [data-action="context"][data-context="repair"] {
   outline: 3px solid #ffd27a;
   animation: tutorial-pulse 1.2s infinite;
 }
@@ -90,7 +229,18 @@ body[data-tutorial-step="move"] .ui-pad {
     font-size: 14px;
   }
 
-  .tutorial button {
+  .advice-card {
+    top: auto;
+    bottom: 200px;
+    left: 8px;
+    right: 8px;
+    transform: none;
+    width: auto;
+    font-size: 13px;
+  }
+
+  .tutorial button,
+  .advice-card button {
     font-size: 13px;
   }
 }

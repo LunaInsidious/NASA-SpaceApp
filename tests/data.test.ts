@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import achievements from '../data/achievements.json';
+import missions from '../data/missions.json';
 import values from '../data/values.json';
 import en from '../i18n/en.json';
 import ja from '../i18n/ja.json';
 import type { ValueEntry } from '../src/contracts/index.ts';
 import { parseAchievements } from '../src/save/achievements.ts';
+import { parseMissions } from '../src/tutorial/index.ts';
 
 function isValueEntry(node: object): node is ValueEntry {
   const { value, unit, source, url, ...rest } = node as Record<string, unknown>;
@@ -61,6 +63,17 @@ describe('i18n', () => {
 describe('data/achievements.json', () => {
   it('形が正しく、文言のキーが en と ja にある', () => {
     const missing = parseAchievements(achievements).flatMap(({ textKey }) =>
+      Object.entries({ en, ja })
+        .filter(([, messages]) => !(textKey in messages))
+        .map(([lang]) => `${lang}: ${textKey}`),
+    );
+    expect(missing).toEqual([]);
+  });
+});
+
+describe('data/missions.json', () => {
+  it('形が正しく、文言のキーが en と ja にある', () => {
+    const missing = parseMissions(missions).flatMap(({ textKey }) =>
       Object.entries({ en, ja })
         .filter(([, messages]) => !(textKey in messages))
         .map(([lang]) => `${lang}: ${textKey}`),

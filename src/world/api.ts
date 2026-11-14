@@ -29,8 +29,15 @@ export interface World {
   setBuildPreview(
     preview: { kind: FacilityKind; x: number; z: number; placement: Placement } | null,
   ): void;
-  /** 宇宙飛行士の前の、建てる場所 */
+  /**
+   * 建てる場所（values.build.gridMeters の格子にそろえる）。建設モードの間はマウス（PC）やタップ（スマホ）が
+   * 指した地面。まだ指していなければ宇宙飛行士の前
+   */
   getBuildSpot(): { x: number; z: number };
+  /** 建設モードに入るとき true、出るとき false。置く場所がマウスやタップについてくるようになる */
+  setBuildCursor(enabled: boolean): void;
+  /** 建設モードの間に、PC で地面を左クリック（ドラッグでない）したとき呼ばれる */
+  onGroundClick(listener: () => void): void;
   getPlayer(): PlayerPose;
   teleportPlayer(x: number, z: number): void;
   setPlayerVisible(visible: boolean): void;

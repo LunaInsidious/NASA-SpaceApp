@@ -1,0 +1,42 @@
+[
+  {
+    "id": "lifeSupport",
+    "condition": "hasFacility",
+    "kind": "lifeSupport",
+    "textKey": "mission.lifeSupport"
+  },
+  {
+    "id": "greenhouse",
+    "condition": "farmingRunning",
+    "textKey": "mission.greenhouse"
+  },
+  {
+    "id": "crew3",
+    "condition": "crewAtLeast",
+    "threshold": 3,
+    "textKey": "mission.crew3"
+  },
+  {
+    "id": "relay",
+    "condition": "relayAtLeast",
+    "threshold": 1,
+    "textKey": "mission.relay"
+  },
+  {
+    "id": "shield",
+    "condition": "hasFacility",
+    "kind": "shield",
+    "textKey": "mission.shield"
+  },
+  {
+    "id": "development40",
+    "condition": "developmentAtLeast",
+    "threshold": 40,
+    "textKey": "mission.development40"
+  },
+  {
+    "id": "complete",
+    "condition": "cleared",
+    "textKey": "mission.complete"
+  }
+]

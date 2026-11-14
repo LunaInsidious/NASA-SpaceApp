@@ -64,3 +64,9 @@ export const GUIDE_HEIGHT_M = 40;
 export const GUIDE_DIAMETER_M = 1.6;
 export const GUIDE_COLOR: [number, number, number] = [1, 0.85, 0.3];
 export const GUIDE_ALPHA = 0.55;
+
+// 置く場所をマウスやタップで選ぶ（手触り）
+export const CLICK_SLOP_PX = 6; // 押してから離すまでにこれ以上動いたら、クリックではなくドラッグ
+export const PICK_STEP_M = 0.5; // 画面の点から地面を探すときの1歩
+export const PICK_MAX_DISTANCE_M = 400;
+export const PICK_REFINE_STEPS = 6;

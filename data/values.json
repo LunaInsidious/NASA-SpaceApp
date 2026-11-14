@@ -784,6 +784,40 @@
       "value": 3,
       "unit": "m",
       "source": "TBD"
+    },
+    "lookTurnRad": {
+      "value": 0.6,
+      "unit": "rad",
+      "source": "TBD"
+    },
+    "airborneMeters": {
+      "value": 0.4,
+      "unit": "m",
+      "source": "TBD"
+    }
+  },
+  "build": {
+    "gridMeters": {
+      "value": 2,
+      "unit": "m",
+      "source": "TBD"
+    }
+  },
+  "advice": {
+    "tankLowRatio": {
+      "value": 0.35,
+      "unit": "ratio",
+      "source": "TBD"
+    },
+    "lifeSupportLowDays": {
+      "value": 5,
+      "unit": "day",
+      "source": "TBD"
+    },
+    "brokenCondition": {
+      "value": 0.5,
+      "unit": "ratio",
+      "source": "TBD"
     }
   }
 }
