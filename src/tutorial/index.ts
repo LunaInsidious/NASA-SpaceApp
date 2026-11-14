@@ -17,6 +17,7 @@ const STEPS = [
   'buildSolar',
   'placeSolar',
   'power',
+  'dictionary',
   'battery',
   'comm',
   'order',
@@ -134,6 +135,8 @@ export interface TutorialProgress {
   /** 氷を居住モジュールに持ち帰った */
   deliveredIce: boolean;
   manualSaves: number;
+  /** ことばじてんで、言葉を1つでも開いて読んだか */
+  readDictionary: boolean;
   /** 「一時停止」のボタンで止めているか（メニューや窓で止まっているのは含まない） */
   userPaused: boolean;
 }
@@ -623,6 +626,8 @@ export function createTutorial(
         return !p.indoors;
       case 'regolith':
         return p.state.facilities.some((f) => f.kind === 'habitat' && f.regolithCover === true);
+      case 'dictionary':
+        return p.readDictionary;
       case 'pause':
         return p.userPaused;
       case 'resume':

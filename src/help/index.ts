@@ -11,6 +11,8 @@ const PULSE_MS = 4000;
 
 export interface Help {
   isOpen(): boolean;
+  /** 言葉を1つでも開いて読んだか（チュートリアルの「ことばじてん」の段） */
+  hasRead(): boolean;
   /** 説明した言葉を足す。announce なら、新しく足した言葉をボタンのそばで知らせる */
   learn(terms: readonly HelpTerm[], announce: boolean): void;
 }
@@ -32,6 +34,7 @@ export function createHelp(
   onLearned: () => void,
 ): Help {
   let open = false;
+  let read = false;
   const learned = readLearned();
 
   const toggle = document.createElement('button');
@@ -91,6 +94,12 @@ export function createHelp(
         const why = document.createElement('p');
         why.className = 'help-why';
         why.textContent = `${t('help.whyLabel')} ${t(`help.term.${id}.why`)}`;
+        item.dataset.term = id;
+        item.addEventListener('toggle', () => {
+          if (item.open) {
+            read = true;
+          }
+        });
         item.append(name, what, why);
         section.append(item);
       }
@@ -113,6 +122,7 @@ export function createHelp(
 
   return {
     isOpen: () => open,
+    hasRead: () => read,
     learn(terms, announce) {
       const added = terms.filter((term) => !learned.has(term));
       if (added.length === 0) {

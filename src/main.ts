@@ -575,6 +575,7 @@ function updateTutorial(): void {
     deliveredIce: collectedIce,
     manualSaves: manualSaveCount,
     userPaused: ui.isUserPaused(),
+    readDictionary: help.hasRead(),
   });
   if (tutorial.takeFlareDrillRequest()) {
     showFlareDrill();
