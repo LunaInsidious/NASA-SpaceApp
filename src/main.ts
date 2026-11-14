@@ -370,9 +370,20 @@ function doAction(action: ContextAction): void {
       fx.sound('door');
       deliverIce();
       break;
-    case 'exitHabitat':
+    case 'exitHabitat': {
       indoors = false;
       fx.sound('door');
+      // 居住モジュールの真ん中（倒れたあと、退避したあと）にいると、ドームの中に隠れてしまう。ドアの前に出す
+      const home = state.facilities
+        .filter((f) => f.kind === 'habitat')
+        .reduce<Facility | null>(
+          (best, f) => (best === null || distanceToPlayer(f) < distanceToPlayer(best) ? f : best),
+          null,
+        );
+      if (home !== null && distanceToPlayer(home) < values.player.exitDistanceMeters.value) {
+        world.teleportPlayer(home.x, home.z + values.player.exitDistanceMeters.value);
+        world.pointCameraAwayFrom(home.x, home.z);
+      }
       // 外で 4× のままだと歩くのもボンベの減りも速すぎるので、外に出たら 1× に戻す（外で自分で 4× にはできる）
       if (speed === 4) {
         speed = 1;
@@ -380,6 +391,7 @@ function doAction(action: ContextAction): void {
         ui.notify(t('speed.backToNormal'), false);
       }
       break;
+    }
     case 'collectIce':
       // 氷は手で運ぶ（docs/SPEC.md「水と酸素」）。居住モジュールに持ち帰ると水になる
       carriedIce = { x: p.x, z: p.z };
@@ -616,11 +628,11 @@ function updateTutorial(): void {
   if (target !== null) {
     const bearing = Math.atan2(target.x - p.x, target.z - p.z);
     const relative = bearing - world.getViewYawRad();
-    guideArrowIcon.style.transform = `rotate(${relative}rad)`;
-    // 画面の向きだけでは分かりにくいので、前・右・後ろ・左の言葉（PC ではキーも）を添える
+    // 前・右・後ろ・左の言葉（PC ではキーも）を添え、矢印もその4つの向きにそろえる（斜めだと言葉と合わない）
     const quarter = Math.round(
       (((relative % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) / (Math.PI / 2),
     );
+    guideArrowIcon.style.transform = `rotate(${(quarter % 4) * 90}deg)`;
     const direction = (['front', 'right', 'back', 'left'] as const)[quarter % 4];
     guideArrowText.innerHTML = t(`guide.dir.${direction}.${isTouch ? 'touch' : 'keys'}`, {
       meters: Math.round(Math.hypot(target.x - p.x, target.z - p.z)),

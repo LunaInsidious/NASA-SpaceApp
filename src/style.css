@@ -58,6 +58,15 @@ body {
   line-height: 1;
 }
 
+/* 白いドームの上でも読めるよう、言葉は暗い帯の上に出す */
+.guide-arrow > :last-child {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  background: rgba(8, 12, 22, 0.8);
+}
+
 @media (max-width: 640px) {
   .guide-arrow {
     top: auto;

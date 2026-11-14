@@ -860,6 +860,7 @@ export function createTutorial(
         case 'toIce':
         case 'takeIce':
           return 'ice';
+        case 'goInsideWait':
         case 'goHome':
         case 'regolith':
           return 'home';

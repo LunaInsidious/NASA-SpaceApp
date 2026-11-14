@@ -687,6 +687,10 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
       astronaut.root.position.set(player.x, player.y, player.z);
       camera.target.copyFrom(new Vector3(player.x, player.y + CAMERA_TARGET_HEIGHT_M, player.z));
     },
+    pointCameraAwayFrom(x, z) {
+      // ArcRotateCamera は target から (cos α, sin α) の向きにいる。宇宙飛行士から見て (x, z) の反対側に置く
+      camera.alpha = Math.atan2(player.z - z, player.x - x);
+    },
     setPlayerVisible(visible) {
       astronaut.root.setEnabled(visible);
     },

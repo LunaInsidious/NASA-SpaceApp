@@ -43,6 +43,8 @@ export interface World {
   onGroundClick(listener: () => void): void;
   getPlayer(): PlayerPose;
   teleportPlayer(x: number, z: number): void;
+  /** カメラを、宇宙飛行士から見て (x, z) と反対側に回す（ドームなどが宇宙飛行士を隠さないように） */
+  pointCameraAwayFrom(x: number, z: number): void;
   setPlayerVisible(visible: boolean): void;
   /** カメラが見ている水平の向き（+z から +x へ回る角度） */
   getViewYawRad(): number;

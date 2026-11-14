@@ -168,6 +168,11 @@
       "unit": "m",
       "source": "TBD"
     },
+    "exitDistanceMeters": {
+      "value": 5,
+      "unit": "m",
+      "source": "TBD"
+    },
     "tankDurationHours": {
       "value": 240,
       "unit": "h",
