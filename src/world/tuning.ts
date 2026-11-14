@@ -70,3 +70,7 @@ export const CLICK_SLOP_PX = 6; // 押してから離すまでにこれ以上動
 export const PICK_STEP_M = 0.5; // 画面の点から地面を探すときの1歩
 export const PICK_MAX_DISTANCE_M = 400;
 export const PICK_REFINE_STEPS = 6;
+
+// 建った施設がポンと出てくる動き（見た目）
+export const POP_SECONDS = 0.45;
+export const POP_OVERSHOOT = 2.2;

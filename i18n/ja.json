@@ -328,5 +328,12 @@
   "hud.lifeGain": "＋{days}日 ふえた！",
   "tutorial.failed.title": "ざんねん！",
   "tutorial.failed.retry": "くんれんを さいしょから やりなおす",
-  "tutorial.failed.body": "{reason} くんれんを さいしょから やりなおそう。"
+  "tutorial.failed.body": "{reason} くんれんを さいしょから やりなおそう。",
+  "fx.missionClear": "ミッション クリア！",
+  "fx.trainingDone": "くんれん かんりょう！",
+  "fx.built": "{name}が できた！",
+  "fx.starUp": "{name}の ★が ふえた！",
+  "fx.iceWater": "こおりが 水に なった！ ＋{kg} kg",
+  "fx.achievement": "じっせき ゲット！ {name}",
+  "fx.arrived": "ロケット とうちゃく！"
 }

@@ -55,6 +55,8 @@ import {
   PICK_REFINE_STEPS,
   PICK_STEP_M,
   PLAYER_BOUNDS_MARGIN_M,
+  POP_OVERSHOOT,
+  POP_SECONDS,
   PREVIEW_ALPHA,
   PREVIEW_BAD,
   PREVIEW_GOOD,
@@ -487,6 +489,9 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
     astronaut.root.rotation.y = player.heading;
   };
 
+  let syncedOnce = false;
+  const popping = new Map<TransformNode, number>();
+
   // チュートリアルで行く場所を示す光の柱
   const guide = CreateCylinder(
     'guide',
@@ -562,6 +567,15 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
   return {
     frame(dtSec) {
       const dt = Math.min(dtSec, 0.1);
+      for (const [node, elapsed] of popping) {
+        const t = Math.min(1, (elapsed + dt) / POP_SECONDS);
+        // 少し大きくなりすぎてから戻る（ease-out-back）
+        const back = POP_OVERSHOOT;
+        const scale = 1 + (back + 1) * (t - 1) ** 3 + back * (t - 1) ** 2;
+        node.scaling.setAll(scale);
+        if (t >= 1) popping.delete(node);
+        else popping.set(node, elapsed + dt);
+      }
       updatePlayer(dt);
       updateCamera(dt);
       terrain.progress();
@@ -585,6 +599,8 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
     },
     syncFacilities(facilities: Facility[], working: Record<string, boolean>) {
       const seen = new Set<string>();
+      const isFirstSync = !syncedOnce;
+      syncedOnce = true;
       for (const f of facilities) {
         seen.add(f.id);
         const isWorking = working[f.id];
@@ -597,6 +613,11 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
           visual = createFacilityVisual(scene, f.kind, f.shieldMaterial);
           if (visual.sunTracker !== null) visual.sunTracker.rotation.y = sunAzimuth;
           facilityVisuals.set(f.id, visual);
+          // 新しく建った施設は、ポンと弾んで出てくる（読み込んだ直後のものは弾ませない）
+          if (!isFirstSync) {
+            visual.root.scaling.setAll(0);
+            popping.set(visual.root, 0);
+          }
         }
         placeOnGround(visual.root, f.x, f.z);
         facilityPositions.set(f.id, { x: f.x, z: f.z });

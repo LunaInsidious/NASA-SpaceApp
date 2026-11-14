@@ -28,6 +28,7 @@ import { checkPlacement, createInitialState, describe, step } from './sim/index.
 import { type Advice, createAdviceCard, pickAdvices } from './tutorial/advice.ts';
 import { createTutorial, parseMissions } from './tutorial/index.ts';
 import type { ContextAction } from './ui/api.ts';
+import { createFx } from './ui/fx.ts';
 import { onLangChange, t } from './ui/i18n.ts';
 import { createUi } from './ui/index.ts';
 import { createWorld } from './world/index.ts';
@@ -103,8 +104,14 @@ let downedThisRun = false;
 const achievementStore = createAchievementStore(parseAchievements(achievementsJson));
 const pending: SimCommand[] = [];
 const isTouch = window.matchMedia('(pointer: coarse)').matches;
-const tutorial = createTutorial(document.body, isTouch, values, parseMissions(missionsJson), () =>
-  restartGame(),
+const fx = createFx(document.body);
+const tutorial = createTutorial(
+  document.body,
+  isTouch,
+  values,
+  parseMissions(missionsJson),
+  () => restartGame(),
+  (what) => celebrate(what),
 );
 // チュートリアルの「歩けたか」を測る起点
 const moveOrigin = { x: state.player.x, z: state.player.z };
@@ -167,6 +174,46 @@ ui.setSaves(saves.list());
 ui.setDonkiEvents(timeline);
 const adviceCard = createAdviceCard(document.body, (menu) => ui.openMenu(menu));
 
+/** チュートリアルとミッションの「できた！」 */
+function celebrate(what: 'step' | 'mission' | 'trainingDone'): void {
+  if (what === 'step') {
+    fx.sound('chime');
+    return;
+  }
+  fx.banner(t(what === 'mission' ? 'fx.missionClear' : 'fx.trainingDone'), 'big');
+  fx.confetti('shower');
+  fx.sound('fanfare');
+}
+
+// 建った施設と、発展度の★を覚えておき、ふえた瞬間にお祝いする
+let knownFacilityIds: Set<string> | null = null;
+let knownStars: Record<string, number> | null = null;
+const DEVELOPMENT_KEYS = ['selfSufficiency', 'stability', 'safety', 'scale'] as const;
+const STAR_COUNT = 5;
+
+function celebrateProgress(): void {
+  if (knownFacilityIds !== null) {
+    for (const f of state.facilities) {
+      if (!knownFacilityIds.has(f.id)) {
+        fx.banner(t('fx.built', { name: t(`facility.${f.kind}`) }), 'small');
+        fx.confetti('burst');
+        fx.sound('pop');
+      }
+    }
+  }
+  knownFacilityIds = new Set(state.facilities.map((f) => f.id));
+  const max = values.development.elementMax.value;
+  const stars: Record<string, number> = {};
+  for (const key of DEVELOPMENT_KEYS) {
+    stars[key] = Math.min(STAR_COUNT, Math.round((state.development[key] / max) * STAR_COUNT));
+    if (knownStars !== null && stars[key] > knownStars[key]) {
+      fx.banner(t('fx.starUp', { name: t(`development.${key}`) }), 'small');
+      fx.sound('star');
+    }
+  }
+  knownStars = stars;
+}
+
 /** 「さいしょから」：新しいゲームにする（セーブは消さない） */
 function restartGame(): void {
   startFrom(createInitialState(values, env, env.landerPosition));
@@ -221,6 +268,8 @@ function startFrom(next: SimState): void {
   collectedIce = false;
   downedThisRun = false;
   carriedIce = null;
+  knownFacilityIds = null;
+  knownStars = null;
   cancelBuild();
   indoors = state.player.indoors;
   world.teleportPlayer(state.player.x, state.player.z);
@@ -322,6 +371,8 @@ function deliverIce(): void {
     pending.push({ type: 'collectIce', ...carriedIce });
     carriedIce = null;
     collectedIce = true;
+    fx.banner(t('fx.iceWater', { kg: values.player.iceKgPerTrip.value }), 'small');
+    fx.sound('coin');
   }
 }
 
@@ -374,7 +425,9 @@ function confirmBuild(): void {
 function earn(condition: AchievementCondition): void {
   const id = achievementStore.unlock(condition);
   if (id !== null) {
-    ui.showEvents([{ type: 'achievement', id }], state);
+    fx.banner(t('fx.achievement', { name: t(`achievement.${id}`) }), 'big');
+    fx.confetti('burst');
+    fx.sound('fanfare');
   }
 }
 
@@ -501,6 +554,10 @@ function handleEvents(events: GameEvent[]): void {
       const donki = event.event.source === 'archived' ? findDonki(event.event.donkiId) : null;
       ui.showFlareAlert(event.event, donki);
     }
+    if (event.type === 'launchArrived') {
+      fx.banner(t('fx.arrived'), 'small');
+      fx.sound('coin');
+    }
     if (event.type === 'playerDowned') {
       // sim が着陸船の近くの居住モジュールに戻している
       world.teleportPlayer(state.player.x, state.player.z);
@@ -562,6 +619,7 @@ function refreshView(): void {
     tutorial.isTutorial() || tutorial.isBlocking(),
   );
   adviceCard.show(currentAdvices);
+  celebrateProgress();
 }
 
 // ボタンにフォーカスが残ると、Space（ジャンプ）や Enter でそのボタンがまた押されるので外す

@@ -328,5 +328,12 @@
   "hud.lifeGain": "+{days} days!",
   "tutorial.failed.title": "Oh no!",
   "tutorial.failed.retry": "Start the training again",
-  "tutorial.failed.body": "{reason} Let's start the training again from the beginning."
+  "tutorial.failed.body": "{reason} Let's start the training again from the beginning.",
+  "fx.missionClear": "MISSION CLEAR!",
+  "fx.trainingDone": "TRAINING COMPLETE!",
+  "fx.built": "{name} built!",
+  "fx.starUp": "{name} ★ up!",
+  "fx.iceWater": "Ice became water! +{kg} kg",
+  "fx.achievement": "Achievement! {name}",
+  "fx.arrived": "The rocket has arrived!"
 }

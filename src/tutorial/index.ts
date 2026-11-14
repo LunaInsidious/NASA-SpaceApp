@@ -157,6 +157,8 @@ export function createTutorial(
   missions: Mission[],
   /** 「さいしょから」を確かめたあとに呼ぶ。main が新しいゲームにする */
   onRestart: () => void,
+  /** できた瞬間（段・ミッション・チュートリアルの完了）。main がお祝いの演出を出す */
+  onCelebrate: (what: 'step' | 'mission' | 'trainingDone') => void,
 ): Tutorial {
   let mode: Mode = readFinished() ? 'missions' : 'ask';
   let index = 0;
@@ -372,8 +374,10 @@ export function createTutorial(
     if (index === STEPS.length - 1) {
       saveFinished();
       mode = 'finishedModal';
+      onCelebrate('trainingDone');
     } else {
       index++;
+      onCelebrate('step');
     }
     render();
   }
@@ -481,6 +485,7 @@ export function createTutorial(
       ) {
         missionIndex++;
         changed = true;
+        onCelebrate('mission');
       }
       if (changed) {
         render();

@@ -1,0 +1,113 @@
+/* お祝いの大きな文字 */
+.fx-banner {
+  position: fixed;
+  left: 50%;
+  z-index: 7;
+  transform: translateX(-50%);
+  pointer-events: none;
+  white-space: nowrap;
+  font-weight: 900;
+  color: #fff6c8;
+  text-shadow:
+    0 0 12px rgba(255, 190, 60, 0.9),
+    0 3px 0 #b8741a,
+    0 6px 14px rgba(0, 0, 0, 0.7);
+}
+
+.fx-banner-big {
+  /* 上の真ん中はチュートリアルの案内なので、重ならない高さに出す */
+  top: 46%;
+  font-size: clamp(30px, 7vw, 64px);
+  animation: fx-banner-big 2.2s cubic-bezier(0.2, 1.4, 0.4, 1) forwards;
+}
+
+.fx-banner-small {
+  top: 56%;
+  font-size: clamp(20px, 4.5vw, 34px);
+  animation: fx-banner-small 1.5s ease-out forwards;
+}
+
+@keyframes fx-banner-big {
+  0% {
+    transform: translateX(-50%) scale(0.2) rotate(-8deg);
+    opacity: 0;
+  }
+  18% {
+    transform: translateX(-50%) scale(1.25) rotate(2deg);
+    opacity: 1;
+  }
+  30% {
+    transform: translateX(-50%) scale(1) rotate(0);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%) scale(1.05) translateY(-20px);
+    opacity: 0;
+  }
+}
+
+@keyframes fx-banner-small {
+  0% {
+    transform: translateX(-50%) scale(0.5);
+    opacity: 0;
+  }
+  20% {
+    transform: translateX(-50%) scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%) translateY(-40px);
+    opacity: 0;
+  }
+}
+
+/* 紙ふぶき */
+.fx-confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.fx-confetti span {
+  position: absolute;
+  top: -20px;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  animation: fx-fall 2s ease-in forwards;
+}
+
+@keyframes fx-fall {
+  to {
+    transform: translate(var(--drift), 110vh) rotate(var(--spin));
+  }
+}
+
+/* 音の切り替え */
+.fx-sound-toggle {
+  position: fixed;
+  right: 12px;
+  bottom: 60px;
+  z-index: 1;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  background: rgba(40, 52, 72, 0.9);
+  font-size: 18px;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+@media (pointer: coarse) {
+  .fx-sound-toggle {
+    bottom: auto;
+    top: 96px;
+    right: auto;
+    left: 50%;
+  }
+}
