@@ -4,71 +4,62 @@
     "file": "iss047e057658~small.jpg",
     "titleEn": "Universal Battery Charger on the International Space Station (2016)",
     "titleJa": "こくさい うちゅうステーションの でんちの じゅうでんき（2016年）",
-    "credit": "NASA (JSC)",
-    "isExample": true
+    "credit": "NASA (JSC)"
   },
   "antenna": {
     "nasaId": "PIA25136",
     "file": "PIA25136~small.jpg",
     "titleEn": "A new antenna for NASA's Deep Space Network (DSS-53, 2022)",
     "titleJa": "ちきゅうで うちゅうと つうしんする 大きな アンテナ（2022年）",
-    "credit": "NASA/JPL-Caltech",
-    "isExample": true
+    "credit": "NASA/JPL-Caltech"
   },
   "greenhouse": {
     "nasaId": "KSC-20180307-PH_CSH01_0015",
     "file": "KSC-20180307-PH_CSH01_0015~small.jpg",
     "titleEn": "Tomatoes growing under LED lights for the space garden Veggie (2018)",
     "titleJa": "うちゅうの はたけの ための トマト。LED の ひかりで そだてる（2018年）",
-    "credit": "NASA (KSC)",
-    "isExample": true
+    "credit": "NASA (KSC)"
   },
   "lifeSupport": {
     "nasaId": "KSC-08pd3209",
     "file": "KSC-08pd3209~small.jpg",
     "titleEn": "Water Recovery System rack for the International Space Station (2008)",
     "titleJa": "つかった みずを きれいに する そうち。うちゅうステーション よう（2008年）",
-    "credit": "NASA (KSC)",
-    "isExample": true
+    "credit": "NASA (KSC)"
   },
   "iceDrill": {
     "nasaId": "KSC-20231102-PH-FMX01_0020",
     "file": "KSC-20231102-PH-FMX01_0020~small.jpg",
     "titleEn": "Team training for PRIME-1, a drill to look for ice on the Moon (2023)",
     "titleJa": "月の こおりを ほる ドリル PRIME-1 の れんしゅうを する チーム（2023年）",
-    "credit": "NASA (KSC)",
-    "isExample": true
+    "credit": "NASA (KSC)"
   },
   "shield": {
     "nasaId": "iss053e238888",
     "file": "iss053e238888~small.jpg",
     "titleEn": "Testing a radiation shielding vest on the International Space Station (2017)",
     "titleJa": "ほうしゃせんを ふせぐ ベストを ためす うちゅうひこうし（2017年）",
-    "credit": "NASA (JSC)",
-    "isExample": true
+    "credit": "NASA (JSC)"
   },
   "solarInShadow": {
     "nasaId": "PIA00001",
     "file": "PIA00001~small.jpg",
     "titleEn": "The Moon's south pole seen by Clementine (mosaic of about 1500 images)",
     "titleJa": "月の みなみの はし。たんさき クレメンタインの しゃしん やく1500まいを つなげた もの",
-    "credit": "NASA/JPL",
-    "isExample": false
+    "credit": "NASA/JPL"
   },
   "foundIce": {
     "nasaId": "PIA24161",
     "file": "PIA24161~small.jpg",
     "titleEn": "Illustration of Lunar Trailblazer, made to look for ice in the Moon's shadows",
     "titleJa": "月の かげの こおりを さがす たんさき ルナ・トレイルブレイザー（え）",
-    "credit": "NASA/JPL-Caltech",
-    "isExample": true
+    "credit": "NASA/JPL-Caltech"
   },
   "flare": {
     "nasaId": "GSFC_20171208_Archive_e001209",
     "file": "GSFC_20171208_Archive_e001209~small.jpg",
     "titleEn": "An X-class solar flare seen by SDO (left edge, Feb. 24, 2014)",
     "titleJa": "たいようフレア（Xクラス）。ひだりはしの ひかって いる ところ（2014年2月24日）",
-    "credit": "NASA/SDO",
-    "isExample": true
+    "credit": "NASA/SDO"
   }
 }

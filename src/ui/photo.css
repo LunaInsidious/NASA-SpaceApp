@@ -73,11 +73,6 @@
   margin-top: 4px;
 }
 
-.nasa-photo-example {
-  color: #ffd27a;
-  font-size: 12px;
-}
-
 @keyframes nasa-photo-in {
   from {
     transform: translateY(20px) scale(0.9);

@@ -10,8 +10,6 @@ export interface NasaImage {
   titleEn: string;
   titleJa: string;
   credit: string;
-  /** その出来事そのものの写真ではなく、似たものの写真か */
-  isExample: boolean;
 }
 
 /** キー：施設の種類・実績の ID・'flare' */
@@ -26,18 +24,17 @@ export function parseNasaImages(json: unknown): NasaImages {
   }
   const images: NasaImages = {};
   for (const [key, entry] of Object.entries(json as Record<string, Record<string, unknown>>)) {
-    const { nasaId, file, titleEn, titleJa, credit, isExample } = entry;
+    const { nasaId, file, titleEn, titleJa, credit } = entry;
     if (
       typeof nasaId !== 'string' ||
       typeof file !== 'string' ||
       typeof titleEn !== 'string' ||
       typeof titleJa !== 'string' ||
-      typeof credit !== 'string' ||
-      typeof isExample !== 'boolean'
+      typeof credit !== 'string'
     ) {
       throw new Error(`data/nasa-images.json の ${key} の形が違う`);
     }
-    images[key] = { nasaId, file, titleEn, titleJa, credit, isExample };
+    images[key] = { nasaId, file, titleEn, titleJa, credit };
   }
   return images;
 }
@@ -57,7 +54,6 @@ export function photoFigureHtml(image: NasaImage): string {
     </div>
     <figcaption>
       <b>${esc(title)}</b>
-      ${image.isExample ? `<span class="nasa-photo-example">${t('photo.example')}</span>` : ''}
     </figcaption>
   </figure>`;
 }
