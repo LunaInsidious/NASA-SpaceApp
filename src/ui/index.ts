@@ -1222,5 +1222,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     isMenuOpen() {
       return menu !== null || dialogs.length > 0;
     },
+    isUserPaused() {
+      return userPaused;
+    },
   };
 }

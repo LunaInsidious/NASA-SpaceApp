@@ -61,4 +61,6 @@ export interface Ui {
   setNasaImages(images: NasaImages): void;
   closeMenus(): void;
   isMenuOpen(): boolean;
+  /** 「一時停止」のボタンで止めているか */
+  isUserPaused(): boolean;
 }

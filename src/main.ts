@@ -521,6 +521,7 @@ function updateTutorial(): void {
     carryingIce: carriedIce !== null,
     deliveredIce: collectedIce,
     manualSaves: manualSaveCount,
+    userPaused: ui.isUserPaused(),
   });
   if (tutorial.takeFlareDrillRequest()) {
     showFlareDrill();

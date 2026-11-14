@@ -28,6 +28,8 @@ const STEPS = [
   'flareDrill',
   'goOutside',
   'regolith',
+  'pause',
+  'resume',
   'save',
   'data',
 ] as const;
@@ -107,6 +109,8 @@ export interface TutorialProgress {
   /** 氷を居住モジュールに持ち帰った */
   deliveredIce: boolean;
   manualSaves: number;
+  /** 「一時停止」のボタンで止めているか（メニューや窓で止まっているのは含まない） */
+  userPaused: boolean;
 }
 
 export interface Tutorial {
@@ -565,6 +569,10 @@ export function createTutorial(
         return !p.indoors;
       case 'regolith':
         return p.state.facilities.some((f) => f.kind === 'habitat' && f.regolithCover === true);
+      case 'pause':
+        return p.userPaused;
+      case 'resume':
+        return !p.userPaused;
       case 'save':
         return p.manualSaves > 0;
       case 'data':
