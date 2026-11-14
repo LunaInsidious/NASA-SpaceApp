@@ -335,7 +335,7 @@
   "tutorial.why.power": "Power means electricity. If you make more than you use, everything keeps working.",
   "tutorial.why.dictionary": "Special words used in space and at the base collect in the Word guide. If you forget one, open it any time and read it again.",
   "tutorial.why.battery": "At the south pole the Sun moves low around the sky, so shadows are long and move. A Battery is a box that stores electricity for the shadow time.",
-  "tutorial.why.comm": "The antenna (the pole with a dish, already next to your base) talks to Earth. You need it to order (ask for) things and to get warnings (messages that say \"danger!\"). When Earth sinks below the horizon (where the sky meets the ground), you cannot talk.",
+  "tutorial.why.comm": "Your new antenna lets you talk to Earth. But when Earth sinks below the horizon (where the sky meets the ground), you cannot talk anymore.",
   "tutorial.why.lifeLine": "Everyone needs the base's oxygen, water and food to live. If even one of them runs out, the game is over.",
   "tutorial.why.order": "Things you cannot make on the Moon come from Earth by rocket. But one rocket can only carry so much.",
   "tutorial.why.waitArrival": "A rocket takes three days to reach the Moon. To wait, move the days forward with \"Next day\".",
@@ -753,5 +753,9 @@
   "gauge.title": "{name} ({value})",
   "launch.reports": "📋 Reports to Earth: {done} / {need} (do tasks to add more)",
   "launch.needTasks": "Earth needs your reports before the next order → do {count} more task(s) outside (carry ice, repair, pile regolith).",
-  "tasks.reportNote": "Each task you finish becomes a report to Earth. With {need} reports, Earth gets the next rocket ready."
+  "tasks.reportNote": "Each task you finish becomes a report to Earth. With {need} reports, Earth gets the next rocket ready.",
+  "tutorial.step.buildAntenna.keys": "Build an antenna to talk to Earth. In \"Build\", choose \"Antenna\" and place it where its shape turns green (where Earth can be seen).",
+  "tutorial.step.buildAntenna.touch": "Build an antenna to talk to Earth. In \"Build\", choose \"Antenna\" and place it where its shape turns green (where Earth can be seen).",
+  "tutorial.why.buildAntenna": "An antenna (a pole with a dish) talks to Earth. You need it to order supplies and to receive danger alerts. It cannot talk to Earth from places where Earth is out of sight.",
+  "mission.antenna": "Build an antenna to talk to Earth. Without one, you cannot order supplies."
 }

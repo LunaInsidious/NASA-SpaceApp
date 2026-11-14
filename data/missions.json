@@ -1,5 +1,12 @@
 [
   {
+    "id": "antenna",
+    "condition": "hasFacility",
+    "kind": "antenna",
+    "textKey": "mission.antenna",
+    "terms": ["antenna", "horizon"]
+  },
+  {
     "id": "lifeSupport",
     "condition": "hasFacility",
     "kind": "lifeSupport",

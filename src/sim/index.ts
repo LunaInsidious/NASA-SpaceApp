@@ -198,15 +198,6 @@ export function createInitialState(
       values,
       env,
     ),
-    newFacility(
-      'antenna',
-      landerX + s.antennaOffsetX.value,
-      landerZ + s.antennaOffsetZ.value,
-      noCover,
-      state,
-      values,
-      env,
-    ),
   );
   const evaluation = evaluate(state, values, env, values.time.stepHours.value);
   state.commLinked = evaluateComm(state, evaluation, values, env).linked;

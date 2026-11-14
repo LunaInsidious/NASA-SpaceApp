@@ -307,16 +307,6 @@
       "unit": "m",
       "source": "TBD"
     },
-    "antennaOffsetX": {
-      "value": -8,
-      "unit": "m",
-      "source": "TBD"
-    },
-    "antennaOffsetZ": {
-      "value": 6,
-      "unit": "m",
-      "source": "TBD"
-    },
     "playerOffsetX": {
       "value": -14,
       "unit": "m",

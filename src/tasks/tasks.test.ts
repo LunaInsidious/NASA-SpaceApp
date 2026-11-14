@@ -37,7 +37,7 @@ describe('タスク', () => {
     const worn = {
       ...initial,
       facilities: initial.facilities.map((f) =>
-        f.kind === 'antenna' ? { ...f, condition: 0 } : f,
+        f.kind === 'habitat' ? { ...f, condition: 0 } : f,
       ),
     };
     const far = { x: habitat.x + 500, z: habitat.z };

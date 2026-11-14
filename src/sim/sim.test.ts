@@ -149,6 +149,8 @@ describe('sim', () => {
         ...initial.facilities,
         facility('solar-test', 'solar', 0),
         facility('battery-test', 'battery', 10),
+        // アンテナは最初からはない（くんれんで建てる）
+        facility('antenna-test', 'antenna', 20),
       ],
       player: { ...initial.player, indoors: true },
     };
@@ -241,7 +243,8 @@ describe('sim', () => {
       values.development.stabilityFullSupplyDays.value,
     );
     expect(view.crew.count).toBe(1);
-    expect(Object.keys(view.facilityStatus)).toHaveLength(2);
+    // 最初は居住モジュールだけ（アンテナはくんれんで建てる）
+    expect(Object.keys(view.facilityStatus)).toHaveLength(1);
   });
 
   it('外でボンベから吸う酸素は中と同じ量で、生命維持の日数は出入りで変わらない', () => {
@@ -403,7 +406,9 @@ describe('sim', () => {
       rng,
     ).state;
     expect(reported.tasksSinceLaunch).toBe(need);
-    expect(describeState(reported, values, env).launch.canOrderNow).toBe(true);
-    expect(step(reported, 0, env, [order], values, [], rng).state.launches).toHaveLength(1);
+    // 通信はアンテナがないと途切れるので、ここでは通じていることにする
+    expect(
+      step({ ...reported, commLinked: true }, 0, env, [order], values, [], rng).state.launches,
+    ).toHaveLength(1);
   });
 });

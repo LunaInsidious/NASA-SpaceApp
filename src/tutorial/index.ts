@@ -19,6 +19,7 @@ export const STEPS = [
   'power',
   'dictionary',
   'battery',
+  'buildAntenna',
   'comm',
   'lifeLine',
   'inventory',
@@ -48,7 +49,8 @@ const STEP_TERMS: Partial<Record<Step, readonly HelpTerm[]>> = {
   buildSolar: ['solar', 'materials'],
   power: ['power'],
   battery: ['battery'],
-  comm: ['antenna', 'horizon'],
+  buildAntenna: ['antenna'],
+  comm: ['horizon'],
   order: ['launch'],
   goInsideWait: ['tank'],
   assignCrew: ['repair', 'research'],
@@ -75,6 +77,11 @@ const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
   battery: [
     '[data-action="buildConfirm"]',
     '[data-action="buildSelect"][data-kind="battery"]',
+    '[data-action="menu"][data-menu="build"]',
+  ],
+  buildAntenna: [
+    '[data-action="buildConfirm"]',
+    '[data-action="buildSelect"][data-kind="antenna"]',
     '[data-action="menu"][data-menu="build"]',
   ],
   buildHabitat: [
@@ -820,6 +827,8 @@ export function createTutorial(
         return has('solar');
       case 'battery':
         return has('battery');
+      case 'buildAntenna':
+        return has('antenna');
       case 'buildHabitat':
         // 新しい隊員を呼ぶには、その人の居住モジュールがもう1つ要る
         return p.state.facilities.filter((f) => f.kind === 'habitat').length >= 2;
