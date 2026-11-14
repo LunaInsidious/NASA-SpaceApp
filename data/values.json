@@ -318,9 +318,9 @@
         "source": "TBD"
       },
       "crewCapacity": {
-        "value": 4,
+        "value": 1,
         "unit": "person",
-        "source": "TBD"
+        "source": "docs/SPEC.md（ゲームデザイン：隊員1人に居住モジュール1つ）"
       },
       "indoorProtection": {
         "value": 0.5,

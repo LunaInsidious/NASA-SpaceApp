@@ -22,6 +22,7 @@ export const STEPS = [
   'battery',
   'comm',
   'lifeLine',
+  'buildHabitat',
   'order',
   'goInsideWait',
   'fastForward',
@@ -50,7 +51,7 @@ const STEP_TERMS: Partial<Record<Step, readonly HelpTerm[]>> = {
   goInsideWait: ['tank'],
   assignCrew: ['repair', 'research'],
   toIce: ['ice'],
-  goHome: ['habitat'],
+  buildHabitat: ['habitat'],
   flareDrill: ['flare', 'radiation', 'dose'],
   regolith: ['regolith'],
   data: ['donki'],
@@ -68,6 +69,11 @@ const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
   battery: [
     '[data-action="buildConfirm"]',
     '[data-action="buildSelect"][data-kind="battery"]',
+    '[data-action="menu"][data-menu="build"]',
+  ],
+  buildHabitat: [
+    '[data-action="buildConfirm"]',
+    '[data-action="buildSelect"][data-kind="habitat"]',
     '[data-action="menu"][data-menu="build"]',
   ],
   goInsideWait: ['[data-action="context"][data-context="enterHabitat"]'],
@@ -725,6 +731,9 @@ export function createTutorial(
         return has('solar');
       case 'battery':
         return has('battery');
+      case 'buildHabitat':
+        // 新しい隊員を呼ぶには、その人の居住モジュールがもう1つ要る
+        return p.state.facilities.filter((f) => f.kind === 'habitat').length >= 2;
       case 'order':
         return p.state.launches.length > 0;
       case 'goInsideWait':

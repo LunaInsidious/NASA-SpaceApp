@@ -638,6 +638,15 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       reasons.push(t('launch.empty'));
     }
     const canOrder = current.launch.canOrderNow && !over && items.length > 0;
+    // 新しい隊員は、居住モジュール1つに1人。届く前の隊員と、カートに入れた分も数える
+    if (state === null) {
+      throw new Error('ui: state がないのに補給の窓を描こうとした');
+    }
+    const crewOnTheWay = state.launches
+      .flatMap((launch) => launch.items)
+      .filter((item) => item.kind === 'crew')
+      .reduce((sum, item) => sum + item.quantity, 0);
+    const crewRoom = current.crew.capacity - current.crew.count - crewOnTheWay - cart.crew;
     const rows = LAUNCH_ITEM_KINDS.map((kind) => {
       // ＋を1回押したときに増える数と、それがロケットの場所をどれだけ使うか
       const step = BULK_LAUNCH_ITEMS.includes(kind) ? values.launch.bulkOrderStep.value : 1;
@@ -649,11 +658,16 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         kind === 'materials' || kind === 'crew' || kind === 'relaySatellite'
           ? `<small>${t(`launchItemDesc.${kind}`)}</small>`
           : '';
+      const noRoom = kind === 'crew' && crewRoom <= 0;
+      const roomNote =
+        kind === 'crew'
+          ? `<small class="${noRoom ? 'ui-bad' : 'ui-ok'}">${noRoom ? t('launch.crewNoRoom') : t('launch.crewRoom', { count: crewRoom })}</small>`
+          : '';
       return `<li>
-        <span class="ui-grow"><b>${t(`launchItem.${kind}`)}</b> <span class="ui-small">${costText}</span>${desc}</span>
+        <span class="ui-grow"><b>${t(`launchItem.${kind}`)}</b> <span class="ui-small">${costText}</span>${desc}${roomNote}</span>
         <button data-action="cart" data-kind="${kind}" data-delta="-1">−</button>
         <span class="ui-qty">${cart[kind]}</span>
-        <button data-action="cart" data-kind="${kind}" data-delta="1">＋</button>
+        <button data-action="cart" data-kind="${kind}" data-delta="1" ${noRoom ? 'disabled' : ''}>＋</button>
       </li>`;
     }).join('');
     const meterRatio = capacity > 0 ? Math.min(1, used / capacity) : 1;
