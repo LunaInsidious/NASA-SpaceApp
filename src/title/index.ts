@@ -188,7 +188,11 @@ export function createTitle(root: HTMLElement, callbacks: TitleCallbacks): Title
     menu.append(
       ...(view === 'main' ? mainView() : view === 'continue' ? continueView() : settingsView()),
     );
-    layer.replaceChildren(logo, name, subtitle, menu);
+    // NASA の公式の作品と間違えられないように、ファン作品であることを必ず出す
+    const disclaimer = document.createElement('p');
+    disclaimer.className = 'title-disclaimer';
+    disclaimer.innerHTML = t('title.disclaimer');
+    layer.replaceChildren(logo, name, subtitle, menu, disclaimer);
   }
 
   onLangChange(render);
