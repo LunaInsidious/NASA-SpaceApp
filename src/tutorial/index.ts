@@ -80,28 +80,28 @@ const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
   goInsideWait: ['[data-action="context"][data-context="enterHabitat"]'],
   nextDay: [
     '[data-action="context"][data-context="nextDay"]',
-    '[data-action="nbGo"][data-page="plan"]:not([disabled])',
+    '[data-action="nbGo"][data-page="plan"]:not([aria-disabled="true"])',
     '[data-action="nbNext"]',
   ],
   sleepAgain: [
     '[data-action="context"][data-context="nextDay"]',
-    '[data-action="nbGo"][data-page="plan"]:not([disabled])',
+    '[data-action="nbGo"][data-page="plan"]:not([aria-disabled="true"])',
     '[data-action="nbNext"]',
   ],
   inventory: ['[data-action="menu"][data-menu="status"]'],
   chooseTask: [
     '[data-action="taskToggle"][data-task="ice"]:not(.on)',
-    '[data-action="nbGo"][data-page="tasks"]:not([disabled])',
+    '[data-action="nbGo"][data-page="tasks"]:not([aria-disabled="true"])',
     '[data-action="nbNext"]',
   ],
   waitArrival: [
     '[data-action="context"][data-context="nextDay"]',
-    '[data-action="nbGo"][data-page="plan"]:not([disabled])',
+    '[data-action="nbGo"][data-page="plan"]:not([aria-disabled="true"])',
     '[data-action="nbNext"]',
   ],
   assignCrew: [
     '[data-action="assign"][data-task="farming"]',
-    '[data-action="nbGo"][data-page="crew"]:not([disabled])',
+    '[data-action="nbGo"][data-page="crew"]:not([aria-disabled="true"])',
     '[data-action="nbNext"]',
   ],
   takeIce: ['[data-action="context"][data-context="collectIce"]'],
@@ -109,7 +109,7 @@ const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
   flareDrill: ['[data-action="flare"][data-choice="shelter"]'],
   goOutside: [
     '[data-action="context"][data-context="exitHabitat"]',
-    '[data-action="nbGo"][data-page="plan"]:not([disabled])',
+    '[data-action="nbGo"][data-page="plan"]:not([aria-disabled="true"])',
     '[data-action="nbNext"]',
   ],
   regolith: ['[data-action="context"][data-context="coverRegolith"]'],
@@ -150,7 +150,7 @@ function pointTarget(step: Step): HTMLElement | null {
     }
     return (
       visibleElement('[data-action="order"]') ??
-      visibleElement('[data-action="nbGo"][data-page="launch"]:not([disabled])') ??
+      visibleElement('[data-action="nbGo"][data-page="launch"]:not([aria-disabled="true"])') ??
       visibleElement('[data-action="nbNext"]')
     );
   }
@@ -306,11 +306,29 @@ export interface Tutorial {
   allowsNextDay(): boolean;
   /** いまの「やること」（くんれんの段かミッション）。窓の中にも出す。なければ null */
   currentInstruction(): string | null;
+  /**
+   * いまの「やること」をする休息の画面のページ（済むまで、そのページから次へ・もどるで動かさない）。なければ null。
+   * できない状況で閉じ込めないよう、くんれんの段と、すぐできるミッション（栽培の係を決める）だけ
+   */
+  requiredRestPage(): RestRequiredPage | null;
   /** タイトルの「はじめから」：新しいゲームにして「あそんだことがある？」から */
   startNew(): void;
   /** タイトルの「つづきから」：くんれんを終えていればミッション、まだなら「あそんだことがある？」から */
   startContinue(): void;
 }
+
+/** 休息の画面のページのうち、くんれんやミッションで操作を求めるもの */
+export type RestRequiredPage = 'crew' | 'launch' | 'tasks' | 'plan' | 'save';
+// くんれんの段と、その操作をするページ
+const STEP_PAGES: Partial<Record<Step, RestRequiredPage>> = {
+  order: 'launch',
+  nextDay: 'plan',
+  waitArrival: 'plan',
+  assignCrew: 'crew',
+  chooseTask: 'tasks',
+  save: 'save',
+  sleepAgain: 'plan',
+};
 
 // title：タイトル画面で「はじめから」か「つづきから」を選ぶのを待っている（何も出さない）
 type Mode = 'title' | 'ask' | 'tutorial' | 'finishedModal' | 'missions' | 'failed';
@@ -400,7 +418,7 @@ export function createTutorial(
       if (mustGoOut) {
         target =
           visibleElement('[data-action="context"][data-context="exitHabitat"]') ??
-          visibleElement('[data-action="nbGo"][data-page="plan"]:not([disabled])') ??
+          visibleElement('[data-action="nbGo"][data-page="plan"]:not([aria-disabled="true"])') ??
           visibleElement('[data-action="nbNext"]');
       } else if (mustGoIn) {
         target = visibleElement('[data-action="context"][data-context="enterHabitat"]');
@@ -921,6 +939,26 @@ export function createTutorial(
       mode = 'title';
       rereading = false;
       render();
+    },
+    requiredRestPage() {
+      if (mode === 'tutorial') {
+        return STEP_PAGES[step()] ?? null;
+      }
+      const mission = missions[missionIndex];
+      const s = lastProgress?.state;
+      if (mode !== 'missions' || mission === undefined || s === undefined) {
+        return null;
+      }
+      // 栽培のミッション：栽培室があって、係を決められる隊員がいれば、隊員のページで決めてもらう
+      if (
+        mission.condition === 'farmingRunning' &&
+        !missionDone(mission, s) &&
+        s.facilities.some((f) => f.kind === 'greenhouse') &&
+        s.crew.some((c) => !c.isPlayer)
+      ) {
+        return 'crew';
+      }
+      return null;
     },
     currentInstruction() {
       if (mode === 'tutorial') {

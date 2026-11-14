@@ -47,6 +47,8 @@ export interface RestInfo {
   queuedOrder: LaunchItem[] | null;
   /** 外に出られるか */
   canGoOut: boolean;
+  /** 博士の「やること」をするページ。そのページにいる間は、済むまで次へ・もどる・進み具合を押せない */
+  requiredPage: 'crew' | 'launch' | 'tasks' | 'plan' | 'save' | null;
   /** 「翌日へ」を押せるか（くんれん中は段による） */
   canNextDay: boolean;
   /** 振り返り：その日の外での結果と、核になる知識の一言（i18n から作った HTML） */

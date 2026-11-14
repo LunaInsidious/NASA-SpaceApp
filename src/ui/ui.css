@@ -1009,7 +1009,7 @@ body.nb-open .ui-top .ui-status {
   opacity: 0.75;
 }
 
-.ui-root button.nb-step:disabled {
+.ui-root button[aria-disabled="true"] {
   opacity: 0.4;
   cursor: default;
 }

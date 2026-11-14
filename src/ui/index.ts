@@ -1115,9 +1115,15 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     // 上の進み具合：番号と名前。前のページへは押して戻れる。先のページは押せない（「次へ」で順に進む）
     const outOfOrder = restPage !== restStep;
     const index = REST_PAGES.indexOf(restStep);
+    // 博士の「やること」がこのページでの操作なら、済むまでほかのページへ動かさない（左上の「外に出る」は押せる）
+    const requiredPage = rest.requiredPage;
+    const locked = requiredPage !== null && requiredPage === restPage;
+    // 押せないボタンは disabled にせず（押しても何も起きないと理由が分からない）、押したら理由を知らせる
+    const lockedAttr = (reason: 'task' | 'ahead') =>
+      `aria-disabled="true" data-locked="${reason === 'task' && requiredPage !== null ? `task.${requiredPage}` : 'ahead'}"`;
     const steps = REST_PAGES.map(
       (page, i) =>
-        `<button class="nb-step ${page === restPage ? 'on' : i <= index ? 'past' : ''}" data-action="nbGo" data-page="${page}" ${i > index ? 'disabled' : ''}><span class="nb-step-no">${i + 1}</span><span>${t(`notebook.page.${page}`)}</span></button>`,
+        `<button class="nb-step ${page === restPage ? 'on' : i <= index ? 'past' : ''}" data-action="nbGo" data-page="${page}" ${locked ? lockedAttr('task') : i > index ? lockedAttr('ahead') : ''}><span class="nb-step-no">${i + 1}</span><span>${t(`notebook.page.${page}`)}</span></button>`,
     ).join('');
     const guideHtml =
       guide === null
@@ -1125,7 +1131,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         : `<div class="ui-modal-guide"><span class="ui-modal-guide-face">${PROFESSOR_SVG}</span><div>${guide}</div></div>`;
     const back =
       outOfOrder || index > 0
-        ? `<button data-action="nbBack">${t('notebook.back')}</button>`
+        ? `<button data-action="nbBack" ${locked ? lockedAttr('task') : ''}>${t('notebook.back')}</button>`
         : '<span></span>';
     let forward: string;
     if (outOfOrder) {
@@ -1141,7 +1147,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         : '';
       forward = `<span class="nb-foot-actions">${goOut}${nextDay}</span>`;
     } else {
-      forward = `<button class="primary nb-next" data-action="nbNext">${t('notebook.next', { page: t(`notebook.page.${REST_PAGES[Math.min(index + 1, REST_PAGES.length - 1)]}`) })}</button>`;
+      forward = `${requiredPage !== null && locked ? `<span class="ui-small ui-warn nb-reason">${t(`notebook.doFirst.${requiredPage}`)}</span>` : ''}<button class="primary nb-next" data-action="nbNext" ${locked ? lockedAttr('task') : ''}>${t('notebook.next', { page: t(`notebook.page.${REST_PAGES[Math.min(index + 1, REST_PAGES.length - 1)]}`) })}</button>`;
     }
     // 出口はいつも左上に（ちょっと中に入っただけのときも、「次へ」で最後まで進まなくてよい）
     const exitTop = rest.canGoOut
@@ -1149,7 +1155,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       : '';
     notebookEl.innerHTML = `
       <div class="nb">
-        <div class="nb-head">${exitTop}<b class="nb-head-title"><span class="nb-head-label">${t('notebook.title', { day: Math.floor(view.day) + 1 })}</span><span class="nb-exit-short">${t('hud.day', { day: Math.floor(view.day) + 1 })}</span></b><span class="nb-head-buttons">${(['cards', 'status', 'save'] as const).map((page) => `<button data-action="nbGo" data-page="${page}" aria-label="${tPlain(`notebook.page.${page}`)}"><span>${t(`notebook.icon.${page}`)}</span><span class="nb-head-label">${t(`notebook.page.${page}`)}</span></button>`).join('')}</span></div>
+        <div class="nb-head">${exitTop}<b class="nb-head-title"><span class="nb-head-label">${t('notebook.title', { day: Math.floor(view.day) + 1 })}</span><span class="nb-exit-short">${t('hud.day', { day: Math.floor(view.day) + 1 })}</span></b><span class="nb-head-buttons">${(['cards', 'status', 'save'] as const).map((page) => `<button data-action="nbGo" data-page="${page}" aria-label="${tPlain(`notebook.page.${page}`)}" ${locked && requiredPage !== page ? lockedAttr('task') : ''}><span>${t(`notebook.icon.${page}`)}</span><span class="nb-head-label">${t(`notebook.page.${page}`)}</span></button>`).join('')}</span></div>
         ${guideHtml}
         <nav class="nb-steps">${steps}</nav>
         <section class="nb-page">${restPageHtml(restPage, rest, state, view)}</section>
@@ -1272,6 +1278,17 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     }
     const target = e.target.closest<HTMLElement>('[data-action]');
     if (target === null) {
+      return;
+    }
+    // 押せないボタン：何もせず、押せない理由を知らせる
+    if (target.getAttribute('aria-disabled') === 'true') {
+      const locked = target.dataset.locked;
+      toast(
+        locked === undefined || locked === 'ahead'
+          ? t('notebook.inOrder')
+          : t(`notebook.doFirst.${locked.slice('task.'.length)}`),
+        false,
+      );
       return;
     }
     switch (target.dataset.action) {

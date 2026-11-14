@@ -626,6 +626,7 @@ function restInfo(): RestInfo | null {
     queuedOrder,
     canGoOut: actions.includes('exitHabitat'),
     canNextDay: actions.includes('nextDay'),
+    requiredPage: tutorial.requiredRestPage(),
     review,
     tasks: currentCandidates().map((task) => ({
       id: task.id,

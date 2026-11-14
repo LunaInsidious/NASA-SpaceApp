@@ -683,5 +683,10 @@
   "launch.queuedNote": "The rocket lifts off when you press \"Next day\" or \"Go outside\". Until then, you can cancel it.",
   "launch.cancel": "Cancel and choose again",
   "notebook.icon.exit": "🚪",
-  "notebook.exitShort": "Out"
+  "notebook.exitShort": "Out",
+  "notebook.doFirst.launch": "Confirm your order to go on",
+  "notebook.doFirst.crew": "Choose a job for your crew to go on",
+  "notebook.doFirst.tasks": "Choose tomorrow's task to go on",
+  "notebook.doFirst.plan": "Press \"Next day\"",
+  "notebook.doFirst.save": "Save the game to go back"
 }

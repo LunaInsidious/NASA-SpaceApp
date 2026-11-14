@@ -683,5 +683,10 @@
   "launch.queuedNote": "「｜翌日《よくじつ》へ」か「｜外《そと》に｜出《で》る」を ｜押《お》すと、ロケットが ｜飛《と》び｜立《た》つよ。それまでは ｜取《と》り｜消《け》せるよ。",
   "launch.cancel": "｜取《と》り｜消《け》して ｜選《えら》び｜直《なお》す",
   "notebook.icon.exit": "🚪",
-  "notebook.exitShort": "｜外《そと》へ"
+  "notebook.exitShort": "｜外《そと》へ",
+  "notebook.doFirst.launch": "｜注文《ちゅうもん》を ｜決《き》めると、｜次《つぎ》へ ｜進《すす》めるよ",
+  "notebook.doFirst.crew": "｜隊員《たいいん》の ｜係《かかり》を ｜決《き》めると、｜次《つぎ》へ ｜進《すす》めるよ",
+  "notebook.doFirst.tasks": "｜明日《あした》の タスクを ｜選《えら》ぶと、｜次《つぎ》へ ｜進《すす》めるよ",
+  "notebook.doFirst.plan": "「｜翌日《よくじつ》へ」を ｜押《お》してね",
+  "notebook.doFirst.save": "セーブすると、もどれるよ"
 }
