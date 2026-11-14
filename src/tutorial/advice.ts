@@ -1,6 +1,7 @@
 // アクシデントのときに「何が起きたか」と「やること」を出すカード。いちばん急ぐもの1つだけを、直るまで出す
 import type { SimState, Values } from '../contracts/index.ts';
-import type { SimView } from '../sim/api.ts';
+import type { CommLostReason, SimView } from '../sim/api.ts';
+import { commLostReason } from '../sim/index.ts';
 import { onLangChange, t } from '../ui/i18n.ts';
 
 export type AdviceKind =
@@ -17,7 +18,12 @@ export interface Advice {
   kind: AdviceKind;
   /** 行く場所を示す施設（壊れかけの施設など） */
   facilityId: string | null;
+  /** 地球と話せないときの理由（commLost のときだけ） */
+  commReason: CommLostReason | null;
 }
+
+// スマホ幅では、新しい項目も見出しだけで出す（開くと画面の多くをふさぐため）
+const NARROW_QUERY = '(max-width: 640px)';
 
 // カードのボタンで開くメニュー
 const MENU_FOR: Partial<Record<AdviceKind, 'build' | 'launch' | 'crew'>> = {
@@ -44,19 +50,19 @@ export function pickAdvices(
   const a = values.advice;
   const list: Advice[] = [];
   if (!indoors && view.tankRatio < a.tankLowRatio.value) {
-    list.push({ kind: 'tankLow', facilityId: null });
+    list.push({ kind: 'tankLow', facilityId: null, commReason: null });
   }
   // 命に関わる不足は、チュートリアル中も出す
   const days = view.lifeSupportDays;
   const low = a.lifeSupportLowDays.value;
-  if (days.oxygen < low) list.push({ kind: 'oxygenLow', facilityId: null });
-  if (days.water < low) list.push({ kind: 'waterLow', facilityId: null });
-  if (days.food < low) list.push({ kind: 'foodLow', facilityId: null });
+  if (days.oxygen < low) list.push({ kind: 'oxygenLow', facilityId: null, commReason: null });
+  if (days.water < low) list.push({ kind: 'waterLow', facilityId: null, commReason: null });
+  if (days.food < low) list.push({ kind: 'foodLow', facilityId: null, commReason: null });
   if (onlyUrgent) {
     return list;
   }
   if (Object.values(view.facilityStatus).some((s) => s.reason === 'noPower')) {
-    list.push({ kind: 'noPower', facilityId: null });
+    list.push({ kind: 'noPower', facilityId: null, commReason: null });
   }
   const broken = state.facilities.find((f) => f.condition < a.brokenCondition.value);
   if (broken !== undefined) {
@@ -64,10 +70,11 @@ export function pickAdvices(
     list.push({
       kind: state.stocks.spareParts < partsNeeded ? 'noParts' : 'broken',
       facilityId: broken.id,
+      commReason: null,
     });
   }
   if (!view.comm.linked) {
-    list.push({ kind: 'commLost', facilityId: null });
+    list.push({ kind: 'commLost', facilityId: null, commReason: commLostReason(state, view) });
   }
   return list;
 }
@@ -85,7 +92,7 @@ export function createAdviceCard(
   card.className = 'advice-card';
   card.hidden = true;
   root.append(card);
-  let current: AdviceKind[] = [];
+  let current: Advice[] = [];
   // 子どもが開いた・閉じたを覚えておく（直って消えたら忘れる）
   const open = new Set<AdviceKind>();
 
@@ -95,8 +102,8 @@ export function createAdviceCard(
       delete document.body.dataset.advice;
       return;
     }
-    document.body.dataset.advice = current[0];
-    const items = current.map((kind) => {
+    document.body.dataset.advice = current[0].kind;
+    const items = current.map(({ kind, commReason }) => {
       const item = document.createElement('details');
       item.className = 'advice-item';
       item.open = open.has(kind);
@@ -112,7 +119,10 @@ export function createAdviceCard(
       label.textContent = t('advice.label');
       const todo = document.createElement('div');
       todo.className = 'advice-todo';
-      todo.textContent = t(`advice.${kind}.todo`);
+      todo.textContent =
+        commReason === null
+          ? t(`advice.${kind}.todo`)
+          : t(`advice.${kind}.todo`, { reason: t(`commHint.${commReason}`) });
       item.append(title, label, todo);
       const menu = MENU_FOR[kind];
       if (menu !== undefined) {
@@ -131,17 +141,20 @@ export function createAdviceCard(
 
   return {
     show(advices) {
-      const next = advices.map((a) => a.kind);
-      if (next.join() === current.join()) {
+      const key = (list: Advice[]) => list.map((a) => `${a.kind}:${a.commReason}`).join();
+      if (key(advices) === key(current)) {
         return;
       }
-      for (const kind of next) {
-        if (!current.includes(kind)) open.add(kind);
+      const before = current.map((a) => a.kind);
+      const after = advices.map((a) => a.kind);
+      const narrow = window.matchMedia(NARROW_QUERY).matches;
+      for (const kind of after) {
+        if (!before.includes(kind) && !narrow) open.add(kind);
       }
-      for (const kind of current) {
-        if (!next.includes(kind)) open.delete(kind);
+      for (const kind of before) {
+        if (!after.includes(kind)) open.delete(kind);
       }
-      current = next;
+      current = advices;
       render();
     },
   };

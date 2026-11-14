@@ -96,9 +96,9 @@
 }
 
 /* スマホ：右上の状態の窓に重ならないよう、上の言語ボタンの左に小さな丸で置く */
-@media (pointer: coarse) {
+@media (max-width: 640px) {
   .help-toggle {
-    right: 104px;
+    right: 8px;
     bottom: auto;
     top: 44px;
     width: 36px;

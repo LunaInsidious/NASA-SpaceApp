@@ -242,20 +242,32 @@ body[data-advice="broken"] [data-action="context"][data-context="repair"] {
 }
 
 @media (max-width: 640px) {
+  /* スマホ：右のメニューの列と、下のその場の行動の列にかからない場所 */
   .tutorial {
+    bottom: calc(200px + env(safe-area-inset-bottom));
+    right: 74px;
+    max-height: 30vh;
     padding: 8px 10px;
     font-size: 13px;
     line-height: 1.45;
   }
 
+  /* 困りごとは上（左上のいのちのバーの下）に出し、下の案内と重ねない */
   .advice-card {
-    top: auto;
-    bottom: 200px;
+    top: 150px;
     left: 8px;
-    right: 8px;
+    right: 74px;
     transform: none;
     width: auto;
+    max-height: 28vh;
+    overflow-y: auto;
     font-size: 13px;
+  }
+
+  .tutorial-reopen {
+    top: 110px;
+    left: 8px;
+    transform: none;
   }
 
   .tutorial button,
@@ -385,7 +397,8 @@ body[data-tutorial-step="comm"] .ui-status::before {
 }
 
 .advice-card {
-  max-height: 60vh;
+  /* 右下のことばじてん・音のボタンと、メニューの列の手前まで */
+  max-height: calc(100vh - 185px - 140px);
   overflow-y: auto;
 }
 
@@ -598,5 +611,26 @@ body[data-tutorial-step="comm"] .ui-status::before {
   .tutorial-modal .tutorial-modal-professor svg {
     width: 90px;
     height: 105px;
+  }
+}
+
+/* スマホ：見出しの行を1行におさめる。困りごとのカードは短く（上の .advice-card の高さより優先） */
+@media (max-width: 640px) {
+  .tutorial .tutorial-head {
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .tutorial .tutorial-head button {
+    padding: 2px 6px;
+    font-size: 11px;
+  }
+
+  .advice-card {
+    max-height: 28vh;
+  }
+
+  .advice-card .advice-title {
+    font-size: 14px;
   }
 }

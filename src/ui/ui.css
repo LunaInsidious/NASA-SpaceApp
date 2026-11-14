@@ -619,3 +619,161 @@
 .ui-storm li + li {
   margin-top: 4px;
 }
+
+/* 短い表示（スマホだけ）とメニューのアイコン */
+.ui-short,
+.ui-chips {
+  display: none;
+}
+
+.ui-menu-icon {
+  margin-right: 4px;
+}
+
+/* スマホ：詰め込みすぎない。いつも見せるのは命に関わるものだけで、くわしい数字はチップを押して開く */
+@media (max-width: 640px) {
+  .ui-long {
+    display: none;
+  }
+
+  .ui-short {
+    display: inline;
+  }
+
+  /* 左上：いのちのバーとチップ。右上のボタンの列にかからない幅 */
+  .ui-hud {
+    max-width: none;
+    width: calc(100vw - 196px - env(safe-area-inset-left) - env(safe-area-inset-right));
+    gap: 4px;
+  }
+
+  .ui-tank {
+    padding: 4px 8px;
+  }
+
+  .ui-tank-head {
+    font-size: 13px;
+  }
+
+  .ui-tank-pct {
+    font-size: 16px;
+  }
+
+  .ui-tank-bar {
+    height: 10px;
+    margin: 3px 0 1px;
+  }
+
+  .ui-root button.ui-chips {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    white-space: nowrap;
+    padding: 4px 8px;
+    border-radius: 10px;
+    background: rgba(8, 12, 22, 0.72);
+    font-size: 12px;
+    text-align: left;
+  }
+
+  .ui-chips-more {
+    margin-left: auto;
+    opacity: 0.7;
+  }
+
+  /* くわしい数字はチップを押したときだけ。チュートリアルで電力を見る段では出す */
+  .ui-detail {
+    display: none;
+  }
+
+  /* 開いたときは、くわしい数字の窓だけを広げて、右上の表示の上に重ねる */
+  .ui-hud.open {
+    z-index: 2;
+  }
+
+  .ui-hud.open .ui-detail {
+    width: calc(100vw - 16px);
+    max-width: 320px;
+    background: rgba(8, 12, 22, 0.96);
+  }
+
+  .ui-hud.open .ui-detail,
+  body[data-tutorial-step="power"] .ui-detail:not(.ui-development) {
+    display: block;
+  }
+
+  /* 右上：速さ・一時停止・言語を1列に。言語は切り替え先だけ見せる */
+  .ui-top {
+    max-width: 188px;
+    gap: 48px;
+  }
+
+  .ui-top .ui-row {
+    flex-wrap: nowrap;
+  }
+
+  .ui-top .ui-row button {
+    padding: 5px 7px;
+    font-size: 12px;
+  }
+
+  .ui-top .ui-row button[data-action="lang"].on {
+    display: none;
+  }
+
+  .ui-status {
+    padding: 4px 8px;
+  }
+
+  /* 通信が切れたときのやることは、困りごとのカードに出す */
+  .ui-status .ui-hint {
+    display: none;
+  }
+
+  /* 右下：メニューはアイコンと短い名前で縦1列。ジャンプはその下 */
+  .ui-buttons {
+    max-width: none;
+  }
+
+  .ui-buttons .ui-row:not(.ui-context) {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .ui-root button.ui-menu-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 58px;
+    padding: 3px 2px;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+
+  .ui-menu-icon {
+    margin: 0;
+    font-size: 18px;
+  }
+
+  .ui-root button.ui-jump {
+    width: 64px;
+    height: 64px;
+  }
+
+  /* その場の行動（「中に入る」など）は、仮想パッドのすぐ上に横長で出す */
+  .ui-buttons .ui-context {
+    position: fixed;
+    left: 8px;
+    right: 74px;
+    bottom: calc(150px + env(safe-area-inset-bottom));
+    justify-content: flex-start;
+  }
+
+  .ui-toasts {
+    width: calc(100vw - 96px);
+    left: 8px;
+    transform: none;
+  }
+}

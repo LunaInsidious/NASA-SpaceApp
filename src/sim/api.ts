@@ -32,6 +32,9 @@ export interface SimView {
   >;
 }
 
+/** 地球と話せない理由。理由ごとに「やること」が違う */
+export type CommLostReason = 'noAntenna' | 'noPower' | 'earthDown' | 'blocked';
+
 /**
  * 建てる場所の判定。allowed：建てられるか。works：そこで動くか（太陽電池は日なた、アンテナは地球が見える、採掘機は氷の上）。
  * プレビューの色は allowed && works が緑、allowed && !works が黄、!allowed が赤

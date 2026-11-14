@@ -13,7 +13,7 @@ import type {
 } from '../contracts/index.ts';
 import type { SaveSummary } from '../save/api.ts';
 import type { BuildOptions, Placement, SimView } from '../sim/api.ts';
-import { buildCost, launchItemCost, outdoorDoseMsvPerHour } from '../sim/index.ts';
+import { buildCost, commLostReason, launchItemCost, outdoorDoseMsvPerHour } from '../sim/index.ts';
 import type { PadInput } from '../world/api.ts';
 import type { ContextAction, Ui, UiCallbacks } from './api.ts';
 import { getLang, onLangChange, setLang, t } from './i18n.ts';
@@ -164,25 +164,6 @@ function sourcePopover(values: Values, section: SourceSection): string {
   return `<div class="ui-src-pop"><div class="ui-src-title">${t('source.title')}</div><ul>${rows.join('')}</ul></div>`;
 }
 
-/** 地球と話せない理由。理由ごとに「やること」が違うので分けて見せる */
-function commLostReason(
-  state: SimState,
-  view: SimView,
-): 'noAntenna' | 'noPower' | 'earthDown' | 'blocked' {
-  const antennas = state.facilities.filter((f) => f.kind === 'antenna');
-  if (antennas.length === 0) {
-    return 'noAntenna';
-  }
-  const reasons = antennas.map((f) => view.facilityStatus[f.id].reason);
-  if (reasons.every((r) => r === 'noPower' || r === 'condition')) {
-    return 'noPower';
-  }
-  if (!view.comm.earthUp) {
-    return 'earthDown';
-  }
-  return 'blocked';
-}
-
 /** 電力の差し引き。たまるか、へるかを＋と−、色、矢印で見せる */
 function powerNet(netKw: number): string {
   if (Math.abs(netKw) < POWER_EVEN_KW) {
@@ -270,6 +251,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   let userPaused = false;
   let lastPaused = false;
   let showBreakdown = false;
+  // スマホ：くわしい数字の窓を開いているか（ふだんは小さなチップだけ）
+  let hudOpen = false;
   let menu: MenuKind | null = null;
   const dialogs: Dialog[] = [];
   let saves: SaveSummary[] = [];
@@ -343,11 +326,11 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       ...(view.comm.linked
         ? []
         : [`<div class="ui-hint">${t(`commHint.${commLostReason(state, view)}`)}</div>`]),
-      `<div>${t('hud.relays', { count: view.comm.relaySatellites })}</div>`,
+      `<div class="ui-long">${t('hud.relays', { count: view.comm.relaySatellites })}</div>`,
     ];
     if (view.comm.unsentResearch > 0) {
       lines.push(
-        `<div>${t('hud.unsentResearch', { amount: fmt(view.comm.unsentResearch, 1) })}</div>`,
+        `<div class="ui-long">${t('hud.unsentResearch', { amount: fmt(view.comm.unsentResearch, 1) })}</div>`,
       );
     }
     if (state.activeEvents.length > 0) {
@@ -358,7 +341,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       lines.push(`<div class="ui-ok">${t('hud.cleared')}</div>`);
     }
     if (lastPaused) {
-      lines.push(`<div>${t('hud.paused')}</div>`);
+      lines.push(`<div class="ui-long">${t('hud.paused')}</div>`);
     }
     statusEl.innerHTML = lines.join('');
   };
@@ -419,6 +402,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const doseWarn = shielding.playerDoseMsv > shielding.doseLimitMsv * DOSE_WARN_RATIO;
     const development = state.development;
     const elementMax = values.development.elementMax.value;
+    const netKw = power.generationKw - power.consumptionKw;
     const tankPct = Math.round(Math.min(1, Math.max(0, view.tankRatio)) * PERCENT);
     const tankLevel =
       view.tankRatio < values.advice.tankLowRatio.value
@@ -426,13 +410,21 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         : view.tankRatio < TANK_WARN_RATIO
           ? 'warn'
           : 'ok';
+    hudEl.classList.toggle('open', hudOpen);
     hudEl.innerHTML = `
       <div class="ui-panel ui-tank ui-tank-${tankLevel} ${state.player.indoors ? 'indoors' : ''}">
-        <div class="ui-tank-head"><span>🫧 ${t('hud.tankHp')} ${sourceButton('tank')}</span><span class="ui-tank-pct">${tankPct}%</span></div>
+        <div class="ui-tank-head"><span>🫧 <span class="ui-long">${t('hud.tankHp')}</span><span class="ui-short">${t('hud.tankShort')}</span> ${sourceButton('tank')}</span><span class="ui-tank-pct">${tankPct}%</span></div>
         <div class="ui-tank-bar"><div style="width:${tankPct}%"></div></div>
-        <div class="ui-small">${t(state.player.indoors ? 'hud.tankIndoors' : 'hud.tankOutdoors')}</div>
+        <div class="ui-small ui-long">${t(state.player.indoors ? 'hud.tankIndoors' : 'hud.tankOutdoors')}</div>
       </div>
-      <div class="ui-panel">
+      <button class="ui-chips" data-action="toggleHud" aria-expanded="${hudOpen}">
+        <span class="${life.min < LOW_DAYS ? 'ui-bad' : ''}">${t('hud.chip.life', { days: Number.isFinite(life.min) ? fmt(life.min) : '∞' })}</span>
+        <span class="${netKw < 0 ? 'ui-bad' : 'ui-ok'}">${t('hud.chip.power', { kw: `${netKw < 0 ? '−' : '+'}${fmt(Math.abs(netKw), 1)}` })}</span>
+        <span class="${doseWarn ? 'ui-bad' : ''}">${t('hud.chip.dose', { dose: fmt(shielding.playerDoseMsv) })}</span>
+        <span>${t('hud.chip.development', { value: fmt(development.total) })}</span>
+        <span class="ui-chips-more">${hudOpen ? '▲' : '▼'}</span>
+      </button>
+      <div class="ui-panel ui-detail">
         <div class="ui-stat" data-action="toggleBreakdown">
           <span class="ui-label">${t('hud.lifeSupport')}</span> ${sourceButton('lifeSupport')}
           <span class="ui-value ui-life-value ${life.min < LOW_DAYS ? 'ui-bad' : ''}">${daysText(life.min)}</span>
@@ -453,7 +445,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           <div>${t('hud.protection', { pct: fmt(shielding.indoorProtection * PERCENT) })}</div>
         </div>
       </div>
-      <div class="ui-panel ui-development">
+      <div class="ui-panel ui-detail ui-development">
         <div class="ui-stat">
           <span class="ui-label">${t('development.total')}</span> ${sourceButton('development')}
           <span class="ui-value">${fmt(development.total)}</span>
@@ -487,11 +479,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     buttonsEl.innerHTML = `
       <div class="ui-row ui-context">${contextHtml}</div>
       <div class="ui-row">
-        <button data-action="menu" data-menu="build">${t('button.build')}</button>
-        <button data-action="menu" data-menu="launch">${t('button.launch')}</button>
-        <button data-action="menu" data-menu="crew">${t('button.crew')}</button>
-        <button data-action="menu" data-menu="save">${t('button.save')}</button>
-        <button data-action="menu" data-menu="data">${t('button.data')}</button>
+        ${MENUS.map(
+          (menuKind) =>
+            `<button class="ui-menu-button" data-action="menu" data-menu="${menuKind}"><span class="ui-menu-icon">${t(`button.icon.${menuKind}`)}</span><span>${t(isTouch ? `button.short.${menuKind}` : `button.${menuKind}`)}</span></button>`,
+        ).join('')}
       </div>
       ${isTouch ? `<button class="ui-jump" data-action="jump">${t('button.jump')}</button>` : ''}`;
   };
@@ -1054,6 +1045,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const target = e.target.closest<HTMLElement>('[data-action]');
     if (target?.dataset.action === 'toggleBreakdown') {
       showBreakdown = !showBreakdown;
+      renderHud();
+    } else if (target?.dataset.action === 'toggleHud') {
+      hudOpen = !hudOpen;
       renderHud();
     } else if (target?.dataset.action === 'jump') {
       jumpHeld = true;

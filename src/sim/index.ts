@@ -16,7 +16,7 @@ import type {
   Step,
   Values,
 } from '../contracts/index.ts';
-import type { BuildCost, BuildOptions, Placement, SimView } from './api.ts';
+import type { BuildCost, BuildOptions, CommLostReason, Placement, SimView } from './api.ts';
 import { computeDevelopment } from './development.ts';
 import { type Evaluation, evaluate, evaluateComm, isEarthUp, sunlitAt } from './model.ts';
 
@@ -710,6 +710,22 @@ export const step: Step = (prev, dtHours, env, commands, values, events, rng) =>
 
   return { state, emitted };
 };
+
+/** 地球と話せない理由。理由ごとに「やること」が違うので、画面で分けて見せる */
+export function commLostReason(state: SimState, view: SimView): CommLostReason {
+  const antennas = state.facilities.filter((f) => f.kind === 'antenna');
+  if (antennas.length === 0) {
+    return 'noAntenna';
+  }
+  const reasons = antennas.map((f) => view.facilityStatus[f.id].reason);
+  if (reasons.every((r) => r === 'noPower' || r === 'condition')) {
+    return 'noPower';
+  }
+  if (!view.comm.earthUp) {
+    return 'earthDown';
+  }
+  return 'blocked';
+}
 
 export function describe(state: SimState, values: Values, env: Env): SimView {
   const evaluation = evaluate(state, values, env, values.time.stepHours.value);
