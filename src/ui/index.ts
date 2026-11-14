@@ -91,8 +91,7 @@ type Dialog =
   | { type: 'downed'; advice: DeathAdvice }
   | { type: 'cleared'; total: number }
   | { type: 'gameOver'; advice: DeathAdvice }
-  | { type: 'morning'; summary: MorningSummary }
-  | { type: 'confirmRest'; hoursLeft: number; tasksLeft: number; onYes: () => void };
+  | { type: 'morning'; summary: MorningSummary };
 
 function esc(text: string): string {
   return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -727,7 +726,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         <span class="ui-grow"><b>${nameText}</b>${why} <span class="ui-small ui-cost">${costText}</span>${roomNote}</span>
         <span class="ui-stepper">
           <button data-action="cart" data-kind="${kind}" data-delta="-1" aria-label="${tPlain(`launchItem.${kind}`)} −">−</button>
-          <span class="ui-qty">${cart[kind]}${BULK_LAUNCH_ITEMS.includes(kind) && cart[kind] > 0 ? 'kg' : ''}</span>
+          <span class="ui-qty">${cart[kind] / step}</span>
           <button data-action="cart" data-kind="${kind}" data-delta="1" aria-label="${tPlain(`launchItem.${kind}`)} ＋" ${noRoom ? 'disabled' : ''}>＋</button>
         </span>
       </li>`;
@@ -739,6 +738,27 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           `<div class="ui-small">${t('launch.inFlight', { days: fmt(launch.hoursUntilArrival / HOURS_PER_DAY, 1) })}</div>`,
       )
       .join('');
+    if (rest?.queuedOrder != null) {
+      const list = rest.queuedOrder
+        .map((item) => {
+          const step = BULK_LAUNCH_ITEMS.includes(item.kind)
+            ? values.launch.bulkOrderStep.value
+            : 1;
+          const name = BULK_LAUNCH_ITEMS.includes(item.kind)
+            ? t('launch.itemAmount', { name: t(`launchItem.${item.kind}`), step: fmt(step) })
+            : t(`launchItem.${item.kind}`);
+          return `<li>${name} × ${fmt(item.quantity / step)}</li>`;
+        })
+        .join('');
+      return `
+        <h2>${t('launch.title')}</h2>
+        <div class="ui-queued">
+          <p><b>${t('launch.queued')}</b></p>
+          <ul>${list}</ul>
+          <p class="ui-small">${t('launch.queuedNote')}</p>
+          <button data-action="cancelOrder">${t('launch.cancel')}</button>
+        </div>`;
+    }
     return `
       <h2>${t('launch.title')}</h2>
       ${blockers.length > 0 ? `<div class="ui-blocker">${blockers.map((b) => `<div>${b}</div>`).join('')}</div>` : ''}
@@ -876,15 +896,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           <div class="ui-actions"><button data-action="dialogOk" class="primary">${t('cleared.continue')}</button></div>`;
       case 'morning':
         return morningHtml(dialog.summary);
-      case 'confirmRest':
-        return `
-          <h2>${t('confirmRest.title')}</h2>
-          <p>${t('confirmRest.body', { hours: dialog.hoursLeft })}</p>
-          ${dialog.tasksLeft > 0 ? `<p class="ui-warn">${t('confirmRest.tasksLeft', { count: dialog.tasksLeft })}</p>` : ''}
-          <div class="ui-actions">
-            <button data-action="dialogOk">${t('confirmRest.stay')}</button>
-            <button class="primary" data-action="confirmRestYes">${t('confirmRest.yes')}</button>
-          </div>`;
       case 'gameOver': {
         const kind = dialog.advice.kind;
         // 宇宙飛行士が倒れた（ボンベ・放射線）か、基地の物資が尽きたか
@@ -1354,11 +1365,15 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         for (const kind of LAUNCH_ITEM_KINDS) {
           cart[kind] = 0;
         }
-        menu = null;
-        renderModal();
-        updatePause();
-        renderStatus();
         callbacks.onOrderLaunch(items);
+        break;
+      }
+      case 'cancelOrder': {
+        // 取り消したら、カゴに戻して選び直せるようにする
+        for (const item of rest?.queuedOrder ?? []) {
+          cart[item.kind] += item.quantity;
+        }
+        callbacks.onCancelOrder();
         break;
       }
       case 'assign': {
@@ -1381,15 +1396,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       case 'dialogOk':
         closeTopDialog();
         break;
-      case 'confirmRestYes': {
-        const dialog = dialogs[0];
-        if (dialog?.type !== 'confirmRest') {
-          throw new Error('ui：中に入る確かめの窓がないのに「おしまいにする」が押された');
-        }
-        closeTopDialog();
-        dialog.onYes();
-        break;
-      }
       case 'backToTitle':
         dialogs.length = 0;
         menu = null;
@@ -1561,9 +1567,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       }
     },
     showEvents,
-    confirmRest(hoursLeft, tasksLeft, onYes) {
-      pushDialog({ type: 'confirmRest', hoursLeft, tasksLeft, onYes });
-    },
     showMorning(summary) {
       pushDialog({ type: 'morning', summary });
     },

@@ -17,6 +17,7 @@ import type {
   Facility,
   FacilityKind,
   GameEvent,
+  LaunchItem,
   SimCommand,
   SimState,
   Values,
@@ -139,6 +140,8 @@ let dayLog: DayLogEntry[] = [];
 // 休むときに見せた、休む理由（振り返りに「核になる知識の一言」として残す）
 let restReason: (typeof REST_REASONS)[number] | null = null;
 let lastRestKey = '';
+// 準備した注文（「翌日へ」か「外に出る」で送る。それまでは取り消せる）
+let queuedOrder: LaunchItem[] | null = null;
 // さっき起きた宇宙天気（同じ記録が続かないように）
 let lastEventId: string | null = null;
 // くんれんの新しい段（インベントリ画面を開いた）
@@ -219,8 +222,14 @@ const ui = createUi(
     },
     onBuildConfirm: confirmBuild,
     onBuildCancel: cancelBuild,
+    // 注文はすぐには送らず、「翌日へ」か「外に出る」まで取り消せるようにする。
+    // 中では時間が止まっているので、送るのがそのときでも、届く日などは変わらない
     onOrderLaunch: (items) => {
-      pending.push({ type: 'orderLaunch', items });
+      queuedOrder = items;
+      fx.sound('pop');
+    },
+    onCancelOrder: () => {
+      queuedOrder = null;
     },
     onAssignCrew: (crewId, task) => {
       pending.push({ type: 'assignCrew', crewId, task });
@@ -385,6 +394,7 @@ function startFrom(next: SimState, fromSave: boolean): void {
   tankWarnings = 0;
   dayLog = [];
   restReason = null;
+  queuedOrder = null;
   selectedTaskIds = [];
   todayPlan = [];
   ui.stopMinigame();
@@ -442,11 +452,9 @@ function nearbyFacilities(): Facility[] {
 
 function contextActions(): ContextAction[] {
   if (indoors) {
-    // 朝（まだ外に出ていない日）は外に出るのが先（E キー）。休んだあとは「翌日へ」が先
-    const actions: ContextAction[] = [];
-    if (!wentOutToday || tutorial.allowsGoingOutAgain()) {
-      actions.push('exitHabitat');
-    }
+    // いつでも外に出られる（中に入ってもその日は終わらない。1日を終えるのは「翌日へ」）。
+    // 朝（まだ外に出ていない日）は外に出るのが先（E キー）。外から戻ったあとは「翌日へ」が先
+    const actions: ContextAction[] = ['exitHabitat'];
     if (tutorial.allowsNextDay() && wentOutToday) {
       actions.unshift('nextDay');
     } else if (tutorial.allowsNextDay()) {
@@ -477,34 +485,27 @@ function doAction(action: ContextAction): void {
   const p = world.getPlayer();
   const near = nearbyFacilities();
   switch (action) {
-    case 'enterHabitat': {
-      const hoursLeft = state.player.tankOxygen * values.eva.maxHours.value;
-      const tasksLeft = todayPlan.filter((t) => !t.done).length;
-      const goIn = () => {
-        indoors = true;
-        fx.sound('door');
-        deliverIce();
-        startRest();
-        applyPlayerMode();
-      };
-      if (!tutorial.isTutorial() && hoursLeft > values.eva.warnHoursFirst.value) {
-        ui.confirmRest(Math.floor(hoursLeft), tasksLeft, goIn);
-      } else {
-        goIn();
-      }
+    case 'enterHabitat':
+      indoors = true;
+      fx.sound('door');
+      deliverIce();
+      startRest();
       break;
-    }
     case 'nextDay':
       sleepUntilMorning();
       break;
     case 'exitHabitat': {
+      sendQueuedOrder();
       indoors = false;
       wentOutToday = true;
       tankWarnings = 0;
-      todayPlan = selectedTaskIds.flatMap((id) =>
-        currentCandidates().filter((task) => task.id === id),
-      );
-      selectedTaskIds = [];
+      // 新しく選んだタスクがあれば、それを今日のタスクにする（なければ、さっきの続き）
+      if (selectedTaskIds.length > 0) {
+        todayPlan = selectedTaskIds.flatMap((id) =>
+          currentCandidates().filter((task) => task.id === id),
+        );
+        selectedTaskIds = [];
+      }
       fx.sound('door');
       // 居住モジュールの真ん中（倒れたあと、退避したあと）にいると、ドームの中に隠れてしまう。ドアの前に出す
       const home = state.facilities
@@ -584,10 +585,7 @@ function startRest(): void {
   }
   restReason = REST_REASONS[restDays % REST_REASONS.length];
   earn('firstRest');
-  ui.notify(
-    `${restReasonText(restReason)} ${tutorial.allowsGoingOutAgain() ? '' : t('rest.next')}`,
-    false,
-  );
+  ui.notify(restReasonText(restReason), false);
   if (state.phase !== 'gameOver') {
     saves.autoSave(state);
     ui.setSaves(saves.list());
@@ -625,6 +623,7 @@ function restInfo(): RestInfo | null {
   const home = mainHabitat();
   return {
     wentOutToday,
+    queuedOrder,
     canGoOut: actions.includes('exitHabitat'),
     canNextDay: actions.includes('nextDay'),
     review,
@@ -701,9 +700,18 @@ function eventsToRun(): DonkiTimeline {
   return others.length > 0 ? others : timeline;
 }
 
+/** 準備した注文を送る（「翌日へ」と「外に出る」のとき） */
+function sendQueuedOrder(): void {
+  if (queuedOrder !== null) {
+    pending.push({ type: 'orderLaunch', items: queuedOrder });
+    queuedOrder = null;
+  }
+}
+
 /** 「翌日へ」：次の日の始まりまで、中で一気に進める。寝ている間に起きたことは朝の窓で見せる */
 function sleepUntilMorning(): void {
   // 建てる・注文するなどの操作を先に反映する
+  sendQueuedOrder();
   tick(0);
   const before = state;
   const shadedBefore = shadedSolarIds();
@@ -950,6 +958,7 @@ function updateTutorial(): void {
     windowOpen: ui.isMenuOpen(),
     inventoryOpened,
     tasksSelected: selectedTaskIds.length + todayPlan.length,
+    orderQueued: queuedOrder !== null,
   });
   if (tutorial.takeFlareDrillRequest()) {
     showFlareDrill();

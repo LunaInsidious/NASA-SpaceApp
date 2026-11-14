@@ -263,6 +263,8 @@ export interface TutorialProgress {
   inventoryOpened: boolean;
   /** 選んだタスクの数（次に外に出るとき・今日の分） */
   tasksSelected: number;
+  /** 注文を準備したか（送るのは翌日へのとき） */
+  orderQueued: boolean;
   indoors: boolean;
   onIce: boolean;
   carryingIce: boolean;
@@ -302,8 +304,6 @@ export interface Tutorial {
   timeRuns(): boolean;
   /** 「翌日へ」を押してよいか（くんれん中は、翌日へを教える段とロケットを待つ段だけ） */
   allowsNextDay(): boolean;
-  /** 休んだあとでも、その日にもう一度外に出てよいか（くんれん中は段の順に出入りするので、いつでも出られる） */
-  allowsGoingOutAgain(): boolean;
   /** いまの「やること」（くんれんの段かミッション）。窓の中にも出す。なければ null */
   currentInstruction(): string | null;
   /** タイトルの「はじめから」：新しいゲームにして「あそんだことがある？」から */
@@ -802,7 +802,7 @@ export function createTutorial(
         // 新しい隊員を呼ぶには、その人の居住モジュールがもう1つ要る
         return p.state.facilities.filter((f) => f.kind === 'habitat').length >= 2;
       case 'order':
-        return p.state.launches.length > 0;
+        return p.orderQueued || p.state.launches.length > 0;
       case 'goInsideWait':
         return p.indoors;
       case 'nextDay':
@@ -939,10 +939,6 @@ export function createTutorial(
         step() === 'waitArrival' ||
         step() === 'sleepAgain'
       );
-    },
-    allowsGoingOutAgain() {
-      // くんれんの段は「外 → 中 → 翌日へ → 外」の順に並べてある。早めに中に入ってしまっても外でやる段で詰まらないよう、くんれん中だけはいつでも出られる
-      return mode === 'tutorial';
     },
     startNew() {
       resetTo('ask');

@@ -1374,3 +1374,11 @@ body[data-tutorial-step="comm"] .ui-top .ui-status {
 .ui-buildbar .ui-fac-item {
   justify-content: center;
 }
+
+/* 準備した注文（翌日へか外に出るまで取り消せる） */
+.ui-queued {
+  padding: 10px 12px;
+  border: 2px solid #6fd08c;
+  border-radius: 10px;
+  background: rgba(111, 208, 140, 0.12);
+}

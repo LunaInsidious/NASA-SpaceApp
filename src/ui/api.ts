@@ -43,7 +43,9 @@ export interface MorningSummary {
 export interface RestInfo {
   /** その日にもう外に出たか（出たあとなら振り返りから、朝なら明日の計画のページから見せる） */
   wentOutToday: boolean;
-  /** その日にまだ外に出られるか */
+  /** 準備した注文（「翌日へ」か「外に出る」で送る。それまでは取り消せる）。なければ null */
+  queuedOrder: LaunchItem[] | null;
+  /** 外に出られるか */
   canGoOut: boolean;
   /** 「翌日へ」を押せるか（くんれん中は段による） */
   canNextDay: boolean;
@@ -59,7 +61,10 @@ export interface UiCallbacks {
   onBuildSelect(kind: FacilityKind, options: BuildOptions): void;
   onBuildConfirm(): void;
   onBuildCancel(): void;
+  /** 注文を準備する（送るのは「翌日へ」か「外に出る」のとき） */
   onOrderLaunch(items: LaunchItem[]): void;
+  /** 準備した注文を取り消す */
+  onCancelOrder(): void;
   onAssignCrew(crewId: string, task: CrewTask): void;
   onContextAction(action: ContextAction): void;
   /** 休息の画面で、翌日のタスクを選ぶ・やめる */
@@ -89,8 +94,6 @@ export interface Ui {
    * 倒れた・ゲームオーバーのときは、death にルナはかせのアドバイス（原因とつぎにやること）を渡す
    */
   showEvents(events: GameEvent[], state: SimState, death: DeathAdvice | null): void;
-  /** 中に入る前の確かめ（まだ外にいられる時間と、残っているタスクを出す）。「おしまいにする」なら onYes */
-  confirmRest(hoursLeft: number, tasksLeft: number, onYes: () => void): void;
   /** 「翌日へ」のあとの朝の窓 */
   showMorning(summary: MorningSummary): void;
   /** 太陽フレアの警報。退避するか作業を続けるかを選ばせる。出典（過去の実際のイベントと日付）を必ず見せる */
