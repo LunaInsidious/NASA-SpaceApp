@@ -385,6 +385,7 @@
   "launch.noLinkChain.noAntenna": "To send an order you must talk to Earth → there is no antenna → build an Antenna (Build).",
   "hud.tankShort": "Life",
   "hud.chip.life": "🫁 {days} d",
+  "hud.chip.lifeForever": "🫁 steady",
   "hud.chip.power": "⚡ {kw}",
   "hud.chip.dose": "☢️ {dose}",
   "hud.chip.development": "⭐ {value}",

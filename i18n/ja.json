@@ -385,6 +385,7 @@
   "launch.noLinkChain.noAntenna": "注文を おくるには 地球と 話す ひつようが ある → アンテナが ない → 「建設」で アンテナを たてよう。",
   "hud.tankShort": "いのち",
   "hud.chip.life": "🫁 {days}日",
+  "hud.chip.lifeForever": "🫁 へらない",
   "hud.chip.power": "⚡ {kw}",
   "hud.chip.dose": "☢️ {dose}",
   "hud.chip.development": "⭐ {value}",

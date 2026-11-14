@@ -398,8 +398,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       return;
     }
     const life = view.lifeSupportDays;
+    // sim は減らないときに上限（display.maxLifeSupportDays）を返すので、上限なら「減っていない」と出す
+    const forever = (days: number) => days >= values.display.maxLifeSupportDays.value;
     const daysText = (days: number) =>
-      Number.isFinite(days) ? t('hud.daysLeft', { days: fmt(days, 1) }) : t('hud.daysForever');
+      forever(days) ? t('hud.daysForever') : t('hud.daysLeft', { days: fmt(days, 1) });
     const breakdown = showBreakdown
       ? `<div class="ui-breakdown">${LIFE_SUPPORT_KEYS.map(
           (key) =>
@@ -434,7 +436,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         <div class="ui-small ui-long">${t(state.player.indoors ? 'hud.tankIndoors' : 'hud.tankOutdoors')}</div>
       </div>
       <button class="ui-chips" data-action="toggleHud" aria-expanded="${hudOpen}">
-        <span class="${life.min < LOW_DAYS ? 'ui-bad' : ''}">${t('hud.chip.life', { days: Number.isFinite(life.min) ? fmt(life.min) : '∞' })}</span>
+        <span class="${life.min < LOW_DAYS ? 'ui-bad' : ''}">${forever(life.min) ? t('hud.chip.lifeForever') : t('hud.chip.life', { days: fmt(life.min) })}</span>
         <span class="${netKw < 0 ? 'ui-bad' : 'ui-ok'}">${t('hud.chip.power', { kw: `${netKw < 0 ? '−' : '+'}${fmt(Math.abs(netKw), 1)}` })}</span>
         <span class="${doseWarn ? 'ui-bad' : ''}">${t('hud.chip.dose', { dose: fmt(shielding.playerDoseMsv) })}</span>
         <span>${t('hud.chip.development', { value: fmt(development.total) })}</span>
