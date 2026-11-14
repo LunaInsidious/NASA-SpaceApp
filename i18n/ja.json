@@ -1,5 +1,5 @@
 {
-  "app.title": "Lunar Outpost",
+  "app.title": "アルテミス・キッズ",
   "resource.oxygen": "｜酸素《さんそ》",
   "resource.water": "｜水《みず》",
   "resource.food": "｜食料《しょくりょう》",
@@ -471,6 +471,7 @@
   "photo.credit": "Credit: {credit}",
   "photo.close": "｜閉《と》じる",
   "title.subtitle": "｜月《つき》の ｜南極《なんきょく》に ｜基地《きち》を ｜作《つく》ろう",
+  "title.disclaimer": "この ゲームは、NASAの アルテミス｜計画《けいかく》を もとにした ファン｜作品《さくひん》です。NASAの ｜公式《こうしき》の ｜作品《さくひん》では ありません。",
   "title.new": "｜始《はじ》めから",
   "title.continue": "｜続《つづ》きから",
   "title.settings": "｜設定《せってい》",

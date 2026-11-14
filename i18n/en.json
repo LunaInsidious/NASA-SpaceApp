@@ -1,5 +1,5 @@
 {
-  "app.title": "Lunar Outpost",
+  "app.title": "Artemis Kids",
   "resource.oxygen": "Oxygen",
   "resource.water": "Water",
   "resource.food": "Food",
@@ -471,6 +471,7 @@
   "photo.credit": "Credit: {credit}",
   "photo.close": "Close",
   "title.subtitle": "Build a base at the Moon's south pole",
+  "title.disclaimer": "A fan-made game inspired by NASA's Artemis program. It is not an official NASA product.",
   "title.new": "New game",
   "title.continue": "Continue",
   "title.settings": "Settings",
