@@ -240,16 +240,21 @@ export function createTutorial(
     const row = document.createElement('div');
     row.className = 'tutorial-modal-buttons';
     row.append(...buttons);
-    const langRow = document.createElement('div');
-    langRow.className = 'tutorial-modal-lang';
-    langRow.append(
-      button('English', 'tutorial-lang', () => setLang('en')),
-      button('日本語', 'tutorial-lang', () => setLang('ja')),
-    );
     const big = document.createElement('div');
     big.className = 'tutorial-modal-professor';
     big.innerHTML = PROFESSOR_SVG;
-    card.append(big, langRow, title, body, row);
+    card.append(big);
+    // 言葉を選べるのは、いちばん最初の「あそんだことがある？」の窓だけ（あとは右上のボタンで変えられる）
+    if (mode === 'ask') {
+      const langRow = document.createElement('div');
+      langRow.className = 'tutorial-modal-lang';
+      langRow.append(
+        button('English', 'tutorial-lang', () => setLang('en')),
+        button('日本語', 'tutorial-lang', () => setLang('ja')),
+      );
+      card.append(langRow);
+    }
+    card.append(title, body, row);
     // 窓が出たときに、博士が少しのあいだ話す
     card.classList.add('speaking');
     window.setTimeout(() => card.classList.remove('speaking'), MODAL_SPEAK_MS);
