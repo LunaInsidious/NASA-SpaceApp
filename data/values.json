@@ -151,7 +151,7 @@
   },
   "player": {
     "walkSpeedMps": {
-      "value": 3,
+      "value": 5,
       "unit": "m/s",
       "source": "TBD"
     },
@@ -171,7 +171,7 @@
       "source": "TBD"
     },
     "tankDurationHours": {
-      "value": 180,
+      "value": 240,
       "unit": "h",
       "source": "TBD"
     },

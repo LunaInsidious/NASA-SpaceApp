@@ -6,8 +6,10 @@ export type Lang = 'en' | 'ja';
 
 const MESSAGES: Record<Lang, Record<string, string>> = { en, ja };
 const STORAGE_KEY = 'lang';
-// 仕様の「英語が基本」。保存された選択があればそれを使う
-const DEFAULT_LANG: Lang = 'en';
+// 保存された選択がなければ、ブラウザの言語が日本語なら日本語、それ以外は仕様の「英語が基本」
+const DEFAULT_LANG: Lang = navigator.languages.some((l) => l.toLowerCase().startsWith('ja'))
+  ? 'ja'
+  : 'en';
 
 const listeners: ((lang: Lang) => void)[] = [];
 let current: Lang = readSavedLang();

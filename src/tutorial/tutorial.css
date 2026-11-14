@@ -135,10 +135,9 @@
 /* アクシデントのカード（案内の下） */
 .advice-card {
   position: fixed;
-  left: 50%;
-  top: 150px;
-  transform: translateX(-50%);
-  width: min(460px, calc(100vw - 24px));
+  right: 12px;
+  top: 130px;
+  width: min(300px, calc(100vw - 24px));
   padding: 10px 14px;
   border: 2px solid #ff8a5c;
   border-radius: 12px;
@@ -256,4 +255,44 @@ body[data-advice="broken"] [data-action="context"][data-context="repair"] {
 .tutorial-why {
   margin: 2px 0 4px;
   color: #dbe6f5;
+}
+
+/* 最初の窓の言語の切り替え */
+.tutorial-modal-lang {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.tutorial-modal .tutorial-lang {
+  font-size: 13px;
+  padding: 2px 10px;
+}
+
+/* 段ができた瞬間の「できた！」 */
+@keyframes tutorial-cleared {
+  0% {
+    box-shadow: 0 0 0 0 rgba(120, 230, 150, 0.9);
+    border-color: #78e696;
+  }
+  100% {
+    box-shadow: 0 0 0 18px rgba(120, 230, 150, 0);
+    border-color: #ffd27a;
+  }
+}
+
+.tutorial.tutorial-cleared {
+  animation: tutorial-cleared 0.9s ease-out;
+}
+
+body[data-tutorial-step="goInsideWait"] [data-action="context"],
+body[data-tutorial-step="assignCrew"] [data-action="assign"][data-task="research"] {
+  outline: none;
+  animation: none;
+}
+
+body[data-tutorial-step="goInsideWait"] [data-action="context"] {
+  outline: 3px solid #ffd27a;
+  animation: tutorial-pulse 1.2s infinite;
 }

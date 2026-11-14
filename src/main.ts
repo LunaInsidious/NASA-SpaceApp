@@ -464,12 +464,18 @@ function updateTutorial(): void {
     world.setGuideMarker(target === null ? null : { x: target.x, z: target.z });
   }
   // 行く方向の矢印（カメラの向きに対して）と、のこりの距離
-  guideArrow.hidden = target === null;
+  // メニューや窓が開いている間は、矢印で文字を隠さない
+  guideArrow.hidden = target === null || ui.isMenuOpen() || tutorial.isBlocking();
   if (target !== null) {
     const bearing = Math.atan2(target.x - p.x, target.z - p.z);
     const relative = bearing - world.getViewYawRad();
     guideArrowIcon.style.transform = `rotate(${relative}rad)`;
-    guideArrowText.textContent = t('guide.distance', {
+    // 画面の向きだけでは分かりにくいので、前・右・後ろ・左の言葉（PC ではキーも）を添える
+    const quarter = Math.round(
+      (((relative % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) / (Math.PI / 2),
+    );
+    const direction = (['front', 'right', 'back', 'left'] as const)[quarter % 4];
+    guideArrowText.textContent = t(`guide.dir.${direction}.${isTouch ? 'touch' : 'keys'}`, {
       meters: Math.round(Math.hypot(target.x - p.x, target.z - p.z)),
     });
   }

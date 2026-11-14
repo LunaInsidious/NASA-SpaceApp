@@ -38,7 +38,7 @@ body {
 .guide-arrow {
   position: absolute;
   left: 50%;
-  top: 190px;
+  bottom: 120px;
   transform: translateX(-50%);
   text-align: center;
   color: #ffd27a;

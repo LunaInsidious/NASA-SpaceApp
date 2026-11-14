@@ -3,7 +3,7 @@
 // 終わったら（経験者はすぐに）data/missions.json の目標をミッションとして順に出す。
 // 押すボタンは光らせ（tutorial.css）、行く場所には world の光の柱を立てる（guide()）
 import type { FacilityKind, SimState, Values } from '../contracts/index.ts';
-import { onLangChange, t } from '../ui/i18n.ts';
+import { onLangChange, setLang, t } from '../ui/i18n.ts';
 import './tutorial.css';
 
 const STEPS = [
@@ -16,6 +16,7 @@ const STEPS = [
   'battery',
   'comm',
   'order',
+  'goInsideWait',
   'fastForward',
   'waitArrival',
   'normalSpeed',
@@ -201,7 +202,13 @@ export function createTutorial(
     const row = document.createElement('div');
     row.className = 'tutorial-modal-buttons';
     row.append(...buttons);
-    card.append(title, body, row);
+    const langRow = document.createElement('div');
+    langRow.className = 'tutorial-modal-lang';
+    langRow.append(
+      button('English', 'tutorial-lang', () => setLang('en')),
+      button('日本語', 'tutorial-lang', () => setLang('ja')),
+    );
+    card.append(langRow, title, body, row);
     modal.replaceChildren(card);
     modal.hidden = false;
   }
@@ -340,6 +347,9 @@ export function createTutorial(
 
   function advance(): void {
     stepYaw = null;
+    panel.classList.remove('tutorial-cleared');
+    // 再描画のあとにつけ直して、アニメーションをもう一度動かす
+    requestAnimationFrame(() => panel.classList.add('tutorial-cleared'));
     if (index === STEPS.length - 1) {
       saveFinished();
       mode = 'finishedModal';
@@ -374,8 +384,10 @@ export function createTutorial(
         return has('battery');
       case 'order':
         return p.state.launches.length > 0;
+      case 'goInsideWait':
+        return p.indoors;
       case 'fastForward':
-        return p.speed === 4;
+        return p.speed === 4 && p.indoors;
       case 'waitArrival':
         return p.state.launches.length === 0;
       case 'normalSpeed':
@@ -427,6 +439,16 @@ export function createTutorial(
   function update(progress: TutorialProgress): void {
     lastProgress = progress;
     if (mode === 'tutorial') {
+      // 氷を運ぶ途中で倒れて氷をなくしたら、氷を取りに行く段に戻る
+      if (
+        (step() === 'goHome' || step() === 'takeIce') &&
+        !progress.carryingIce &&
+        !progress.deliveredIce &&
+        !progress.onIce
+      ) {
+        index = STEPS.indexOf('toIce');
+        render();
+      }
       while (mode === 'tutorial' && !ACK_STEPS.includes(step()) && stepDone(step(), progress)) {
         advance();
       }

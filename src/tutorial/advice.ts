@@ -30,7 +30,7 @@ const MENU_FOR: Partial<Record<AdviceKind, 'build' | 'launch' | 'crew'>> = {
   commLost: 'launch',
 };
 
-/** いちばん急ぐアクシデント。onlyUrgent のときはボンベだけを見る（チュートリアル中） */
+/** いちばん急ぐアクシデント。onlyUrgent のときはボンベと生命維持の不足だけを見る（チュートリアル中） */
 export function pickAdvice(
   state: SimState,
   view: SimView,
@@ -42,14 +42,15 @@ export function pickAdvice(
   if (!indoors && view.tankRatio < a.tankLowRatio.value) {
     return { kind: 'tankLow', facilityId: null };
   }
-  if (onlyUrgent) {
-    return null;
-  }
+  // 命に関わる不足は、チュートリアル中も出す
   const days = view.lifeSupportDays;
   if (days.min < a.lifeSupportLowDays.value) {
     const kind: AdviceKind =
       days.oxygen === days.min ? 'oxygenLow' : days.water === days.min ? 'waterLow' : 'foodLow';
     return { kind, facilityId: null };
+  }
+  if (onlyUrgent) {
+    return null;
   }
   const stopped = Object.entries(view.facilityStatus).find(([, s]) => s.reason === 'noPower');
   if (stopped !== undefined) {
