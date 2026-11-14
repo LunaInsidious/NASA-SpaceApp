@@ -86,3 +86,31 @@ rt {
   font-weight: 400;
   opacity: 0.9;
 }
+
+/* ボタンの手ごたえ：マウスを重ねると明るく浮いて影がつき、押すと少し沈む（色の違うボタンにも同じように効くよう、明るさで変える）。
+   押せないボタンは変えない。スマホ（重ねる操作がない）では押したときだけ */
+button,
+summary {
+  transition:
+    filter 0.12s,
+    box-shadow 0.12s,
+    transform 0.08s;
+}
+
+@media (hover: hover) {
+  button:not(:disabled, [aria-disabled="true"]):hover,
+  summary:hover {
+    filter: brightness(1.35);
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.5),
+      0 0 0 2px rgba(255, 255, 255, 0.35);
+    transform: translateY(-1px);
+    cursor: pointer;
+  }
+}
+
+button:not(:disabled, [aria-disabled="true"]):active {
+  filter: brightness(0.9);
+  transform: translateY(1px);
+  box-shadow: none;
+}
