@@ -440,15 +440,6 @@ body[data-tutorial-step="comm"] .ui-status::before {
   border-top: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-/* ゲーム全体のやり直しは、窓のいちばん下に小さく分けて置く */
-.tutorial-restart-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 8px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-}
-
 /* ルナはかせ：PC では吹き出し（案内の窓）の左に立ち、吹き出しのしっぽが博士の口を向く */
 .tutorial-professor {
   position: absolute;

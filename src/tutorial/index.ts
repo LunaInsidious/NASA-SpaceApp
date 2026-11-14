@@ -128,6 +128,8 @@ export interface Tutorial {
   takeFlareDrillRequest(): boolean;
   /** 太陽フレアの警報で選んだこと */
   answerFlare(choice: 'shelter' | 'continue'): void;
+  /** 「ゲームを さいしょから やりなおす」（セーブの窓のボタン）。本当にやり直すかを確かめる窓を出す */
+  confirmRestart(): void;
 }
 
 type Mode = 'ask' | 'tutorial' | 'finishedModal' | 'missions' | 'confirmRestart' | 'failed';
@@ -362,14 +364,6 @@ export function createTutorial(
     return head;
   }
 
-  /** ゲーム全体を最初からやり直すボタン。読み直しと間違えないよう、窓のいちばん下に分けて置く */
-  function restartRow(): HTMLElement {
-    const row = document.createElement('div');
-    row.className = 'tutorial-restart-row';
-    row.append(button(t('restart.button'), 'tutorial-restart', confirmRestart));
-    return row;
-  }
-
   /** これまでの「どうして？」と「やること」を1段目から並べて見せる。ミッション中は全部の段 */
   function openReread(): void {
     rereading = true;
@@ -467,7 +461,6 @@ export function createTutorial(
       row.append(button(t('tutorial.ok'), 'tutorial-ok', advance));
       parts.push(row);
     }
-    parts.push(restartRow());
     panel.replaceChildren(...parts);
   }
 
@@ -502,7 +495,6 @@ export function createTutorial(
       );
       parts.push(row);
     }
-    parts.push(restartRow());
     panel.replaceChildren(...parts);
   }
 
@@ -642,6 +634,7 @@ export function createTutorial(
 
   return {
     update,
+    confirmRestart,
     guide() {
       if (mode !== 'tutorial') {
         return null;

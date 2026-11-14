@@ -169,6 +169,7 @@ const ui = createUi(
     onRestart: () => {
       startFrom(createInitialState(values, env, env.landerPosition));
     },
+    onRequestRestart: () => tutorial.confirmRestart(),
     onSave: (slot) => {
       saves.manualSave(state, slot);
       manualSaveCount++;

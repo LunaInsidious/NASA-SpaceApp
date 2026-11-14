@@ -777,3 +777,16 @@
     transform: none;
   }
 }
+
+/* セーブの窓：ゲーム全体のやり直しは、ほかのボタンと分けて窓のいちばん下に小さく置く */
+.ui-restart-row {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 14px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.ui-restart-row button {
+  font-size: 12px;
+}

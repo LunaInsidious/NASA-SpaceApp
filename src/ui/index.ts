@@ -756,7 +756,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <ul class="ui-list">${slots}</ul>
       <h3>${t('save.listTitle')}</h3>
       ${saveListHtml()}
-      <div class="ui-actions"><button data-action="closeMenu">${t('button.close')}</button></div>`;
+      <div class="ui-actions"><button data-action="closeMenu">${t('button.close')}</button></div>
+      <div class="ui-restart-row"><button data-action="requestRestart">${t('restart.button')}</button></div>`;
   };
 
   // ---- データ出典 ----
@@ -989,6 +990,12 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       }
       case 'dialogOk':
         closeTopDialog();
+        break;
+      case 'requestRestart':
+        menu = null;
+        renderModal();
+        updatePause();
+        callbacks.onRequestRestart();
         break;
       case 'restart':
         dialogs.length = 0;

@@ -34,6 +34,8 @@ export interface UiCallbacks {
   onFlareChoice(choice: 'shelter' | 'continue'): void;
   /** 新しく始める（セーブは消さない） */
   onRestart(): void;
+  /** セーブの窓の「ゲームを さいしょから やりなおす」。本当にやり直すかは main が確かめる */
+  onRequestRestart(): void;
   /** 手動セーブ。slot は 0 から values.save.manualSlots - 1 */
   onSave(slot: number): void;
   /** セーブから再開する。ui は先に窓とメニューを閉じる */
