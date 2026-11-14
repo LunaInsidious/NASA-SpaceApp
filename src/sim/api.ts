@@ -5,6 +5,8 @@ import type { CrewTask, FacilityKind } from '../contracts/index.ts';
 export interface SimView {
   day: number; // 着陸からの日数（小数）
   lifeSupportDays: { oxygen: number; water: number; food: number; min: number };
+  // 作るのが止まったら、いまの在庫であと何日もつか（減っていないときに「あと○日（減らない）」と見せる）
+  lifeSupportDaysIfStopped: { oxygen: number; water: number; food: number; min: number };
   power: {
     generationKw: number;
     consumptionKw: number;

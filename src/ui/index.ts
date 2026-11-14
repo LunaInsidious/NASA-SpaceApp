@@ -399,13 +399,17 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     }
     const life = view.lifeSupportDays;
     // sim は減らないときに上限（display.maxLifeSupportDays）を返すので、上限なら「減っていない」と出す
+    // 減っていないとき（sim は上限を返す）は、作るのが止まったらあと何日もつかを「（減らない）」と並べて出す
     const forever = (days: number) => days >= values.display.maxLifeSupportDays.value;
-    const daysText = (days: number) =>
-      forever(days) ? t('hud.daysForever') : t('hud.daysLeft', { days: fmt(days, 1) });
+    const ifStopped = view.lifeSupportDaysIfStopped;
+    const daysText = (days: number, stopped: number) =>
+      forever(days)
+        ? t('hud.daysSteady', { days: fmt(stopped, 1) })
+        : t('hud.daysLeft', { days: fmt(days, 1) });
     const breakdown = showBreakdown
       ? `<div class="ui-breakdown">${LIFE_SUPPORT_KEYS.map(
           (key) =>
-            `<div>${t('hud.breakdown', { name: t(`resource.${key}`), days: daysText(life[key]) })}</div>`,
+            `<div>${t('hud.breakdown', { name: t(`resource.${key}`), days: daysText(life[key], ifStopped[key]) })}</div>`,
         ).join('')}</div>`
       : `<div class="ui-small">${t('hud.tapForDetails')}</div>`;
     const power = view.power;
@@ -436,7 +440,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         <div class="ui-small ui-long">${t(state.player.indoors ? 'hud.tankIndoors' : 'hud.tankOutdoors')}</div>
       </div>
       <button class="ui-chips" data-action="toggleHud" aria-expanded="${hudOpen}">
-        <span class="${life.min < LOW_DAYS ? 'ui-bad' : ''}">${forever(life.min) ? t('hud.chip.lifeForever') : t('hud.chip.life', { days: fmt(life.min) })}</span>
+        <span class="${life.min < LOW_DAYS ? 'ui-bad' : ''}">${forever(life.min) ? t('hud.chip.lifeSteady', { days: fmt(ifStopped.min) }) : t('hud.chip.life', { days: fmt(life.min) })}</span>
         <span class="${netKw < 0 ? 'ui-bad' : 'ui-ok'}">${t('hud.chip.power', { kw: `${netKw < 0 ? '−' : '+'}${fmt(Math.abs(netKw), 1)}` })}</span>
         <span class="${doseWarn ? 'ui-bad' : ''}">${t('hud.chip.dose', { dose: fmt(shielding.playerDoseMsv) })}</span>
         <span>${t('hud.chip.development', { value: fmt(development.total) })}</span>
@@ -445,7 +449,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <div class="ui-panel ui-detail">
         <div class="ui-stat ui-life" data-action="toggleBreakdown">
           <span class="ui-label">${t('hud.lifeSupport')}</span>
-          <span class="ui-value ui-life-value ${life.min < LOW_DAYS ? 'ui-bad' : ''}">${daysText(life.min)}</span>
+          <span class="ui-value ui-life-value ${life.min < LOW_DAYS ? 'ui-bad' : ''}">${daysText(life.min, ifStopped.min)}</span>
           ${breakdown}
         </div>
         <div class="ui-stat ui-power">

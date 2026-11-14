@@ -292,4 +292,17 @@ describe('sim', () => {
     expect(safety(0.5, 12)).toBeCloseTo(50);
     expect(safety(0.9, 24)).toBeCloseTo(95);
   });
+
+  it('作るのが止まったら何日もつかは、在庫を使う量だけで割る（減っていないときに見せる）', () => {
+    const env = fakeEnv();
+    const state = createInitialState(values, env, [0, 0]);
+    const inside: SimState = { ...state, player: { ...state.player, indoors: true } };
+    const view = describeState(inside, values, env);
+    expect(view.lifeSupportDaysIfStopped.oxygen).toBeCloseTo(
+      inside.stocks.oxygen / (values.crew.oxygenKgPerDay.value * inside.crew.length),
+    );
+    expect(view.lifeSupportDaysIfStopped.food).toBeCloseTo(
+      inside.stocks.food / (values.crew.foodKgPerDay.value * inside.crew.length),
+    );
+  });
 });

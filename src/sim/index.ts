@@ -77,6 +77,18 @@ function lifeSupportDays(state: SimState, evaluation: Evaluation, values: Values
   return { oxygen, water, food, min: Math.min(oxygen, water, food) };
 }
 
+/** 作るのが止まったら（生命維持装置・氷の採掘機・栽培室）、いまの在庫であと何日もつか */
+function lifeSupportDaysIfStopped(state: SimState, evaluation: Evaluation, values: Values) {
+  const maxDays = values.display.maxLifeSupportDays.value;
+  const p = evaluation.perDay;
+  const days = (stock: number, usePerDay: number) =>
+    usePerDay > EPSILON ? Math.min(maxDays, Math.max(0, stock / usePerDay)) : maxDays;
+  const oxygen = days(state.stocks.oxygen, p.crewOxygen + p.tankOxygen);
+  const water = days(state.stocks.water, p.crewWater + p.lifeSupportWater + p.greenhouseWater);
+  const food = days(state.stocks.food, p.crewFood);
+  return { oxygen, water, food, min: Math.min(oxygen, water, food) };
+}
+
 function developmentOf(
   state: SimState,
   completed: DailyRecord[],
@@ -754,6 +766,7 @@ export function describe(state: SimState, values: Values, env: Env): SimView {
   return {
     day: state.timeHours / HOURS_PER_DAY,
     lifeSupportDays: lifeSupportDays(state, evaluation, values),
+    lifeSupportDaysIfStopped: lifeSupportDaysIfStopped(state, evaluation, values),
     power: {
       generationKw: evaluation.generationKw,
       consumptionKw: evaluation.consumptionKw,
