@@ -30,13 +30,13 @@ const FACILITY_KINDS: readonly FacilityKind[] = [
   'iceDrill',
   'shield',
 ];
+// ほきゅうで頼める荷物。施設のキットは届くものが資材と同じなので出さず、資材を頼んでもらう（CLAUDE.md）
 const LAUNCH_ITEM_KINDS: readonly LaunchItemKind[] = [
   'oxygen',
   'water',
   'food',
   'spareParts',
   'materials',
-  'facilityKit',
   'crew',
   'relaySatellite',
 ];
@@ -265,12 +265,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     LaunchItemKind,
     number
   >;
-  // 施設のキットは、施設の種類ごとに個数を選ぶ
-  const kitCart = Object.fromEntries(FACILITY_KINDS.map((kind) => [kind, 0])) as Record<
-    FacilityKind,
-    number
-  >;
-  let kitsOpen = false;
   // 割り当てを選んだが、時間が止まっていてまだ state に出ていないもの
   const assigned = new Map<string, CrewTask>();
   let contextActions: ContextAction[] = [];
@@ -301,20 +295,11 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       ? { dustCover: buildOptions.dustCover, shieldMaterial: buildOptions.shieldMaterial }
       : { dustCover: buildOptions.dustCover };
 
-  const kitLine = (facilityKind: FacilityKind, quantity: number): LaunchItem => ({
-    kind: 'facilityKit',
-    quantity,
-    facilityKind,
-  });
-
-  const cartItems = (): LaunchItem[] => [
-    ...LAUNCH_ITEM_KINDS.filter((kind) => kind !== 'facilityKit' && cart[kind] > 0).map(
-      (kind): LaunchItem => ({ kind, quantity: cart[kind] }),
-    ),
-    ...FACILITY_KINDS.filter((kind) => kitCart[kind] > 0).map((kind) =>
-      kitLine(kind, kitCart[kind]),
-    ),
-  ];
+  const cartItems = (): LaunchItem[] =>
+    LAUNCH_ITEM_KINDS.filter((kind) => cart[kind] > 0).map((kind) => ({
+      kind,
+      quantity: cart[kind],
+    }));
 
   // ---- 右上：速さ・一時停止・言語 ----
   const renderTopButtons = () => {
@@ -592,34 +577,17 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       reasons.push(t('launch.empty'));
     }
     const canOrder = current.launch.canOrderNow && !over && items.length > 0;
-    const qtyButtons = (action: 'cart' | 'kit', kind: string, quantity: number) => `
-        <button data-action="${action}" data-kind="${kind}" data-delta="-1">−</button>
-        <span class="ui-qty">${quantity}</span>
-        <button data-action="${action}" data-kind="${kind}" data-delta="1">＋</button>`;
-    const kitRows = FACILITY_KINDS.map(
-      (facility) => `<li class="ui-kit-row">
-        <span class="ui-grow">${t(`facility.${facility}`)} <span class="ui-small">${t('launch.unitCost', { cost: fmt(launchItemCost(kitLine(facility, 1), values)) })}</span></span>
-        ${qtyButtons('kit', facility, kitCart[facility])}
-      </li>`,
-    ).join('');
-    const kitCount = FACILITY_KINDS.reduce((sum, facility) => sum + kitCart[facility], 0);
     const rows = LAUNCH_ITEM_KINDS.map((kind) => {
-      if (kind === 'facilityKit') {
-        return `<li>
-        <button class="ui-kit-toggle ui-grow" data-action="toggleKits" aria-expanded="${kitsOpen}">
-          ${kitsOpen ? '▼' : '▶'} <b>${t('launchItem.facilityKit')}</b> <span class="ui-small">${t('launch.kitCount', { count: kitCount })}</span>
-          <small>${t('launchItemDesc.facilityKit')}</small>
-        </button>
-      </li>${kitsOpen ? kitRows : ''}`;
-      }
       const unitCost = launchItemCost({ kind, quantity: 1 }, values);
       const desc =
-        kind === 'crew' || kind === 'relaySatellite'
+        kind === 'materials' || kind === 'crew' || kind === 'relaySatellite'
           ? `<small>${t(`launchItemDesc.${kind}`)}</small>`
           : '';
       return `<li>
         <span class="ui-grow"><b>${t(`launchItem.${kind}`)}</b> <span class="ui-small">${t('launch.unitCost', { cost: fmt(unitCost) })}</span>${desc}</span>
-        ${qtyButtons('cart', kind, cart[kind])}
+        <button data-action="cart" data-kind="${kind}" data-delta="-1">−</button>
+        <span class="ui-qty">${cart[kind]}</span>
+        <button data-action="cart" data-kind="${kind}" data-delta="1">＋</button>
       </li>`;
     }).join('');
     const meterRatio = capacity > 0 ? Math.min(1, used / capacity) : 1;
@@ -989,24 +957,11 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         renderModal();
         break;
       }
-      case 'kit': {
-        const kind = pick(target.dataset.kind, FACILITY_KINDS, 'kit');
-        const delta = pick(target.dataset.delta, ['1', '-1'] as const, 'delta') === '1' ? 1 : -1;
-        kitCart[kind] = Math.max(0, kitCart[kind] + delta);
-        renderModal();
-        break;
-      }
-      case 'toggleKits':
-        kitsOpen = !kitsOpen;
-        renderModal();
-        break;
+
       case 'order': {
         const items = cartItems();
         for (const kind of LAUNCH_ITEM_KINDS) {
           cart[kind] = 0;
-        }
-        for (const kind of FACILITY_KINDS) {
-          kitCart[kind] = 0;
         }
         menu = null;
         renderModal();

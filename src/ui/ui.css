@@ -777,13 +777,3 @@
     transform: none;
   }
 }
-
-/* ほきゅう：施設のキットは押すと開き、施設ごとに個数を選ぶ */
-.ui-list li > button.ui-kit-toggle {
-  flex: 1 1 100%;
-  text-align: left;
-}
-
-.ui-list li.ui-kit-row {
-  padding-left: 1.4em;
-}
