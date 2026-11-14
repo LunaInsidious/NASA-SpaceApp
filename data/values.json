@@ -171,7 +171,7 @@
       "source": "TBD"
     },
     "tankDurationHours": {
-      "value": 72,
+      "value": 180,
       "unit": "h",
       "source": "TBD"
     },
