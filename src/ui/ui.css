@@ -410,3 +410,127 @@
   color: #ffd2c0;
   font-weight: 700;
 }
+
+/* ボンベの酸素（いのちのバー） */
+.ui-tank {
+  border: 2px solid #6fd3ff;
+}
+
+.ui-tank-head {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.ui-tank-pct {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.ui-tank-bar {
+  height: 16px;
+  margin: 4px 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.ui-tank .ui-tank-bar > div {
+  height: 100%;
+  border-radius: 8px;
+  background: #4fd27a;
+  transition: width 0.3s;
+}
+
+.ui-tank-warn .ui-tank-bar > div {
+  background: #f2c94c;
+}
+
+.ui-tank-danger {
+  border-color: #ff5a4f;
+  animation: ui-tank-alarm 0.7s ease-in-out infinite alternate;
+}
+
+.ui-tank-danger .ui-tank-bar > div {
+  background: #ff5a4f;
+}
+
+.ui-tank.indoors {
+  animation: none;
+  border-color: #6fd3ff;
+}
+
+@keyframes ui-tank-alarm {
+  from {
+    box-shadow: 0 0 0 0 rgba(255, 90, 79, 0.9);
+  }
+  to {
+    box-shadow: 0 0 14px 4px rgba(255, 90, 79, 0.9);
+  }
+}
+
+/* 生き延びられる日数がふえたとき */
+.ui-pop {
+  display: inline-block;
+  animation: ui-pop 0.8s ease-out;
+  color: #6dff9a;
+}
+
+@keyframes ui-pop {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.6);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.ui-gain {
+  position: fixed;
+  z-index: 6;
+  pointer-events: none;
+  font:
+    800 24px / 1 system-ui,
+    sans-serif;
+  color: #6dff9a;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.9);
+  animation: ui-gain-rise 1.6s ease-out forwards;
+}
+
+@keyframes ui-gain-rise {
+  0% {
+    transform: translate(40px, 0) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(40px, -10px) scale(1.25);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(40px, -70px) scale(1);
+    opacity: 0;
+  }
+}
+
+.ui-sparkle {
+  position: absolute;
+  left: 30%;
+  top: 30%;
+  font-size: 16px;
+  animation: ui-sparkle 1s ease-out forwards;
+}
+
+@keyframes ui-sparkle {
+  from {
+    transform: rotate(var(--angle)) translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: rotate(var(--angle)) translateX(60px);
+    opacity: 0;
+  }
+}

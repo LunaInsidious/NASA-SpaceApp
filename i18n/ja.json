@@ -44,7 +44,6 @@
   "hud.shielding": "遮蔽",
   "hud.dose": "あなたの被ばく {dose} / {limit} mSv",
   "hud.protection": "基地の守り {pct}%",
-  "hud.tank": "ボンベの酸素",
   "hud.day": "{day}日目",
   "hud.indoors": "屋内",
   "hud.outdoors": "屋外",
@@ -322,5 +321,12 @@
   "launch.noLinkChain.noPower": "注文を おくるには 地球と 話す ひつようが ある → アンテナに でんきが ない → 太陽電池を たてよう（「建設」）。",
   "launch.noLinkChain.earthDown": "注文を おくるには 地球と 話す ひつようが ある → いまは 地球が しずんでいる → のぼるまで まとう（中継衛星が あれば いつでも 話せる）。",
   "launch.noLinkChain.blocked": "注文を おくるには 地球と 話す ひつようが ある → アンテナから 地球が 見えない → 地球が 見える ばしょに アンテナを たてよう。",
-  "launch.noLinkChain.noAntenna": "注文を おくるには 地球と 話す ひつようが ある → アンテナが ない → 「建設」で アンテナを たてよう。"
+  "launch.noLinkChain.noAntenna": "注文を おくるには 地球と 話す ひつようが ある → アンテナが ない → 「建設」で アンテナを たてよう。",
+  "hud.tankHp": "ボンベの さんそ（いのち）",
+  "hud.tankIndoors": "中に いるので だいじょうぶ。",
+  "hud.tankOutdoors": "そとでは へっていく。なくなる まえに もどろう！",
+  "hud.lifeGain": "＋{days}日 ふえた！",
+  "tutorial.failed.title": "ざんねん！",
+  "tutorial.failed.retry": "くんれんを さいしょから やりなおす",
+  "tutorial.failed.body": "{reason} くんれんを さいしょから やりなおそう。"
 }

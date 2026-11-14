@@ -115,13 +115,15 @@ export interface Tutorial {
   isBlocking(): boolean;
   /** 飛ばせないチュートリアルの最中か（アクシデントのカードはボンベだけにする） */
   isTutorial(): boolean;
+  /** チュートリアル中にゲームオーバーになった。理由を見せ、新しいゲームで1段目からやり直す */
+  failTutorial(reason: string): void;
   /** 太陽フレアの訓練の警報を出す段に来たら、1回だけ true を返す */
   takeFlareDrillRequest(): boolean;
   /** 太陽フレアの警報で選んだこと */
   answerFlare(choice: 'shelter' | 'continue'): void;
 }
 
-type Mode = 'ask' | 'tutorial' | 'finishedModal' | 'missions' | 'confirmRestart';
+type Mode = 'ask' | 'tutorial' | 'finishedModal' | 'missions' | 'confirmRestart' | 'failed';
 
 function readFinished(): boolean {
   try {
@@ -193,12 +195,16 @@ export function createTutorial(
   }
 
   function showModal(titleKey: string, bodyKey: string, buttons: HTMLButtonElement[]): void {
+    showModalText(t(titleKey), t(bodyKey), buttons);
+  }
+
+  function showModalText(titleText: string, bodyText: string, buttons: HTMLButtonElement[]): void {
     const card = document.createElement('div');
     card.className = 'tutorial-modal';
     const title = document.createElement('h2');
-    title.textContent = t(titleKey);
+    title.textContent = titleText;
     const body = document.createElement('p');
-    body.textContent = t(bodyKey);
+    body.textContent = bodyText;
     const row = document.createElement('div');
     row.className = 'tutorial-modal-buttons';
     row.append(...buttons);
@@ -220,16 +226,23 @@ export function createTutorial(
     if (mode === 'ask') {
       panel.hidden = true;
       showModal('tutorial.welcome.title', 'tutorial.welcome.question', [
-        button(t('tutorial.welcome.firstTime'), 'tutorial-big primary', () => {
-          mode = 'tutorial';
-          render();
-        }),
+        // 初めてなら、セーブがあっても新しいゲームで始める（途中の状態だと、今はできない指示が出る）
+        button(t('tutorial.welcome.firstTime'), 'tutorial-big primary', () => resetTo('tutorial')),
         button(t('tutorial.welcome.played'), 'tutorial-big', () => {
           saveFinished();
           mode = 'missions';
           render();
         }),
       ]);
+      return;
+    }
+    if (mode === 'failed') {
+      panel.hidden = true;
+      showModalText(
+        t('tutorial.failed.title'),
+        t('tutorial.failed.body', { reason: failedReason }),
+        [button(t('tutorial.failed.retry'), 'tutorial-big primary', () => resetTo('tutorial'))],
+      );
       return;
     }
     if (mode === 'confirmRestart') {
@@ -279,10 +292,16 @@ export function createTutorial(
     render();
   }
 
+  let failedReason = '';
+
   /** 新しいゲームにして、「あそんだことがある？」から始める */
   function restart(): void {
+    resetTo('ask');
+  }
+
+  function resetTo(next: Mode): void {
     clearFinished();
-    mode = 'ask';
+    mode = next;
     index = 0;
     stepYaw = null;
     flareDrillRequested = false;
@@ -490,10 +509,18 @@ export function createTutorial(
       }
     },
     isBlocking() {
-      return mode === 'ask' || mode === 'finishedModal' || mode === 'confirmRestart';
+      return (
+        mode === 'ask' || mode === 'finishedModal' || mode === 'confirmRestart' || mode === 'failed'
+      );
     },
     isTutorial() {
       return mode === 'tutorial';
+    },
+    failTutorial(reason) {
+      // チュートリアルの途中のゲームオーバー：セーブからではなく、新しいゲームで1段目からやり直す
+      failedReason = reason;
+      mode = 'failed';
+      render();
     },
     takeFlareDrillRequest() {
       if (mode !== 'tutorial' || step() !== 'flareDrill' || flareChoice === 'shelter') {

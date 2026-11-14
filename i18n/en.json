@@ -44,7 +44,6 @@
   "hud.shielding": "Shielding",
   "hud.dose": "Your dose {dose} / {limit} mSv",
   "hud.protection": "Base protection {pct}%",
-  "hud.tank": "Suit oxygen",
   "hud.day": "Day {day}",
   "hud.indoors": "Indoors",
   "hud.outdoors": "Outdoors",
@@ -322,5 +321,12 @@
   "launch.noLinkChain.noPower": "To send an order you must talk to Earth → the antenna has no electricity → build Solar Panels (Build).",
   "launch.noLinkChain.earthDown": "To send an order you must talk to Earth → Earth is below the horizon now → wait until it rises (a Relay satellite lets you talk any time).",
   "launch.noLinkChain.blocked": "To send an order you must talk to Earth → the antenna cannot see Earth → build an Antenna where Earth is visible.",
-  "launch.noLinkChain.noAntenna": "To send an order you must talk to Earth → there is no antenna → build an Antenna (Build)."
+  "launch.noLinkChain.noAntenna": "To send an order you must talk to Earth → there is no antenna → build an Antenna (Build).",
+  "hud.tankHp": "Suit oxygen (your life!)",
+  "hud.tankIndoors": "Inside: you breathe the base air, so it is safe.",
+  "hud.tankOutdoors": "Outside: it goes down. Come back before it runs out!",
+  "hud.lifeGain": "+{days} days!",
+  "tutorial.failed.title": "Oh no!",
+  "tutorial.failed.retry": "Start the training again",
+  "tutorial.failed.body": "{reason} Let's start the training again from the beginning."
 }

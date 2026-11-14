@@ -511,7 +511,17 @@ function handleEvents(events: GameEvent[]): void {
       applyPlayerMode();
     }
   }
-  ui.showEvents(events, state);
+  const gameOver = events.find((e) => e.type === 'gameOver');
+  if (gameOver !== undefined && tutorial.isTutorial()) {
+    // チュートリアル中は、セーブから再開させず、最初からやり直す（途中からだと今はできない指示が出る）
+    tutorial.failTutorial(t('gameOver.reason', { resource: t(`resource.${gameOver.reason}`) }));
+    ui.showEvents(
+      events.filter((e) => e.type !== 'gameOver'),
+      state,
+    );
+  } else {
+    ui.showEvents(events, state);
+  }
   if (events.some((e) => e.type === 'cleared') && !downedThisRun) {
     earn('clearWithoutDowned');
   }

@@ -63,7 +63,11 @@ const LOW_DAYS = 7; // 生命維持の日数を赤くする
 const DOSE_WARN_RATIO = 0.5; // 被ばくが上限のこの割合を超えたら赤くする
 const KNOB_TRAVEL = 0.6; // パッドのつまみが動ける範囲（半径に対する割合）
 const ISO_DATE_LENGTH = 10;
-const POWER_EVEN_KW = 0.05; // これより差が小さければ「ちょうど」と出す（表示だけ） // "2024-05-14T..." の日付の部分
+const TANK_WARN_RATIO = 0.6; // ボンベのバーを黄色にする残り（表示だけ）
+const LIFE_GAIN_POP_DAYS = 0.5; // 生き延びられる日数がこれ以上ふえたら、お祝いの演出を出す（表示だけ）
+const POWER_EVEN_KW = 0.05;
+const SPARKLES = 8;
+const GAIN_MS = 1600; // これより差が小さければ「ちょうど」と出す（表示だけ） // "2024-05-14T..." の日付の部分
 
 type MenuKind = (typeof MENUS)[number];
 type Dialog =
@@ -288,6 +292,31 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   };
 
   // ---- 左上：資源と発展度 ----
+  let lastLifeMin: number | null = null;
+  /** 生き延びられる日数がふえた瞬間に、数字を弾ませ「＋N日」を飛ばして、きらきらを散らす */
+  const celebrateLifeGain = (gainDays: number) => {
+    const value = hudEl.querySelector<HTMLElement>('.ui-life-value');
+    if (value === null) {
+      return;
+    }
+    value.classList.add('ui-pop');
+    const rect = value.getBoundingClientRect();
+    const pop = document.createElement('div');
+    pop.className = 'ui-gain';
+    pop.style.left = `${rect.left}px`;
+    pop.style.top = `${rect.top}px`;
+    pop.textContent = t('hud.lifeGain', { days: fmt(gainDays, 1) });
+    for (let i = 0; i < SPARKLES; i++) {
+      const sparkle = document.createElement('span');
+      sparkle.className = 'ui-sparkle';
+      sparkle.textContent = '✨';
+      sparkle.style.setProperty('--angle', `${(i / SPARKLES) * 360}deg`);
+      pop.append(sparkle);
+    }
+    root.append(pop);
+    window.setTimeout(() => pop.remove(), GAIN_MS);
+  };
+
   const renderHud = () => {
     if (state === null || view === null) {
       hudEl.innerHTML = '';
@@ -314,11 +343,23 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const doseWarn = shielding.playerDoseMsv > shielding.doseLimitMsv * DOSE_WARN_RATIO;
     const development = state.development;
     const elementMax = values.development.elementMax.value;
+    const tankPct = Math.round(Math.min(1, Math.max(0, view.tankRatio)) * PERCENT);
+    const tankLevel =
+      view.tankRatio < values.advice.tankLowRatio.value
+        ? 'danger'
+        : view.tankRatio < TANK_WARN_RATIO
+          ? 'warn'
+          : 'ok';
     hudEl.innerHTML = `
+      <div class="ui-panel ui-tank ui-tank-${tankLevel} ${state.player.indoors ? 'indoors' : ''}">
+        <div class="ui-tank-head"><span>🫧 ${t('hud.tankHp')}</span><span class="ui-tank-pct">${tankPct}%</span></div>
+        <div class="ui-tank-bar"><div style="width:${tankPct}%"></div></div>
+        <div class="ui-small">${t(state.player.indoors ? 'hud.tankIndoors' : 'hud.tankOutdoors')}</div>
+      </div>
       <div class="ui-panel">
         <div class="ui-stat" data-action="toggleBreakdown">
           <span class="ui-label">${t('hud.lifeSupport')}</span>
-          <span class="ui-value ${life.min < LOW_DAYS ? 'ui-bad' : ''}">${daysText(life.min)}</span>
+          <span class="ui-value ui-life-value ${life.min < LOW_DAYS ? 'ui-bad' : ''}">${daysText(life.min)}</span>
           ${breakdown}
         </div>
         <div class="ui-stat ui-power">
@@ -335,10 +376,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           })}</div>
           <div>${t('hud.protection', { pct: fmt(shielding.indoorProtection * PERCENT) })}</div>
         </div>
-        <div class="ui-stat">
-          <span class="ui-label">${t('hud.tank')}</span>
-          ${bar(view.tankRatio, 'o2')}
-        </div>
       </div>
       <div class="ui-panel">
         <div class="ui-stat">
@@ -350,6 +387,15 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
             `<div class="ui-small">${t(`development.${key}`)} <span class="ui-stars">${stars(development[key], elementMax)}</span></div>`,
         ).join('')}
       </div>`;
+    const maxDays = values.display.maxLifeSupportDays.value;
+    if (
+      lastLifeMin !== null &&
+      life.min < maxDays &&
+      life.min - lastLifeMin >= LIFE_GAIN_POP_DAYS
+    ) {
+      celebrateLifeGain(life.min - lastLifeMin);
+    }
+    lastLifeMin = life.min;
   };
 
   // ---- 右下：メニューとその場の行動 ----
