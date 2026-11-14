@@ -67,7 +67,7 @@ function lifeSupportDays(state: SimState, evaluation: Evaluation, values: Values
   const p = evaluation.perDay;
   const days = (stock: number, drainPerDay: number) =>
     drainPerDay > EPSILON ? Math.min(maxDays, Math.max(0, stock / drainPerDay)) : maxDays;
-  const oxygen = days(state.stocks.oxygen, p.crewOxygen - p.lifeSupportOxygen);
+  const oxygen = days(state.stocks.oxygen, p.crewOxygen + p.tankOxygen - p.lifeSupportOxygen);
   const water = days(
     state.stocks.water,
     p.crewWater + p.lifeSupportWater + p.greenhouseWater - p.drillWater,

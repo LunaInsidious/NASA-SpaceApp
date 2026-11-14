@@ -84,7 +84,12 @@ describe('sim', () => {
   it('酸素が尽きるとゲームオーバーになる', () => {
     const env = fakeEnv();
     const initial = createInitialState(values, env, [0, 0]);
-    const low: SimState = { ...initial, stocks: { ...initial.stocks, oxygen: 0.5 } };
+    // 屋内にいる（基地の酸素で吸う）。屋外ではボンベで吸うので基地の酸素は減らない
+    const low: SimState = {
+      ...initial,
+      stocks: { ...initial.stocks, oxygen: 0.5 },
+      player: { ...initial.player, indoors: true },
+    };
     const { state, emitted } = run(low, env, 48);
     expect(state.phase).toBe('gameOver');
     expect(emitted).toContainEqual({ type: 'gameOver', reason: 'oxygen' });

@@ -3,6 +3,8 @@ import type { Env, Facility, FacilityKind, SimState, Values } from '../contracts
 
 export type StopReason = 'shadow' | 'condition' | 'noPower' | 'noEarth' | null;
 
+const HOURS_PER_DAY = 24;
+
 export interface FacilityRun {
   working: boolean;
   reason: StopReason;
@@ -19,6 +21,7 @@ export interface Evaluation {
   /** 1日あたりの量（今動いている施設から） */
   perDay: {
     crewOxygen: number;
+    tankOxygen: number; // 屋外のボンベを、屋内に戻ったときに満たす分
     crewWater: number;
     crewFood: number;
     lifeSupportOxygen: number;
@@ -133,7 +136,13 @@ export function evaluate(state: SimState, values: Values, env: Env, dtHours: num
   }
 
   const crew = crewCount(state);
-  const crewOxygen = crew * values.crew.oxygenKgPerDay.value;
+  // 屋外の宇宙飛行士はボンベで吸う。ボンベを満たす分は、屋内に戻ったときに基地の在庫から引く
+  const playerOutdoors = !state.player.indoors;
+  const crewOxygen = (crew - (playerOutdoors ? 1 : 0)) * values.crew.oxygenKgPerDay.value;
+  const tankOxygen = playerOutdoors
+    ? (HOURS_PER_DAY / values.player.tankDurationHours.value) *
+      values.player.tankRefillOxygenKg.value
+    : 0;
   // 生命維持装置が動いていれば、隊員の使った水の一部を再生して使う
   const recycling = state.facilities.some(
     (f) => f.kind === 'lifeSupport' && status[f.id]?.working === true,
@@ -162,8 +171,8 @@ export function evaluate(state: SimState, values: Values, env: Env, dtHours: num
       greenhouseWater += fv.greenhouse.waterKgPerDay.value * share;
     }
   }
-  // 生命維持装置は隊員が吸う分だけ酸素を作る（水を無駄にしない）
-  const lifeSupportOxygen = Math.min(lifeSupportCapacity, crewOxygen);
+  // 生命維持装置は、隊員が吸う分とボンベを満たす分だけ酸素を作る（水を無駄にしない）
+  const lifeSupportOxygen = Math.min(lifeSupportCapacity, crewOxygen + tankOxygen);
   const lifeSupportWater = lifeSupportOxygen * fv.lifeSupport.waterPerOxygen.value;
 
   const baseProtection = hasHabitat ? fv.habitat.indoorProtection.value : 0;
@@ -183,6 +192,7 @@ export function evaluate(state: SimState, values: Values, env: Env, dtHours: num
     indoorProtection,
     perDay: {
       crewOxygen,
+      tankOxygen,
       crewWater,
       crewFood,
       lifeSupportOxygen,
