@@ -9,6 +9,7 @@ import type {
   SimState,
   Values,
 } from '../contracts/index.ts';
+import { computeDevelopment } from './development.ts';
 import {
   createInitialState,
   describe as describeState,
@@ -80,8 +81,8 @@ function run(
 describe('sim', () => {
   it('着陸直後の発展度は仕様の参考値（約24）に近い', () => {
     const state = createInitialState(values, fakeEnv(), [0, 0]);
-    // 最初から居住モジュールとアンテナがある分、安定が上がり約29になる（仕様の参考値は施設なしの計算）
-    expect(state.development.total).toBeGreaterThan(20);
+    // 最初から居住モジュールとアンテナがある分、安定は上がる。安全は基地の守り 50% と通信なしで 25 になり、合計は約20
+    expect(state.development.total).toBeGreaterThan(15);
     expect(state.development.total).toBeLessThan(30);
     expect(state.development.selfSufficiency).toBe(values.development.elementMin.value);
   });
@@ -260,5 +261,35 @@ describe('sim', () => {
     expect(halfTank.stocks.oxygen - result.state.stocks.oxygen).toBeCloseTo(
       breathedFromTank + crewBreathing,
     );
+  });
+
+  it('安全は、基地の守りと、直近の日々に地球と通信できていた時間の割合で上がる', () => {
+    const env = fakeEnv();
+    const initial = createInitialState(values, env, [0, 0]);
+    const day = (commHours: number) => ({
+      day: 0,
+      produced: { oxygen: 0, water: 0, food: 0, power: 0 },
+      consumed: { oxygen: 0, water: 0, food: 0, power: 0 },
+      minBatteryRatio: 1,
+      research: 0,
+      downedCount: 0,
+      commHours,
+    });
+    const input = {
+      currentBatteryRatio: 1,
+      lifeSupportDays: 10,
+      averageCondition: 1,
+      commLinkedNow: false,
+    };
+    const safety = (indoorProtection: number, commHours: number) =>
+      computeDevelopment(
+        initial,
+        { ...input, indoorProtection, completed: [day(commHours), day(commHours)] },
+        values,
+      ).safety;
+    // 守り 50%・通信なし → 25、守り 50%・半日通信 → 50、守り 90%・ずっと通信 → 95
+    expect(safety(0.5, 0)).toBeCloseTo(25);
+    expect(safety(0.5, 12)).toBeCloseTo(50);
+    expect(safety(0.9, 24)).toBeCloseTo(95);
   });
 });

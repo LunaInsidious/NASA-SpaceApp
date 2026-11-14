@@ -109,14 +109,9 @@
       "unit": "day",
       "source": "docs/SPEC.md 発展度"
     },
-    "safetyDownedWindowDays": {
+    "safetyCommWindowDays": {
       "value": 7,
       "unit": "day",
-      "source": "docs/SPEC.md 発展度"
-    },
-    "safetyDownedFactor": {
-      "value": 0.9,
-      "unit": "x",
       "source": "docs/SPEC.md 発展度"
     },
     "scalePerCrew": {

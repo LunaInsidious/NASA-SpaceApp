@@ -37,6 +37,7 @@ function emptyRecord(day: number): DailyRecord {
     minBatteryRatio: 1,
     research: 0,
     downedCount: 0,
+    commHours: 0,
   };
 }
 
@@ -89,6 +90,8 @@ function developmentOf(
       currentBatteryRatio: batteryRatio(state, evaluation),
       lifeSupportDays: lifeSupportDays(state, evaluation, values).min,
       averageCondition: averageCondition(state),
+      indoorProtection: evaluation.indoorProtection,
+      commLinkedNow: state.commLinked,
     },
     values,
   );
@@ -522,7 +525,7 @@ function longestWindowDays(values: Values): number {
   return Math.max(
     dv.selfSufficiencyWindowDays.value,
     dv.stabilityBatteryWindowDays.value,
-    dv.safetyDownedWindowDays.value,
+    dv.safetyCommWindowDays.value,
     dv.scaleResearchWindowDays.value,
   );
 }
@@ -607,6 +610,9 @@ export const step: Step = (prev, dtHours, env, commands, values, events, rng) =>
     emitted.push({ type: comm.linked ? 'commRestored' : 'commLost' });
   }
   state.commLinked = comm.linked;
+  if (state.commLinked) {
+    record.commHours += dtHours;
+  }
 
   // 研究。通じていれば送れて発展度に入る
   const researchers = state.crew.filter((c) => c.task === 'research').length;

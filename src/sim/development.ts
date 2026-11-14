@@ -2,6 +2,7 @@
 import type { DailyRecord, ResourceKey, SimState, Values } from '../contracts/index.ts';
 
 const RESOURCES: ResourceKey[] = ['oxygen', 'water', 'food', 'power'];
+const HOURS_PER_DAY = 24;
 
 export interface DevelopmentInput {
   /** 終わった日の記録（今日の途中の分は入れない） */
@@ -9,6 +10,10 @@ export interface DevelopmentInput {
   currentBatteryRatio: number;
   lifeSupportDays: number;
   averageCondition: number;
+  /** 屋内で放射線をさえぎる割合 0〜1（基地の守り） */
+  indoorProtection: number;
+  /** いま地球と通信できているか（終わった日の記録がまだないときに使う） */
+  commLinkedNow: boolean;
 }
 
 function lastDays(records: DailyRecord[], days: number): DailyRecord[] {
@@ -49,16 +54,15 @@ export function computeDevelopment(
   const parts = [batteryRatio, supplyRatio, input.averageCondition];
   const stability = clamp((parts.reduce((a, b) => a + b, 0) / parts.length) * max);
 
-  // 安全：被ばくの上限までの余裕の平均 × 倒れた回数の罰
-  const limit = values.crew.doseLimitMsv.value;
-  const margin =
-    state.crew.reduce((sum, c) => sum + Math.max(0, 1 - c.doseMsv / limit), 0) /
-    Math.max(1, state.crew.length);
-  const downed = lastDays(input.completed, dv.safetyDownedWindowDays.value).reduce(
-    (sum, r) => sum + r.downedCount,
-    0,
-  );
-  const safety = clamp(margin * max * dv.safetyDownedFactor.value ** downed);
+  // 安全：基地の守り（屋内で放射線をさえぎる割合）と、警報が届くか（直近の日々に地球と通信できていた時間の割合）の平均
+  const commWindow = lastDays(input.completed, dv.safetyCommWindowDays.value);
+  const commRatio =
+    commWindow.length > 0
+      ? commWindow.reduce((sum, r) => sum + r.commHours, 0) / (commWindow.length * HOURS_PER_DAY)
+      : input.commLinkedNow
+        ? 1
+        : 0;
+  const safety = clamp(((input.indoorProtection + Math.min(1, commRatio)) / 2) * max);
 
   // 規模：隊員の人数と、直近の1日あたりの研究量（上限なし）
   const researchWindow = lastDays(input.completed, dv.scaleResearchWindowDays.value);

@@ -120,6 +120,7 @@ export interface DailyRecord {
   minBatteryRatio: number;
   research: number;
   downedCount: number;
+  commHours: number; // その日に地球と通信できていた時間（発展度の「安全」：警報が届くか）
 }
 
 export type SimCommand =
