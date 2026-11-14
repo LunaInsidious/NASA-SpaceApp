@@ -117,3 +117,11 @@
     right: 50px;
   }
 }
+
+/* 窓を開いている間は、お祝いの文字と紙ふぶきを出さない（窓の文字に重なって読めなくなるため。音は鳴らす） */
+body:has(.ui-modal-layer:not([hidden])) .fx-banner,
+body:has(.ui-modal-layer:not([hidden])) .fx-confetti,
+body:has(.help-layer:not([hidden])) .fx-banner,
+body:has(.help-layer:not([hidden])) .fx-confetti {
+  display: none;
+}
