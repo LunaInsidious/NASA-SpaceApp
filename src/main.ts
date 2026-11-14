@@ -139,6 +139,8 @@ let dayLog: DayLogEntry[] = [];
 // 休むときに見せた、休む理由（振り返りに「核になる知識の一言」として残す）
 let restReason: (typeof REST_REASONS)[number] | null = null;
 let lastRestKey = '';
+// さっき起きた宇宙天気（同じ記録が続かないように）
+let lastEventId: string | null = null;
 // くんれんの新しい段（インベントリ画面を開いた）
 let inventoryOpened = false;
 // 休息の画面で選んだ、次に外に出たときのタスク（選んだ順）と、今日外でこなすタスク
@@ -187,12 +189,21 @@ let commReason: CommLostReason | null = null;
 let manualSaveCount = 0;
 let lastBlocking: boolean | null = null;
 let currentAdvices: Advice[] = [];
-// 足音とジャンプの音のための、前のフレームの様子
-let wasAirborne = false;
+// 足音のための、前のフレームの位置
 let lastFoot = { x: state.player.x, z: state.player.z };
 let walkedSinceStep = 0;
 
 world.teleportPlayer(state.player.x, state.player.z);
+world.setFacilityIcons({
+  habitat: tPlain('facilityIcon.habitat'),
+  solar: tPlain('facilityIcon.solar'),
+  battery: tPlain('facilityIcon.battery'),
+  antenna: tPlain('facilityIcon.antenna'),
+  greenhouse: tPlain('facilityIcon.greenhouse'),
+  lifeSupport: tPlain('facilityIcon.lifeSupport'),
+  iceDrill: tPlain('facilityIcon.iceDrill'),
+  shield: tPlain('facilityIcon.shield'),
+});
 
 const ui = createUi(
   uiRoot,
@@ -668,20 +679,38 @@ function updateRest(): void {
   }
 }
 
+/** 影に入って止まっている太陽電池（朝の窓で、寝ている間に影に入ったものを知らせる） */
+function shadedSolarIds(): Set<string> {
+  const view = describe(state, values, env);
+  return new Set(
+    state.facilities
+      .filter((f) => f.kind === 'solar' && view.facilityStatus[f.id]?.reason === 'shadow')
+      .map((f) => f.id),
+  );
+}
+
+/**
+ * 起こしてよい宇宙天気。くんれん中は本物を起こさない（太陽フレアは訓練の警報で教える）。
+ * 記録が少ないので、さっき起きたものはすぐには続けない
+ */
+function eventsToRun(): DonkiTimeline {
+  if (tutorial.isTutorial()) {
+    return [];
+  }
+  const others = timeline.filter((e) => e.donkiId !== lastEventId);
+  return others.length > 0 ? others : timeline;
+}
+
 /** 「翌日へ」：次の日の始まりまで、中で一気に進める。寝ている間に起きたことは朝の窓で見せる */
 function sleepUntilMorning(): void {
   // 建てる・注文するなどの操作を先に反映する
   tick(0);
   const before = state;
+  const shadedBefore = shadedSolarIds();
   // くんれん中は、本物の宇宙天気は起こさない（太陽フレアは訓練の警報で教える）
-  const result = restUntilNextDay(
-    state,
-    env,
-    values,
-    tutorial.isTutorial() ? [] : timeline,
-    Math.random,
-  );
+  const result = restUntilNextDay(state, env, values, eventsToRun(), Math.random);
   state = result.state;
+  const shadedAfter = shadedSolarIds();
   restDays++;
   wentOutToday = false;
   dayLog = [];
@@ -705,6 +734,10 @@ function sleepUntilMorning(): void {
       })).filter((change) => Math.abs(change.delta) >= MORNING_MIN_DELTA),
       arrived: result.emitted.filter((e) => e.type === 'launchArrived').length,
       spaceWeather: result.emitted.flatMap((e) => (e.type === 'eventStarted' ? [e.event] : [])),
+      newlyShaded: [...shadedAfter].filter((id) => !shadedBefore.has(id)).length,
+      newlyLit: [...shadedBefore].filter(
+        (id) => !shadedAfter.has(id) && state.facilities.some((f) => f.id === id),
+      ).length,
     };
     ui.showMorning(summary);
     if (summary.arrived > 0) {
@@ -877,17 +910,12 @@ function guideTarget(): { x: number; z: number } | null {
   return nearestToPlayer(habitats);
 }
 
-/** 跳んだ・着地した・歩いた音 */
+/** 歩いた音 */
 function updateFootSounds(): void {
   const p = world.getPlayer();
-  const airborne = p.y > env.heightAt(p.x, p.z) + values.tutorial.airborneMeters.value;
-  if (airborne !== wasAirborne) {
-    fx.sound(airborne ? 'jump' : 'land');
-    wasAirborne = airborne;
-  }
   const moved = Math.hypot(p.x - lastFoot.x, p.z - lastFoot.z);
   lastFoot = { x: p.x, z: p.z };
-  if (airborne || indoors) {
+  if (indoors) {
     walkedSinceStep = 0;
     return;
   }
@@ -908,7 +936,6 @@ function updateTutorial(): void {
     playerZ: p.z,
     commReason,
     viewYawRad: world.getViewYawRad(),
-    airborne: p.y > env.heightAt(p.x, p.z) + values.tutorial.airborneMeters.value,
     placing: buildMode === null ? null : buildMode.kind,
     restDays,
     indoors,
@@ -997,6 +1024,9 @@ function handleEvents(events: GameEvent[]): void {
   const death = deathAdviceFor(events);
   for (const event of events) {
     // 退避が必要な警報は SEP と X 級のフレアだけ。ほかは HUD の「宇宙天気の嵐」だけで知らせる（docs/SPEC.md）
+    if (event.type === 'eventStarted') {
+      lastEventId = event.event.donkiId;
+    }
     if (event.type === 'eventStarted' && needsShelterAlert(event.event)) {
       const donki = event.event.source === 'archived' ? findDonki(event.event.donkiId) : null;
       ui.showFlareAlert(event.event, donki);
@@ -1057,7 +1087,7 @@ function tick(dtHours: number): void {
   ];
   const launchesBefore = state.launches.length;
   // くんれん中は、本物の宇宙天気は起こさない（太陽フレアは訓練の警報で教える）
-  const events = tutorial.isTutorial() ? [] : timeline;
+  const events = eventsToRun();
   const result = step(state, dtHours, env, commands, values, events, Math.random);
   state = result.state;
   // 宇宙飛行士が倒れたら（ボンベの酸素切れ、大量の被ばく）ゲームオーバー（docs/SPEC.md）。

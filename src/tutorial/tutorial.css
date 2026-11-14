@@ -176,7 +176,6 @@
 }
 
 body[data-tutorial-step="move"] .ui-pad,
-body[data-tutorial-step="jump"] [data-action="jump"],
 body[data-tutorial-step="buildSolar"] [data-action="menu"][data-menu="build"],
 body[data-tutorial-step="buildSolar"] [data-action="buildSelect"][data-kind="solar"],
 body[data-tutorial-step="placeSolar"] [data-action="buildConfirm"],

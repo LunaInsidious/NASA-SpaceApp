@@ -14,7 +14,6 @@ import './tutorial.css';
 export const STEPS = [
   'move',
   'look',
-  'jump',
   'buildSolar',
   'placeSolar',
   'power',
@@ -62,7 +61,6 @@ const STEP_TERMS: Partial<Record<Step, readonly HelpTerm[]>> = {
 // その段で押すボタン。前から順に、画面に見えている最初のものを矢印で指す（メニューの中のボタンを先に書く）
 const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
   move: ['.ui-pad'],
-  jump: ['[data-action="jump"]'],
   buildSolar: [
     '[data-action="buildSelect"][data-kind="solar"]',
     '[data-action="menu"][data-menu="build"]',
@@ -170,7 +168,7 @@ function pointTarget(step: Step): HTMLElement | null {
 const TIME_STEPS: readonly Step[] = ['toIce', 'takeIce', 'goHome', 'pause', 'resume'];
 
 // 外でやる段。中にいるときは「外に出る」を指して、ひとこと出す
-const OUTDOOR_STEPS: readonly Step[] = ['move', 'look', 'jump', 'toIce', 'takeIce', 'regolith'];
+const OUTDOOR_STEPS: readonly Step[] = ['move', 'look', 'toIce', 'takeIce', 'regolith'];
 // 中（休息の画面）でやる段。外にいたら、居住モジュールへ光の柱で案内し、「中に入る」を指す
 const INDOOR_STEPS: readonly Step[] = [
   'order',
@@ -257,8 +255,6 @@ export interface TutorialProgress {
   commReason: CommLostReason | null;
   /** カメラが見ている水平の向き */
   viewYawRad: number;
-  /** 宇宙飛行士が地面から離れているか（ジャンプ中） */
-  airborne: boolean;
   /** 建設メニューで選んで、置く場所を選んでいる施設 */
   placing: FacilityKind | null;
   /** 「翌日へ」を押した回数 */
@@ -338,8 +334,6 @@ export function createTutorial(
   let stepOrigin: { x: number; z: number } | null = null;
   // 段を出したときの「翌日へ」の回数
   let stepRest: number | null = null;
-  // 「ジャンプ」の段で、一度でも跳んだか（文を読み終える前に跳んでも数える）
-  let jumped = false;
   // 前に指したもの（変わったら、見える位置までスクロールする）
   let lastPointed: HTMLElement | null = null;
   // いまの段を出した時刻（読み終わる前に次の段へ進まないように使う）
@@ -661,7 +655,6 @@ export function createTutorial(
     stepYaw = null;
     stepOrigin = null;
     stepRest = null;
-    jumped = false;
     stepShownAt = performance.now();
     flareDrillRequested = false;
     flareChoice = null;
@@ -767,7 +760,6 @@ export function createTutorial(
     stepYaw = null;
     stepOrigin = null;
     stepRest = null;
-    jumped = false;
     stepShownAt = performance.now();
     panel.classList.remove('tutorial-cleared');
     // 再描画のあとにつけ直して、アニメーションをもう一度動かす
@@ -800,8 +792,6 @@ export function createTutorial(
         );
         return turned >= values.tutorial.lookTurnRad.value;
       }
-      case 'jump':
-        return jumped;
       case 'buildSolar':
         return p.placing === 'solar' || has('solar');
       case 'placeSolar':
@@ -894,9 +884,6 @@ export function createTutorial(
       // 段を出したときの場所と向き（読み終わる前に歩いたり見回したりしても数える）
       stepOrigin ??= { x: progress.playerX, z: progress.playerZ };
       stepRest ??= progress.restDays;
-      if (step() === 'jump' && progress.airborne) {
-        jumped = true;
-      }
       stepYaw ??= progress.viewYawRad;
       // 1回に1段だけ。文を出し終えて、少し時間がたってから進む（すでにできていた段も、読む前に飛ばさない）
       const readEnough =

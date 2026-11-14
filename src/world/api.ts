@@ -6,7 +6,6 @@ import type { Placement } from '../sim/api.ts';
 export interface PadInput {
   x: number;
   y: number;
-  jump: boolean;
 }
 
 export interface PlayerPose {
@@ -18,13 +17,15 @@ export interface PlayerPose {
 
 export interface World {
   /**
-   * 毎フレーム呼ぶ。dtSec は実際の経過秒。キーボード（WASD・矢印・Space）は world が自分で読む
+   * 毎フレーム呼ぶ。dtSec は実際の経過秒。キーボード（WASD・矢印）は world が自分で読む
    */
   frame(dtSec: number): void;
   setPadInput(input: PadInput): void;
   /** false の間は宇宙飛行士が動かない（メニュー、屋内、一時停止） */
   setMovementEnabled(enabled: boolean): void;
   setSunAzimuth(sunAzimuthRad: number): void;
+  /** 施設の上に出すアイコン（文言と同じく i18n から main が渡す）。syncFacilities の前に1回呼ぶ */
+  setFacilityIcons(icons: Record<FacilityKind, string>): void;
   /** 施設の見た目をそろえる。working は SimView.facilityStatus から */
   syncFacilities(facilities: Facility[], working: Record<string, boolean>): void;
   /** 建てる前のプレビュー。null で消す */

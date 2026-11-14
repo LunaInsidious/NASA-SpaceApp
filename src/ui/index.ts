@@ -13,6 +13,7 @@ import type {
 import type { SaveSummary } from '../save/api.ts';
 import type { BuildOptions, Placement, SimView } from '../sim/api.ts';
 import { buildCost, commLostReason, launchItemCost, outdoorDoseMsvPerHour } from '../sim/index.ts';
+import { powerKw } from '../sim/model.ts';
 import type { DeathAdvice } from '../tutorial/death.ts';
 import { professorDeathAdviceHtml } from '../tutorial/deathView.ts';
 import { PROFESSOR_SVG } from '../tutorial/professor.ts';
@@ -305,8 +306,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   let contextActions: ContextAction[] = [];
   let buildMode: { kind: FacilityKind; placement: Placement } | null = null;
   const pad = { x: 0, y: 0 };
-  let jumpHeld = false;
-  let jumpLatched = false;
   let padPointer: number | null = null;
 
   const pauseEl = part('pauseOverlay');
@@ -434,6 +433,21 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     return { hours: Math.floor(minutes / MINUTES_PER_HOUR), minutes: minutes % MINUTES_PER_HOUR };
   };
 
+  /**
+   * 電気が足りずに止まっている機械。止まった機械は電気を使わないので、上の差し引きは「たまる」に見えることがある。
+   * そのずれで迷わないよう、止まっている数と、動かすのに要る電気を並べる
+   */
+  const stoppedForPowerHtml = (current: SimState, currentView: SimView) => {
+    const stopped = current.facilities.filter(
+      (f) => currentView.facilityStatus[f.id]?.reason === 'noPower',
+    );
+    if (stopped.length === 0) {
+      return '';
+    }
+    const needKw = stopped.reduce((sum, f) => sum + powerKw(f.kind, values), 0);
+    return `<div class="ui-bad">${t('hud.powerStopped', { count: stopped.length, kw: fmt(needKw, 1) })}</div>`;
+  };
+
   /** くわしい数字（生命維持・電力・被ばく・発展度）。3D の画面ではくんれんの段だけで見せ、ふだんはインベントリ画面に出す */
   const detailPanelsHtml = (current: SimState, currentView: SimView): string => {
     const life = currentView.lifeSupportDays;
@@ -474,6 +488,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           <span class="ui-label">${t('hud.power')}</span>
           <div><span class="ui-ok">${t('hud.powerGen', { kw: fmt(power.generationKw, 1) })}</span>　<span class="ui-bad">${t('hud.powerUse', { kw: fmt(power.consumptionKw, 1) })}</span></div>
           ${powerNet(power.generationKw - power.consumptionKw)}
+          ${stoppedForPowerHtml(current, currentView)}
           ${battery}
         </div>
         <div class="ui-stat">
@@ -556,7 +571,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
             `<button class="ui-menu-button" data-action="menu" data-menu="${menuKind}"><span class="ui-menu-icon">${t(`button.icon.${menuKind}`)}</span><span>${t(isTouch ? `button.short.${menuKind}` : `button.${menuKind}`)}</span></button>`,
         ).join('')}
       </div>
-      ${isTouch ? `<button class="ui-jump" data-action="jump">${t('button.jump')}</button>` : ''}`;
+`;
   };
 
   // ---- 下中央：置く場所を選んでいる間 ----
@@ -830,6 +845,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <p>${t('morning.lead')}</p>
       ${rows === '' ? '' : `<ul class="ui-list">${rows}</ul>`}
       ${summary.arrived > 0 ? `<p class="ui-ok">${t('morning.arrived')}</p>` : ''}
+      ${summary.newlyShaded > 0 ? `<p class="ui-warn">${t('morning.shaded', { count: summary.newlyShaded })}</p>` : ''}
+      ${summary.newlyLit > 0 ? `<p class="ui-ok">${t('morning.lit', { count: summary.newlyLit })}</p>` : ''}
       ${weather}
       <div class="ui-actions"><button data-action="dialogOk" class="primary">${t('morning.ok')}</button></div>`;
   };
@@ -1414,13 +1431,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     if (target?.dataset.action === 'toggleBreakdown') {
       showBreakdown = !showBreakdown;
       renderHud();
-    } else if (target?.dataset.action === 'jump') {
-      jumpHeld = true;
-      jumpLatched = true;
     }
-  });
-  window.addEventListener('pointerup', () => {
-    jumpHeld = false;
   });
 
   const movePad = (e: PointerEvent) => {
@@ -1553,8 +1564,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       pushDialog({ type: 'flare', event, donki });
     },
     getPadInput(): PadInput {
-      const input = { x: pad.x, y: pad.y, jump: jumpHeld || jumpLatched };
-      jumpLatched = false;
+      const input = { x: pad.x, y: pad.y };
       return input;
     },
     setBuildMode(mode) {

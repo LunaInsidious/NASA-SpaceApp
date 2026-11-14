@@ -230,11 +230,6 @@
       "unit": "m/s",
       "source": "TBD"
     },
-    "jumpSpeedMps": {
-      "value": 2.5,
-      "unit": "m/s",
-      "source": "TBD"
-    },
     "buildDistanceMeters": {
       "value": 6,
       "unit": "m",
@@ -863,11 +858,6 @@
     "lookTurnRad": {
       "value": 0.6,
       "unit": "rad",
-      "source": "TBD"
-    },
-    "airborneMeters": {
-      "value": 0.4,
-      "unit": "m",
       "source": "TBD"
     },
     "minStepSeconds": {

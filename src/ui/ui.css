@@ -187,12 +187,6 @@
   padding: 10px 14px;
 }
 
-.ui-root button.ui-jump {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-}
-
 /* 下中央：置く場所を選んでいる間 */
 .ui-buildbar {
   position: absolute;
@@ -666,11 +660,6 @@
   .ui-menu-icon {
     margin: 0;
     font-size: 18px;
-  }
-
-  .ui-root button.ui-jump {
-    width: 64px;
-    height: 64px;
   }
 
   /* その場の行動（「中に入る」など）は、仮想パッドのすぐ上に横長で出す */
@@ -1359,9 +1348,5 @@ body[data-tutorial-step="comm"] .ui-top .ui-status {
   .ui-root button[data-action="taskToggle"] {
     min-width: 44px;
     min-height: 40px;
-  }
-
-  .ui-root button.ui-jump {
-    white-space: nowrap;
   }
 }

@@ -16,6 +16,8 @@ import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder';
 import { CreateCapsule } from '@babylonjs/core/Meshes/Builders/capsuleBuilder';
 import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder';
+import { CreateDisc } from '@babylonjs/core/Meshes/Builders/discBuilder';
+import { CreatePlane } from '@babylonjs/core/Meshes/Builders/planeBuilder';
 import { CreateSphere } from '@babylonjs/core/Meshes/Builders/sphereBuilder';
 import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
@@ -53,10 +55,20 @@ import {
   HOP_SPEED_MPS,
   ICE_BRIGHTNESS,
   ICE_COLOR,
+  ICON_BG,
+  ICON_BORDER,
+  ICON_GAP_M,
+  ICON_SIZE_M,
+  ICON_TEXTURE_PX,
   PICK_MAX_DISTANCE_M,
   PICK_REFINE_STEPS,
   PICK_STEP_M,
+  PLAYER_BLOB_ALPHA,
+  PLAYER_BLOB_RADIUS_M,
   PLAYER_BOUNDS_MARGIN_M,
+  PLAYER_SHADOW_ALPHA,
+  PLAYER_SHADOW_LENGTH_M,
+  PLAYER_SHADOW_WIDTH_M,
   POP_OVERSHOOT,
   POP_SECONDS,
   PREVIEW_ALPHA,
@@ -67,6 +79,7 @@ import {
   SHADE_LIT_SLOPE_GAIN,
   SHADE_SHADOW,
   SHADOW_CHECK_INTERVAL_SEC,
+  SHADOW_LIFT_M,
   SKY_DIAMETER_M,
   STAR_COUNT,
   STAR_TEXTURE_SIZE,
@@ -309,7 +322,6 @@ function createAstronaut(scene: Scene): { root: TransformNode; meshes: Mesh[] } 
 export function createWorld(scene: Scene, env: TerrainEnv, values: Values): World {
   const gravity = values.moon.gravity.value;
   const walkSpeed = values.player.walkSpeedMps.value;
-  const jumpSpeed = values.player.jumpSpeedMps.value;
   const buildDistance = values.player.buildDistanceMeters.value;
   const limit = env.sizeMeters / 2 - PLAYER_BOUNDS_MARGIN_M;
   const clampToMap = (v: number) => Math.min(limit, Math.max(-limit, v));
@@ -373,13 +385,9 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
   const player = { x: startX, y: env.heightAt(startX, startZ), z: startZ, vy: 0, heading: 0 };
   let grounded = true;
   let movementEnabled = true;
-  let jumpRequested = false;
-  let pad: PadInput = { x: 0, y: 0, jump: false };
+  let pad: PadInput = { x: 0, y: 0 };
   const keys = new Set<string>();
-  window.addEventListener('keydown', (e) => {
-    keys.add(e.code);
-    if (e.code === 'Space' && !e.repeat) jumpRequested = true;
-  });
+  window.addEventListener('keydown', (e) => keys.add(e.code));
   window.addEventListener('keyup', (e) => keys.delete(e.code));
   window.addEventListener('blur', () => keys.clear());
   const pressed = (...codes: string[]) => codes.some((c) => keys.has(c));
@@ -408,7 +416,8 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
   let excludedKey = '';
   const updateShadowExclusion = () => {
     const excluded: AbstractMesh[] = [];
-    if (!env.isSunlit(player.x, player.z, player.y + 1, sunAzimuth)) {
+    playerSunlit = env.isSunlit(player.x, player.z, player.y + 1, sunAzimuth);
+    if (!playerSunlit) {
       excluded.push(...astronaut.meshes);
     }
     for (const [id, visual] of facilityVisuals) {
@@ -452,8 +461,6 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
         (pressed('KeyW', 'ArrowUp') ? 1 : 0) - (pressed('KeyS', 'ArrowDown') ? 1 : 0) + pad.y;
       right =
         (pressed('KeyD', 'ArrowRight') ? 1 : 0) - (pressed('KeyA', 'ArrowLeft') ? 1 : 0) + pad.x;
-    } else {
-      jumpRequested = false;
     }
     // カメラから宇宙飛行士へ向かう水平の向きが「前」
     const fx = -Math.cos(camera.alpha);
@@ -473,11 +480,7 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
       player.heading += angleDelta(targetHeading, player.heading) * (1 - Math.exp(-TURN_RATE * dt));
     }
     const ground = env.heightAt(player.x, player.z);
-    if (grounded) {
-      if (jumpRequested) player.vy = jumpSpeed;
-      else if (moving) player.vy = HOP_SPEED_MPS; // 歩くと小さく跳ねる
-    }
-    jumpRequested = false;
+    if (grounded && moving) player.vy = HOP_SPEED_MPS; // 歩くと小さく跳ねる
     player.vy -= gravity * dt;
     player.y += player.vy * dt;
     if (player.y <= ground) {
@@ -489,6 +492,89 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
     }
     astronaut.root.position.set(player.x, player.y, player.z);
     astronaut.root.rotation.y = player.heading;
+    placePlayerShadow();
+  };
+
+  // 宇宙飛行士の影：足元の丸い影（跳ねても地面に残る）と、日なたにいるときは太陽と反対に伸びる影
+  const shadowMat = new StandardMaterial('player-shadow-mat', scene);
+  shadowMat.disableLighting = true;
+  shadowMat.diffuseColor = Color3.Black();
+  shadowMat.emissiveColor = Color3.Black();
+  shadowMat.alpha = PLAYER_BLOB_ALPHA;
+  const blob = CreateDisc('player-blob', { radius: PLAYER_BLOB_RADIUS_M, tessellation: 24 }, scene);
+  blob.material = shadowMat;
+  blob.rotation.x = Math.PI / 2;
+  blob.isPickable = false;
+  const streakMat = shadowMat.clone('player-streak-mat');
+  streakMat.alpha = PLAYER_SHADOW_ALPHA;
+  const streak = CreatePlane(
+    'player-streak',
+    { width: PLAYER_SHADOW_WIDTH_M, height: PLAYER_SHADOW_LENGTH_M },
+    scene,
+  );
+  streak.material = streakMat;
+  streak.isPickable = false;
+  let playerSunlit = true;
+  function placePlayerShadow(): void {
+    const ground = env.heightAt(player.x, player.z);
+    blob.position.set(player.x, ground + SHADOW_LIFT_M, player.z);
+    const sun = env.sunDirection(sunAzimuth);
+    const len = Math.hypot(sun.x, sun.z);
+    streak.setEnabled(astronaut.root.isEnabled() && playerSunlit && len > 0);
+    if (len === 0) return;
+    // 影は太陽と反対の向きに伸びる。板を寝かせ（x で 90°）、長さの向きを影の向きに回す
+    const dx = -sun.x / len;
+    const dz = -sun.z / len;
+    const mx = player.x + (dx * PLAYER_SHADOW_LENGTH_M) / 2;
+    const mz = player.z + (dz * PLAYER_SHADOW_LENGTH_M) / 2;
+    streak.position.set(mx, env.heightAt(mx, mz) + SHADOW_LIFT_M, mz);
+    streak.rotation.set(Math.PI / 2, Math.atan2(dx, dz), 0);
+  }
+
+  // 施設の上に浮かぶアイコン（種類ごとに1枚の絵を作って使い回す）
+  let facilityIcons: Record<FacilityKind, string> | null = null;
+  const iconMaterials = new Map<FacilityKind, StandardMaterial>();
+  const iconMaterial = (kind: FacilityKind): StandardMaterial => {
+    const cached = iconMaterials.get(kind);
+    if (cached !== undefined) return cached;
+    if (facilityIcons === null) {
+      throw new Error('world：setFacilityIcons の前に施設を出そうとした');
+    }
+    const size = ICON_TEXTURE_PX;
+    const texture = new DynamicTexture(`icon-${kind}`, { width: size, height: size }, scene, true);
+    texture.hasAlpha = true;
+    const ctx = texture.getContext();
+    ctx.clearRect(0, 0, size, size);
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2 - 4, 0, Math.PI * 2);
+    ctx.fillStyle = ICON_BG;
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = ICON_BORDER;
+    ctx.stroke();
+    const fontPx = Math.round(size * 0.58);
+    ctx.font = `${fontPx}px sans-serif`;
+    // Babylon の描画先の型には textAlign がないので、幅を測って真ん中に置く（縦は文字の下の線から少し上げる）
+    const icon = facilityIcons[kind];
+    ctx.fillText(icon, (size - ctx.measureText(icon).width) / 2, size / 2 + fontPx * 0.36);
+    texture.update();
+    const mat = new StandardMaterial(`icon-${kind}-mat`, scene);
+    mat.disableLighting = true;
+    mat.emissiveTexture = texture;
+    mat.opacityTexture = texture;
+    mat.backFaceCulling = false;
+    iconMaterials.set(kind, mat);
+    return mat;
+  };
+  /** 施設の上（いちばん高いところより少し上）に、いつもこちらを向くアイコンを付ける */
+  const attachIcon = (visual: FacilityVisual) => {
+    const top = visual.root.getHierarchyBoundingVectors(true).max.y - visual.root.position.y;
+    const icon = CreatePlane(`icon-${visual.kind}`, { size: ICON_SIZE_M }, scene);
+    icon.material = iconMaterial(visual.kind);
+    icon.billboardMode = Mesh.BILLBOARDMODE_ALL;
+    icon.isPickable = false;
+    icon.parent = visual.root;
+    icon.position.y = top + ICON_GAP_M;
   };
 
   let syncedOnce = false;
@@ -588,8 +674,10 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
       }
     },
     setPadInput(input) {
-      if (input.jump && !pad.jump) jumpRequested = true;
       pad = input;
+    },
+    setFacilityIcons(icons) {
+      facilityIcons = { ...icons };
     },
     setMovementEnabled(enabled) {
       movementEnabled = enabled;
@@ -614,6 +702,8 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
           visual?.dispose();
           visual = createFacilityVisual(scene, f.kind, f.shieldMaterial);
           if (visual.sunTracker !== null) visual.sunTracker.rotation.y = sunAzimuth;
+          placeOnGround(visual.root, f.x, f.z);
+          attachIcon(visual);
           facilityVisuals.set(f.id, visual);
           // 新しく建った施設は、ポンと弾んで出てくる（読み込んだ直後のものは弾ませない）
           if (!isFirstSync) {
@@ -691,6 +781,8 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
     },
     setPlayerVisible(visible) {
       astronaut.root.setEnabled(visible);
+      blob.setEnabled(visible);
+      placePlayerShadow();
     },
     getViewYawRad() {
       const d = camera.target.subtract(camera.position);

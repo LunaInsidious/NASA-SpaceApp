@@ -32,6 +32,9 @@ export interface MorningSummary {
   stockChanges: { kind: 'oxygen' | 'water' | 'food' | 'spareParts' | 'materials'; delta: number }[];
   /** 届いたロケットの数 */
   arrived: number;
+  /** 太陽が動いて、影に入って止まった太陽電池の数と、日なたに戻った数 */
+  newlyShaded: number;
+  newlyLit: number;
   /** 寝ている間に起きた宇宙天気（中にいたので被ばくは基地の守りの分だけ） */
   spaceWeather: ActiveEvent[];
 }

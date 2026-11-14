@@ -11,7 +11,6 @@ export type FxSound =
   | 'fanfare'
   | 'star'
   | 'click'
-  | 'jump'
   | 'land'
   | 'step'
   | 'pickup'
@@ -68,7 +67,6 @@ const SOUNDS: Record<FxSound, Voice[]> = {
     note(1047, 0.36, 0.32),
   ],
   click: [{ wave: 'square', from: 1200, to: 900, at: 0, seconds: 0.035, volume: 0.04 }],
-  jump: [{ wave: 'square', from: 280, to: 760, at: 0, seconds: 0.2, volume: 0.06 }],
   land: [
     { wave: 'sine', from: 150, to: 55, at: 0, seconds: 0.14, volume: 0.25 },
     { wave: 'noise', from: 500, to: 200, at: 0, seconds: 0.1, volume: 0.12 },

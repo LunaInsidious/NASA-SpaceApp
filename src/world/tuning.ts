@@ -71,6 +71,22 @@ export const PICK_STEP_M = 0.5; // 画面の点から地面を探すときの1�
 export const PICK_MAX_DISTANCE_M = 400;
 export const PICK_REFINE_STEPS = 6;
 
+// 宇宙飛行士の影（見た目）。足元の丸い影と、太陽と反対に伸びる影。
+// 本当は太陽が 1.5° と低いので影は約 70m になるが、画面で分かる長さに縮める
+export const PLAYER_BLOB_RADIUS_M = 0.45;
+export const PLAYER_BLOB_ALPHA = 0.45;
+export const PLAYER_SHADOW_LENGTH_M = 6;
+export const PLAYER_SHADOW_WIDTH_M = 0.5;
+export const PLAYER_SHADOW_ALPHA = 0.3;
+export const SHADOW_LIFT_M = 0.05;
+
+// 施設の上に浮かぶアイコン（見た目）
+export const ICON_SIZE_M = 1.2;
+export const ICON_GAP_M = 1.2;
+export const ICON_TEXTURE_PX = 128;
+export const ICON_BG = 'rgba(14, 22, 38, 0.85)';
+export const ICON_BORDER = '#ffd27a';
+
 // 建った施設がポンと出てくる動き（見た目）
 export const POP_SECONDS = 0.45;
 export const POP_OVERSHOOT = 2.2;
