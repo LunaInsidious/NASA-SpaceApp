@@ -17,8 +17,11 @@ export interface PlayerPose {
 }
 
 export interface World {
-  /** 毎フレーム呼ぶ。dtSec は実際の経過秒。キーボード（WASD・矢印・Space）は world が自分で読む */
-  frame(dtSec: number): void;
+  /**
+   * 毎フレーム呼ぶ。dtSec は実際の経過秒。timeScale はゲームの速さ（1× か 4×）で、歩く・跳ぶ・建てたときの動きを
+   * その倍の速さにする（カメラの追いかけはそのまま）。キーボード（WASD・矢印・Space）は world が自分で読む
+   */
+  frame(dtSec: number, timeScale: number): void;
   setPadInput(input: PadInput): void;
   /** false の間は宇宙飛行士が動かない（メニュー、屋内、一時停止） */
   setMovementEnabled(enabled: boolean): void;

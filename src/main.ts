@@ -865,7 +865,7 @@ engine.runRenderLoop(() => {
     lastActionsKey = actionsKey;
     ui.setContextActions(actions);
   }
-  world.frame(dtSec);
+  world.frame(dtSec, speed);
   scene.render();
 });
 
