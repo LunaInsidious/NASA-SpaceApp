@@ -38,7 +38,7 @@ import { createTitle } from './title/index.ts';
 import { type Advice, createAdviceCard, pickAdvices } from './tutorial/advice.ts';
 import { type DeathAdvice, type DeathKind, diagnoseDeath } from './tutorial/death.ts';
 import { createTutorial, parseMissions } from './tutorial/index.ts';
-import type { ContextAction, MorningSummary } from './ui/api.ts';
+import type { ContextAction, MorningSummary, RestInfo } from './ui/api.ts';
 import { createFx } from './ui/fx.ts';
 import { onLangChange, t, tPlain } from './ui/i18n.ts';
 import { createUi } from './ui/index.ts';
@@ -118,6 +118,12 @@ let wentOutToday = !state.player.indoors;
 let restDays = 0;
 // ボンベの残りの警告をいくつ出したか（外に出るたびに 0 に戻す）
 let tankWarnings = 0;
+// その日に外でしたこと（休息の画面の「振り返り」に出す）
+type DayLogEntry = { kind: 'ice' | 'repair' | 'regolith' | 'build'; facility?: FacilityKind };
+let dayLog: DayLogEntry[] = [];
+// 休むときに見せた、休む理由（振り返りに「核になる知識の一言」として残す）
+let restReason: (typeof REST_REASONS)[number] | null = null;
+let lastRestKey = '';
 let menuPaused = false;
 let indoors = state.player.indoors;
 let buildMode: { kind: FacilityKind; options: BuildOptions } | null = null;
@@ -326,6 +332,8 @@ function startFrom(next: SimState, fromSave: boolean): void {
   wentOutToday = fromSave || !next.player.indoors;
   restDays = 0;
   tankWarnings = 0;
+  dayLog = [];
+  restReason = null;
   pending.length = 0;
   accumulatedHours = 0;
   collectedIce = false;
@@ -459,6 +467,7 @@ function doAction(action: ContextAction): void {
         break;
       }
       pending.push({ type: 'repair', facilityId: target.id });
+      dayLog.push({ kind: 'repair', facility: target.kind });
       fx.sound('repair');
       break;
     }
@@ -466,6 +475,7 @@ function doAction(action: ContextAction): void {
       const target = near.find((f) => f.kind === 'habitat' && f.regolithCover !== true);
       if (target !== undefined) {
         pending.push({ type: 'coverWithRegolith', facilityId: target.id });
+        dayLog.push({ kind: 'regolith' });
         fx.sound('dig');
       }
       break;
@@ -488,19 +498,55 @@ function startRest(): void {
   if (!wentOutToday) {
     return;
   }
-  const reason = REST_REASONS[restDays % REST_REASONS.length];
-  const hours = {
-    eva: values.eva.maxHours.value,
-    sleep: values.crew.sleepHours.value,
-    weekly: values.eva.weeklyHoursPerPerson.value,
-  }[reason];
+  restReason = REST_REASONS[restDays % REST_REASONS.length];
   ui.notify(
-    `${t(`rest.reason.${reason}`, { hours })} ${tutorial.allowsGoingOutAgain() ? '' : t('rest.next')}`,
+    `${restReasonText(restReason)} ${tutorial.allowsGoingOutAgain() ? '' : t('rest.next')}`,
     false,
   );
   if (state.phase !== 'gameOver') {
     saves.autoSave(state);
     ui.setSaves(saves.list());
+  }
+}
+
+function restReasonText(reason: (typeof REST_REASONS)[number]): string {
+  const hours = {
+    eva: values.eva.maxHours.value,
+    sleep: values.crew.sleepHours.value,
+    weekly: values.eva.weeklyHoursPerPerson.value,
+  }[reason];
+  return t(`rest.reason.${reason}`, { hours });
+}
+
+/** 休息フェーズの2D画面に出すもの。中にいる間だけ（タイトル画面の間は出さない） */
+function restInfo(): RestInfo | null {
+  if (!indoors || title.isOpen() || state.phase === 'gameOver') {
+    return null;
+  }
+  const done = dayLog.map((entry) =>
+    t(`review.did.${entry.kind}`, {
+      name: entry.facility === undefined ? '' : t(`facility.${entry.facility}`),
+    }),
+  );
+  const review = [
+    ...(done.length > 0 ? done : [t(wentOutToday ? 'review.nothing' : 'review.morning')]),
+    ...(restReason === null ? [] : [t('review.knowledge', { text: restReasonText(restReason) })]),
+  ];
+  const actions = contextActions();
+  return {
+    canGoOut: actions.includes('exitHabitat'),
+    canNextDay: actions.includes('nextDay'),
+    review,
+  };
+}
+
+/** 休息の画面を、変わったときだけ描き直してもらう */
+function updateRest(): void {
+  const info = restInfo();
+  const key = JSON.stringify(info);
+  if (key !== lastRestKey) {
+    lastRestKey = key;
+    ui.setRest(info);
   }
 }
 
@@ -520,6 +566,7 @@ function sleepUntilMorning(): void {
   state = result.state;
   restDays++;
   wentOutToday = false;
+  dayLog = [];
   // 中にいたので、警報（退避するか）は出さない。届いた・宇宙天気は朝の窓にまとめる
   handleEvents(
     result.emitted.filter(
@@ -569,6 +616,7 @@ function deliverIce(): void {
     pending.push({ type: 'collectIce', ...carriedIce });
     carriedIce = null;
     collectedIce = true;
+    dayLog.push({ kind: 'ice' });
     fx.banner(t('fx.iceWater', { kg: values.player.iceKgPerTrip.value }), 'small');
     fx.sound('coin');
   }
@@ -613,6 +661,7 @@ function confirmBuild(): void {
     dustCover: buildMode.options.dustCover,
     shieldMaterial: buildMode.options.shieldMaterial,
   });
+  dayLog.push({ kind: 'build', facility: buildMode.kind });
   if (buildMode.kind === 'solar' && !current.placement.works) {
     earn('buildSolarInShadow');
   }
@@ -993,6 +1042,7 @@ engine.runRenderLoop(() => {
   updateTutorial();
   updateFootSounds();
   const actions = contextActions();
+  updateRest();
   const actionsKey = actions.join(',');
   if (actionsKey !== lastActionsKey) {
     lastActionsKey = actionsKey;

@@ -17,7 +17,7 @@ import type { DeathAdvice } from '../tutorial/death.ts';
 import { professorDeathAdviceHtml } from '../tutorial/deathView.ts';
 import { PROFESSOR_SVG } from '../tutorial/professor.ts';
 import type { PadInput } from '../world/api.ts';
-import type { ContextAction, MorningSummary, Ui, UiCallbacks } from './api.ts';
+import type { ContextAction, MorningSummary, RestInfo, Ui, UiCallbacks } from './api.ts';
 import { getLang, onLangChange, setLang, t, tPlain } from './i18n.ts';
 import { type NasaImages, photoFigureHtml } from './photo.ts';
 import './ui.css';
@@ -52,7 +52,10 @@ const CONTEXT_ACTIONS: readonly ContextAction[] = [
   'coverRegolith',
   'nextDay',
 ];
-const MENUS = ['build', 'launch', 'crew', 'save', 'data'] as const;
+const MENUS = ['build', 'data'] as const;
+// 休息フェーズの2D画面のタブ（docs/SPEC.md ステップ13）
+const NOTEBOOK_TABS = ['review', 'tasks', 'build', 'crew', 'launch', 'research', 'save'] as const;
+type NotebookTab = (typeof NOTEBOOK_TABS)[number];
 const DEVELOPMENT_ELEMENTS = ['selfSufficiency', 'stability', 'safety', 'scale'] as const;
 const LIFE_SUPPORT_KEYS = ['oxygen', 'water', 'food'] as const;
 const SHIELD_MATERIALS = ['regolith', 'water'] as const;
@@ -235,6 +238,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     <div class="ui-buttons" data-part="buttons"></div>
     <div class="ui-pad" data-part="pad" hidden><div class="ui-pad-knob" data-part="knob"></div></div>
     <div class="ui-pause" data-part="pauseOverlay" hidden></div>
+    <div class="nb-layer" data-part="notebook" hidden></div>
     <div class="ui-modal-layer" data-part="modal" hidden></div>`;
   const part = (name: string): HTMLElement => {
     const el = root.querySelector<HTMLElement>(`[data-part="${name}"]`);
@@ -252,6 +256,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   const padEl = part('pad');
   const knobEl = part('knob');
   const modalEl = part('modal');
+  const notebookEl = part('notebook');
   // メニューは、窓の外（暗いところ）をクリックしても閉じる。警報やゲームオーバーの窓は選んでもらうので閉じない
   modalEl.addEventListener('click', (e) => {
     if (e.target === modalEl && menu !== null && dialogs.length === 0) {
@@ -268,6 +273,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   // スマホ：くわしい数字の窓を開いているか（ふだんは小さなチップだけ）
   let hudOpen = false;
   let menu: MenuKind | null = null;
+  // 休息フェーズの2D画面（居住モジュールの中）。main が setRest で開け閉めする
+  let rest: RestInfo | null = null;
+  let notebookTab: NotebookTab = 'review';
   const dialogs: Dialog[] = [];
   let saves: SaveSummary[] = [];
   let donkiEvents: DonkiEvent[] = [];
@@ -606,8 +614,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         },
       )}</button>
       <small>${t('build.dustCoverDesc')}</small>
-      <ul class="ui-list">${items}</ul>
-      <div class="ui-close-row"><button data-action="closeMenu">${t('button.close')}</button></div>`;
+      <ul class="ui-list">${items}</ul>`;
   };
 
   const launchMenuHtml = (current: SimView) => {
@@ -690,8 +697,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       ${reasons.map((reason) => `<div class="ui-small ui-bad">${reason}</div>`).join('')}
       <div class="ui-actions">
         <button data-action="order" class="primary" ${canOrder ? '' : 'disabled'}>${t('launch.order')}</button>
-      </div>
-      <div class="ui-close-row"><button data-action="closeMenu">${t('button.close')}</button></div>`;
+      </div>`;
   };
 
   const crewMenuHtml = (current: SimState, currentView: SimView) => {
@@ -718,8 +724,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <h2>${t('crew.title')}</h2>
       <p>${t('crew.beds', { count: currentView.crew.count, capacity: currentView.crew.capacity })}</p>
       <ul class="ui-list">${rows}</ul>
-      ${descriptions}
-      <div class="ui-close-row"><button data-action="closeMenu">${t('button.close')}</button></div>`;
+      ${descriptions}`;
   };
 
   /** 嵐の残りの時間を、ゲームの中の時間と、外にいるときの本当の秒数で */
@@ -864,7 +869,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <ul class="ui-list">${slots}</ul>
       <h3>${t('save.listTitle')}</h3>
       ${saveListHtml()}
-      <div class="ui-close-row"><button data-action="closeMenu">${t('button.close')}</button></div>
       <div class="ui-restart-row"><button data-action="backToTitle">${t('save.backToTitle')}</button></div>`;
   };
 
@@ -897,13 +901,89 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <h3>${t('data.values')}</h3>
       ${sources === '' ? `<p class="ui-small">${t('data.valuesPending')}</p>` : `<ul class="ui-list">${sources}</ul>`}
       <h3>${t('data.terrainTitle')}</h3>
-      <p class="ui-small">${t('data.terrain')}</p>
-      <div class="ui-close-row"><button data-action="closeMenu">${t('button.close')}</button></div>`;
+      <p class="ui-small">${t('data.terrain')}</p>`;
+  };
+
+  // ---- 休息フェーズの2D画面（ノート） ----
+  const researchHtml = (current: SimState, currentView: SimView) => {
+    const today = current.history[current.history.length - 1];
+    return `
+      <h2>${t('research.title')}</h2>
+      <p>${t('research.body')}</p>
+      <ul class="nb-stats">
+        <li><span>${t('research.researchers')}</span><b>${fmt(currentView.crew.byTask.research)}</b></li>
+        <li><span>${t('research.today')}</span><b>${fmt(today?.research ?? 0, 1)}</b></li>
+        <li><span>${t('research.unsent')}</span><b class="${currentView.comm.unsentResearch > 0 ? 'ui-bad' : ''}">${fmt(currentView.comm.unsentResearch, 1)}</b></li>
+        <li><span>${t('research.comm')}</span><b class="${currentView.comm.linked ? 'ui-ok' : 'ui-bad'}">${t(currentView.comm.linked ? 'hud.commLinked' : 'hud.commLost')}</b></li>
+      </ul>
+      <p class="ui-small">${t('research.note')}</p>`;
+  };
+
+  const reviewHtml = (info: RestInfo) => `
+    <h2>${t('review.title')}</h2>
+    <ul class="nb-review">${info.review.map((line) => `<li>${line}</li>`).join('')}</ul>`;
+
+  const notebookTabHtml = (
+    tab: NotebookTab,
+    info: RestInfo,
+    current: SimState,
+    currentView: SimView,
+  ) => {
+    switch (tab) {
+      case 'review':
+        return reviewHtml(info);
+      case 'tasks':
+      case 'build':
+        return `<h2>${t(`notebook.tab.${tab}`)}</h2><p class="ui-small">${t('notebook.soon')}</p>`;
+      case 'crew':
+        return crewMenuHtml(current, currentView);
+      case 'launch':
+        return launchMenuHtml(currentView);
+      case 'research':
+        return researchHtml(current, currentView);
+      case 'save':
+        return saveMenuHtml();
+    }
+  };
+
+  const renderNotebook = () => {
+    if (rest === null || state === null || view === null) {
+      notebookEl.hidden = true;
+      notebookEl.innerHTML = '';
+      document.body.classList.remove('nb-open');
+      return;
+    }
+    notebookEl.hidden = false;
+    document.body.classList.add('nb-open');
+    const tabs = NOTEBOOK_TABS.map(
+      (tab) =>
+        `<button class="nb-tab ${tab === notebookTab ? 'on' : ''}" data-action="nbTab" data-tab="${tab}">${t(`notebook.icon.${tab}`)} ${t(`notebook.tab.${tab}`)}</button>`,
+    ).join('');
+    const guideHtml =
+      guide === null
+        ? ''
+        : `<div class="ui-modal-guide"><span class="ui-modal-guide-face">${PROFESSOR_SVG}</span><div>${guide}</div></div>`;
+    // 「外に出る」「翌日へ」は 3D の画面と同じボタン（data-action="context"）にして、E キーとくんれんの矢印もそのまま使う
+    const goOut = rest.canGoOut
+      ? `<button data-action="context" data-context="exitHabitat">${t('action.exitHabitat')}</button>`
+      : `<span class="ui-small">${t('notebook.wentOut')}</span>`;
+    const nextDay = rest.canNextDay
+      ? `<button class="primary nb-next" data-action="context" data-context="nextDay">${t('action.nextDay')}</button>`
+      : '';
+    notebookEl.innerHTML = `
+      <div class="nb">
+        <div class="nb-head"><b>${t('notebook.title', { day: Math.floor(view.day) + 1 })}</b></div>
+        ${guideHtml}
+        <nav class="nb-tabs">${tabs}</nav>
+        <section class="nb-page">${notebookTabHtml(notebookTab, rest, state, view)}</section>
+        <div class="nb-foot">${goOut}${nextDay}</div>
+      </div>`;
   };
 
   // 窓のいちばん上に出す博士の「やること」（main が毎フレーム渡す）
   let guide: string | null = null;
   const renderModal = () => {
+    renderNotebook();
     const dialog = dialogs[0];
     if (dialog !== undefined) {
       modalEl.hidden = false;
@@ -914,12 +994,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       let html: string;
       if (menu === 'build') {
         html = buildMenuHtml(state);
-      } else if (menu === 'launch') {
-        html = launchMenuHtml(view);
-      } else if (menu === 'crew') {
-        html = crewMenuHtml(state, view);
-      } else if (menu === 'save') {
-        html = saveMenuHtml();
       } else {
         html = dataMenuHtml();
       }
@@ -929,7 +1003,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         guide === null
           ? ''
           : `<div class="ui-modal-guide"><span class="ui-modal-guide-face">${PROFESSOR_SVG}</span><div>${guide}</div></div>`;
-      modalEl.innerHTML = `<div class="ui-modal"><button class="ui-modal-x" data-action="closeMenu" aria-label="${tPlain('button.close')}">${t('button.closeIcon')}</button>${guideHtml}${html}</div>`;
+      modalEl.innerHTML = `<div class="ui-modal"><button class="ui-modal-x" data-action="closeMenu" aria-label="${tPlain('button.close')}">${t('button.closeIcon')}</button>${guideHtml}${html}<div class="ui-close-row"><button data-action="closeMenu">${t('button.close')}</button></div></div>`;
       return;
     }
     modalEl.hidden = true;
@@ -962,18 +1036,36 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     renderStatus();
   };
 
-  const openMenu = (kind: MenuKind) => {
+  /** 3D の窓（建設・データ）を開く。隊員・ほきゅう・セーブは休息の画面のタブなので、中にいればそのタブにし、外ならひとこと出す */
+  const openMenu = (kind: MenuKind | NotebookTab) => {
+    const menuKind = MENUS.find((m) => m === kind);
+    // 中にいる間は、建設も中の画面の「建てる」タブで（3D の地面は指せない）
+    if (menuKind === 'build' && rest !== null) {
+      notebookTab = 'build';
+      renderNotebook();
+      return;
+    }
+    if (menuKind === undefined) {
+      const tab = pick(kind, NOTEBOOK_TABS, 'notebook tab');
+      if (rest === null) {
+        toast(t('notebook.insideOnly', { name: t(`notebook.tab.${tab}`) }), false);
+        return;
+      }
+      notebookTab = tab;
+      renderNotebook();
+      return;
+    }
     if (state === null || view === null) {
       throw new Error('ui.update の前にメニューを開こうとした');
     }
     if (dialogs.length > 0) {
       return; // 説明の窓を先に閉じてもらう
     }
-    if (menu === kind) {
+    if (menu === menuKind) {
       closeMenus();
       return;
     }
-    menu = kind;
+    menu = menuKind;
     renderModal();
     updatePause();
     renderStatus();
@@ -1014,6 +1106,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         break;
       case 'closeMenu':
         closeMenus();
+        break;
+      case 'nbTab':
+        notebookTab = pick(target.dataset.tab, NOTEBOOK_TABS, 'notebook tab');
+        renderNotebook();
         break;
       case 'context':
         callbacks.onContextAction(pick(target.dataset.context, CONTEXT_ACTIONS, 'context'));
@@ -1258,6 +1354,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       }
       renderHud();
       renderStatus();
+      if (rest !== null) {
+        renderNotebook();
+      }
     },
     showEvents,
     showMorning(summary) {
@@ -1302,7 +1401,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     },
     setSaves(next) {
       saves = [...next];
-      if (menu === 'save' || dialogs[0]?.type === 'gameOver') {
+      if (rest !== null || dialogs[0]?.type === 'gameOver') {
         renderModal();
       }
     },
@@ -1314,9 +1413,21 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         return;
       }
       guide = next;
-      if (menu !== null) {
+      if (menu !== null || rest !== null) {
         renderModal();
       }
+    },
+    setRest(next) {
+      if (JSON.stringify(next) === JSON.stringify(rest)) {
+        return;
+      }
+      if (rest === null && next !== null) {
+        // 中に入ったら、まず振り返りを見せる
+        notebookTab = 'review';
+      }
+      rest = next;
+      renderNotebook();
+      renderButtons();
     },
     isUserPaused() {
       return userPaused;

@@ -35,6 +35,16 @@ export interface MorningSummary {
   spaceWeather: ActiveEvent[];
 }
 
+/** 休息フェーズの2D画面（居住モジュールの中）に出すもの。main が作る */
+export interface RestInfo {
+  /** その日にまだ外に出られるか */
+  canGoOut: boolean;
+  /** 「翌日へ」を押せるか（くんれん中は段による） */
+  canNextDay: boolean;
+  /** 振り返り：その日の外での結果と、核になる知識の一言（i18n から作った HTML） */
+  review: string[];
+}
+
 export interface UiCallbacks {
   /** メニューや解説を開くと true、閉じると false（main が時間を止める） */
   onPauseChange(paused: boolean): void;
@@ -71,8 +81,13 @@ export interface Ui {
   /** 建てる場所を選んでいる間の表示。null で消す */
   setBuildMode(mode: { kind: FacilityKind; placement: Placement } | null): void;
   setContextActions(actions: ContextAction[]): void;
-  /** キーボードの近道（B：建設、L：打ち上げ、C：隊員）から開く。'save' はセーブの窓 */
+  /**
+   * 建設とデータは 3D の窓を開く。隊員・ほきゅう・セーブは休息の画面のタブ（中にいればそのタブにし、外ならひとこと出す）。
+   * キーボードの近道（B：建設、L：ほきゅう、C：隊員）と困りごとカードから呼ぶ
+   */
   openMenu(menu: 'build' | 'launch' | 'crew' | 'save' | 'data'): void;
+  /** 休息フェーズの2D画面を出す（中にいる間）。null で閉じる */
+  setRest(info: RestInfo | null): void;
   /** セーブの一覧が変わったら main が呼ぶ（新しい順） */
   setSaves(saves: SaveSummary[]): void;
   /** データ出典の窓に出す、ゲームで使う DONKI の記録（data/donki-events.json）。起動時に main が1回呼ぶ */

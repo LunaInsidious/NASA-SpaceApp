@@ -941,3 +941,146 @@
 .ui-why:focus + .ui-why-tip {
   display: block;
 }
+
+/* ---- 休息フェーズの2D画面（居住モジュールの中のノート。docs/SPEC.md ステップ13） ---- */
+.nb-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+}
+
+.nb-layer[hidden] {
+  display: none;
+}
+
+/* 方眼のノート。アイコンと数字を中心に、窓と同じ部品（ui-list など）をそのまま使う */
+.nb {
+  display: flex;
+  flex-direction: column;
+  width: min(780px, 100%);
+  max-height: 100%;
+  border: 1px solid rgba(143, 182, 255, 0.35);
+  border-radius: 14px;
+  background-color: rgb(14, 22, 38);
+  background-image:
+    linear-gradient(rgba(143, 182, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(143, 182, 255, 0.06) 1px, transparent 1px);
+  background-size: 22px 22px;
+  overflow: hidden;
+}
+
+.nb-head {
+  padding: 10px 16px 6px;
+  font-size: 17px;
+}
+
+.nb .ui-modal-guide {
+  margin: 0 12px 6px;
+}
+
+.nb-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 10px;
+  border-bottom: 1px solid rgba(143, 182, 255, 0.35);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.ui-root button.nb-tab {
+  flex: none;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  white-space: nowrap;
+}
+
+.ui-root button.nb-tab.on {
+  background: #3d7be0;
+  border-color: #8fb6ff;
+}
+
+.nb-page {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 10px 16px 14px;
+  overflow-y: auto;
+}
+
+.nb-page h2 {
+  margin-top: 4px;
+}
+
+.nb-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 10px 14px;
+  border-top: 1px solid rgba(143, 182, 255, 0.35);
+  background: rgba(14, 22, 38, 0.95);
+}
+
+.ui-root button.nb-next {
+  flex: 1 1 200px;
+  max-width: 340px;
+  padding: 12px 18px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.nb-stats,
+.nb-review {
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+ul.nb-stats li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(143, 182, 255, 0.25);
+}
+
+ul.nb-review li {
+  padding: 6px 0;
+}
+
+/* ノートを開いている間は、3D の画面のボタンとくわしい数字を隠す */
+body.nb-open .ui-buttons,
+body.nb-open .ui-pad,
+body.nb-open .ui-hud,
+body.nb-open .ui-top .ui-status {
+  visibility: hidden;
+}
+
+/* スマホ：タブは折り返して全部見せる（横にはみ出すと、くんれんの矢印が指すタブが見えない）。
+   上の一時停止・ことばじてんのボタンと重ならないよう、上を空ける */
+@media (max-width: 600px) {
+  .nb-layer {
+    padding: 56px 6px 6px;
+  }
+
+  .nb-tabs {
+    flex-wrap: wrap;
+    padding: 0 6px 6px;
+    overflow-x: visible;
+  }
+
+  .ui-root button.nb-tab {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 8px;
+    padding: 5px 8px;
+    font-size: 13px;
+  }
+
+  .nb-page {
+    padding: 8px 10px 12px;
+  }
+}

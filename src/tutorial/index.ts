@@ -23,8 +23,8 @@ export const STEPS = [
   'comm',
   'lifeLine',
   'buildHabitat',
-  'order',
   'goInsideWait',
+  'order',
   'nextDay',
   'waitArrival',
   'arrived',
@@ -33,11 +33,11 @@ export const STEPS = [
   'takeIce',
   'goHome',
   'flareDrill',
+  'save',
   'goOutside',
   'regolith',
   'pause',
   'resume',
-  'save',
   'data',
 ] as const;
 type Step = (typeof STEPS)[number];
@@ -81,7 +81,7 @@ const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
   waitArrival: ['[data-action="context"][data-context="nextDay"]'],
   assignCrew: [
     '[data-action="assign"][data-task="farming"]',
-    '[data-action="menu"][data-menu="crew"]',
+    '[data-action="nbTab"][data-tab="crew"]',
   ],
   takeIce: ['[data-action="context"][data-context="collectIce"]'],
   goHome: ['[data-action="context"][data-context="enterHabitat"]'],
@@ -90,7 +90,7 @@ const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
   regolith: ['[data-action="context"][data-context="coverRegolith"]'],
   pause: ['[data-action="pause"]'],
   resume: ['.ui-pause [data-action="pause"]', '[data-action="pause"]'],
-  save: ['[data-action="save"][data-slot="0"]', '[data-action="menu"][data-menu="save"]'],
+  save: ['[data-action="save"][data-slot="0"]', '[data-action="nbTab"][data-tab="save"]'],
   data: ['[data-action="menu"][data-menu="data"]'],
 };
 // 「ちゅうもん」の段は、食料の＋ → 隊員の＋ → 注文を送る、の順に1つずつ指す
@@ -123,7 +123,7 @@ function pointTarget(step: Step): HTMLElement | null {
     }
     return (
       visibleElement('[data-action="order"]') ??
-      visibleElement('[data-action="menu"][data-menu="launch"]')
+      visibleElement('[data-action="nbTab"][data-tab="launch"]')
     );
   }
   for (const selector of STEP_POINTS[step] ?? []) {
