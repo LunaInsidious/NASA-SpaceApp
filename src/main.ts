@@ -120,7 +120,7 @@ const tutorial = createTutorial(
   parseMissions(missionsJson),
   () => restartGame(),
   (what) => celebrate(what),
-  (terms) => help.learn(terms),
+  (terms, announce) => help.learn(terms, announce),
 );
 // タイトル画面。うしろには、いちばん新しいセーブ（なければ新しいゲーム）の月面を見せておく
 const title = createTitle(document.body, {
@@ -228,7 +228,7 @@ function celebrateProgress(): void {
         fx.sound('pop');
         photoCard.show(f.kind);
         // 建てた施設の言葉は、ことばじてんに足す（チュートリアルで出てこない施設も、建てれば引ける）
-        help.learn([f.kind]);
+        help.learn([f.kind], true);
       }
     }
   }
@@ -655,7 +655,7 @@ function handleEvents(events: GameEvent[]): void {
       ui.showFlareAlert(event.event, donki);
       fx.sound('alarm');
       if (event.event.kind === 'sep') {
-        help.learn(['sep']);
+        help.learn(['sep'], true);
       }
     }
     if (event.type === 'commLost') {

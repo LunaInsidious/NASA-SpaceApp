@@ -8,13 +8,11 @@ import { HELP_GROUPS, HELP_TERMS, type HelpTerm } from './terms.ts';
 const STORAGE_KEY = 'lunar-outpost-help-terms';
 // 新しい言葉が足されたときに、ボタンを光らせてお知らせを出す長さ
 const PULSE_MS = 4000;
-// お知らせに名前を並べるのは、この数まで（それより多いときは数だけ）
-const NOTE_MAX_NAMES = 3;
 
 export interface Help {
   isOpen(): boolean;
-  /** 説明した言葉を足す。新しく足した言葉があれば onLearned で知らせる */
-  learn(terms: readonly HelpTerm[]): void;
+  /** 説明した言葉を足す。announce なら、新しく足した言葉をボタンのそばで知らせる */
+  learn(terms: readonly HelpTerm[], announce: boolean): void;
 }
 
 function readLearned(): Set<HelpTerm> {
@@ -115,7 +113,7 @@ export function createHelp(
 
   return {
     isOpen: () => open,
-    learn(terms) {
+    learn(terms, announce) {
       const added = terms.filter((term) => !learned.has(term));
       if (added.length === 0) {
         return;
@@ -129,13 +127,13 @@ export function createHelp(
         console.warn('ことばじてんの覚えた言葉を保存できない', error);
       }
       render();
+      if (!announce) {
+        return;
+      }
       toggle.classList.add('help-pulse');
-      note.textContent =
-        added.length > NOTE_MAX_NAMES
-          ? t('help.learnedMany', { count: added.length })
-          : t('help.learned', {
-              names: added.map((term) => t(`help.term.${term}.name`)).join('・'),
-            });
+      note.textContent = t('help.learned', {
+        names: added.map((term) => t(`help.term.${term}.name`)).join('・'),
+      });
       note.hidden = false;
       if (noteTimer !== null) {
         window.clearTimeout(noteTimer);

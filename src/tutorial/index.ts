@@ -206,7 +206,7 @@ export function createTutorial(
   /** できた瞬間（段・ミッション・チュートリアルの完了）。main がお祝いの演出を出す */
   onCelebrate: (what: 'step' | 'mission' | 'trainingDone') => void,
   /** 段やミッションで説明した言葉。main がことばじてんに足す */
-  onLearn: (terms: readonly HelpTerm[]) => void,
+  onLearn: (terms: readonly HelpTerm[], announce: boolean) => void,
 ): Tutorial {
   let mode: Mode = 'title';
   let index = 0;
@@ -321,8 +321,8 @@ export function createTutorial(
         button(t('tutorial.welcome.firstTime'), 'tutorial-big primary', () => resetTo('tutorial')),
         button(t('tutorial.welcome.played'), 'tutorial-big', () => {
           saveFinished();
-          // あそんだことがあるなら、ことばじてんは全部の言葉を見せる
-          onLearn(HELP_TERMS);
+          // あそんだことがあるなら、ことばじてんは全部の言葉を見せる（自分で選んだので、お知らせは出さない）
+          onLearn(HELP_TERMS, false);
           mode = 'missions';
           render();
         }),
@@ -485,7 +485,7 @@ export function createTutorial(
 
   function renderStep(): void {
     document.body.dataset.tutorialStep = step();
-    onLearn(STEP_TERMS[step()] ?? []);
+    onLearn(STEP_TERMS[step()] ?? [], true);
     const text = document.createElement('p');
     text.className = 'tutorial-text';
     const key =
@@ -526,7 +526,7 @@ export function createTutorial(
   function renderMission(): void {
     const mission = missions[missionIndex];
     if (mission !== undefined) {
-      onLearn(mission.terms);
+      onLearn(mission.terms, true);
     }
     const text = document.createElement('p');
     text.className = 'tutorial-text';

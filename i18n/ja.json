@@ -451,7 +451,6 @@
   "sound.sfx": "🔊 こうかおん だけ",
   "sound.off": "🔇 おと なし",
   "help.learned": "📖 ことばじてんに「{names}」が ふえたよ！",
-  "help.learnedMany": "📖 ことばじてんに {count}この ことばが ふえたよ！",
   "help.icon": "❓",
   "help.label": "ことばじてん",
   "help.title": "ことばじてん",
