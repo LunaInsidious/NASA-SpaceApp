@@ -681,5 +681,7 @@
   "morning.lit": "{count} solar panel(s) came back into the sunlight.",
   "launch.queued": "📦 Your order is ready",
   "launch.queuedNote": "The rocket lifts off when you press \"Next day\" or \"Go outside\". Until then, you can cancel it.",
-  "launch.cancel": "Cancel and choose again"
+  "launch.cancel": "Cancel and choose again",
+  "notebook.icon.exit": "🚪",
+  "notebook.exitShort": "Out"
 }

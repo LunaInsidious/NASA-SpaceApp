@@ -1382,3 +1382,28 @@ body[data-tutorial-step="comm"] .ui-top .ui-status {
   border-radius: 10px;
   background: rgba(111, 208, 140, 0.12);
 }
+
+/* 休息の画面の左上の出口（どのページからでも外に出られる） */
+.nb-head-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ui-root button.nb-exit {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-color: #6fd08c;
+}
+
+/* スマホでは短く出す（「外に出る」→「外へ」、題名は日にちだけ。ほかの上のボタンは絵だけ） */
+.nb-exit-short {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .nb-exit-short {
+    display: inline;
+  }
+}

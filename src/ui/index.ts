@@ -1143,9 +1143,13 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     } else {
       forward = `<button class="primary nb-next" data-action="nbNext">${t('notebook.next', { page: t(`notebook.page.${REST_PAGES[Math.min(index + 1, REST_PAGES.length - 1)]}`) })}</button>`;
     }
+    // 出口はいつも左上に（ちょっと中に入っただけのときも、「次へ」で最後まで進まなくてよい）
+    const exitTop = rest.canGoOut
+      ? `<button class="nb-exit" data-action="context" data-context="exitHabitat" aria-label="${tPlain('action.exitHabitat')}"><span>${t('notebook.icon.exit')}</span><span class="nb-head-label">${t('action.exitHabitat')}</span><span class="nb-exit-short">${t('notebook.exitShort')}</span></button>`
+      : '';
     notebookEl.innerHTML = `
       <div class="nb">
-        <div class="nb-head"><b>${t('notebook.title', { day: Math.floor(view.day) + 1 })}</b><span class="nb-head-buttons">${(['cards', 'status', 'save'] as const).map((page) => `<button data-action="nbGo" data-page="${page}" aria-label="${tPlain(`notebook.page.${page}`)}"><span>${t(`notebook.icon.${page}`)}</span><span class="nb-head-label">${t(`notebook.page.${page}`)}</span></button>`).join('')}</span></div>
+        <div class="nb-head">${exitTop}<b class="nb-head-title"><span class="nb-head-label">${t('notebook.title', { day: Math.floor(view.day) + 1 })}</span><span class="nb-exit-short">${t('hud.day', { day: Math.floor(view.day) + 1 })}</span></b><span class="nb-head-buttons">${(['cards', 'status', 'save'] as const).map((page) => `<button data-action="nbGo" data-page="${page}" aria-label="${tPlain(`notebook.page.${page}`)}"><span>${t(`notebook.icon.${page}`)}</span><span class="nb-head-label">${t(`notebook.page.${page}`)}</span></button>`).join('')}</span></div>
         ${guideHtml}
         <nav class="nb-steps">${steps}</nav>
         <section class="nb-page">${restPageHtml(restPage, rest, state, view)}</section>
