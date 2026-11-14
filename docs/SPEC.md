@@ -165,7 +165,7 @@ NASA Space Apps Challenge 2026の「Build a Junior Astronaut Mission Trainer」�
 ### 実績
 
 - ブラウザ内（localStorage）に保存。条件と文言は `data/achievements.json` の一覧で持つ
-- 学びにつながるものにする（例：影の中に太陽電池を置いた、太陽フレアで退避した、氷を見つけた、一度も倒れずにクリア）
+- 学びにつながるものにする（例：影の中に太陽電池を置いた、太陽フレアで退避した、氷を見つけた）
 
 ## アーキテクチャ
 

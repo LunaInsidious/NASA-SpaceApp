@@ -5,7 +5,6 @@ export const ACHIEVEMENT_CONDITIONS = [
   'buildSolarInShadow',
   'shelterDuringFlare',
   'collectIce',
-  'clearWithoutDowned',
 ] as const;
 export type AchievementCondition = (typeof ACHIEVEMENT_CONDITIONS)[number];
 

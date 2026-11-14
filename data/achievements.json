@@ -13,10 +13,5 @@
     "id": "foundIce",
     "condition": "collectIce",
     "textKey": "achievement.foundIce"
-  },
-  {
-    "id": "clearedWithoutDowned",
-    "condition": "clearWithoutDowned",
-    "textKey": "achievement.clearedWithoutDowned"
   }
 ]

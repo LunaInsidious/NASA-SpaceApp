@@ -106,8 +106,6 @@ let lastActionsKey: string | null = null;
 let collectedIce = false;
 // 氷を取った場所。居住モジュールに持ち帰るまで運んでいる
 let carriedIce: { x: number; z: number } | null = null;
-// この回で倒れたか（実績「一度も倒れずに基地を完成」用。セーブから再開したときは分からないので数えない）
-let downedThisRun = false;
 const achievementStore = createAchievementStore(parseAchievements(achievementsJson));
 const pending: SimCommand[] = [];
 const isTouch = window.matchMedia('(pointer: coarse)').matches;
@@ -303,7 +301,6 @@ function startFrom(next: SimState): void {
   pending.length = 0;
   accumulatedHours = 0;
   collectedIce = false;
-  downedThisRun = false;
   carriedIce = null;
   knownFacilityIds = null;
   knownStars = null;
@@ -676,7 +673,6 @@ function handleEvents(events: GameEvent[]): void {
       // sim が着陸船の近くの居住モジュールに戻している
       world.teleportPlayer(state.player.x, state.player.z);
       indoors = state.player.indoors;
-      downedThisRun = true;
       // 倒れると、運んでいた氷はなくなる
       carriedIce = null;
       applyPlayerMode();
@@ -699,9 +695,6 @@ function handleEvents(events: GameEvent[]): void {
     );
   } else {
     ui.showEvents(events, state, death);
-  }
-  if (events.some((e) => e.type === 'cleared') && !downedThisRun) {
-    earn('clearWithoutDowned');
   }
 }
 
