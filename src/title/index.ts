@@ -51,7 +51,7 @@ const LOGO_SVG = `<svg viewBox="0 0 320 150" aria-hidden="true">
   <circle cx="212" cy="66" r="2" fill="#ff8a5c"/>
 </svg>`;
 
-type View = 'main' | 'continue' | 'settings';
+type View = 'main' | 'continue' | 'settings' | 'cards';
 
 export interface TitleCallbacks {
   /** セーブの一覧（新しい順） */
@@ -60,6 +60,10 @@ export interface TitleCallbacks {
   onContinue(saveId: string): void;
   soundMode(): SoundMode;
   setSoundMode(mode: SoundMode): void;
+  /** 豆知識カードの一覧（HTML） */
+  cardsHtml(): string;
+  /** 豆知識カードの言葉から、ことばじてんを開く */
+  onOpenTerm(term: string): void;
 }
 
 export interface Title {
@@ -101,8 +105,22 @@ export function createTitle(root: HTMLElement, callbacks: TitleCallbacks): Title
         callbacks.onNew();
       }),
       button(t('title.continue'), 'title-button', () => show('continue'), !hasSave),
+      button(t('title.cards'), 'title-button', () => show('cards')),
       button(t('title.settings'), 'title-button', () => show('settings')),
     ];
+  }
+
+  /** 豆知識カードの一覧。言葉のボタンでことばじてんを開く */
+  function cardsView(): HTMLElement[] {
+    const box = document.createElement('div');
+    box.className = 'title-cards';
+    box.innerHTML = callbacks.cardsHtml();
+    box.addEventListener('click', (e) => {
+      if (!(e.target instanceof Element)) return;
+      const term = e.target.closest<HTMLElement>('[data-term]')?.dataset.term;
+      if (term !== undefined) callbacks.onOpenTerm(term);
+    });
+    return [box, button(t('title.back'), 'title-button small', () => show('main'))];
   }
 
   function continueView(): HTMLElement[] {
@@ -186,7 +204,13 @@ export function createTitle(root: HTMLElement, callbacks: TitleCallbacks): Title
     const menu = document.createElement('div');
     menu.className = 'title-menu';
     menu.append(
-      ...(view === 'main' ? mainView() : view === 'continue' ? continueView() : settingsView()),
+      ...(view === 'main'
+        ? mainView()
+        : view === 'continue'
+          ? continueView()
+          : view === 'cards'
+            ? cardsView()
+            : settingsView()),
     );
     // NASA の公式の作品と間違えられないように、ファン作品であることを必ず出す
     const disclaimer = document.createElement('p');

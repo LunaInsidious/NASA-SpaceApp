@@ -162,3 +162,15 @@ body[data-title="open"] .advice-card {
   border-color: #8fb6ff;
   background: #3d7be0;
 }
+
+/* 豆知識カードの一覧（見た目は src/ui/ui.css の .cards と同じ） */
+.title-menu:has(.title-cards) {
+  width: min(760px, 92vw);
+}
+
+.title-cards {
+  max-height: 58vh;
+  padding: 4px 8px;
+  overflow-y: auto;
+  text-align: left;
+}

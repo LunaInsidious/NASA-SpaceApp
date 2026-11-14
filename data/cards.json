@@ -1,0 +1,29 @@
+[
+  {
+    "id": "regolith",
+    "condition": "coverRegolith",
+    "textKey": "card.regolith",
+    "terms": ["regolith"],
+    "photo": null,
+    "source": "NASA: Lunar Dust Effects on Spacesuit Systems: Insights from the Apollo Spacesuits (Christoffersen et al.)",
+    "url": "https://ntrs.nasa.gov/citations/20090015239"
+  },
+  {
+    "id": "radiation",
+    "condition": "shelterDuringFlare",
+    "textKey": "card.radiation",
+    "terms": ["radiation", "flare", "shield"],
+    "photo": "flare",
+    "source": "NASA: Why Space Radiation Matters",
+    "url": "https://www.nasa.gov/missions/analog-field-testing/why-space-radiation-matters/"
+  },
+  {
+    "id": "evaHours",
+    "condition": "firstRest",
+    "textKey": "card.evaHours",
+    "terms": ["tank"],
+    "photo": null,
+    "source": "NASA: Exploration EVA System Concept of Operations Summary for Artemis Phase 1",
+    "url": "https://www.nasa.gov/wp-content/uploads/2020/01/topic_1-_eva_lunar_surface_concept_of_operations.pdf"
+  }
+]

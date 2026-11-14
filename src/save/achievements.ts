@@ -5,6 +5,9 @@ export const ACHIEVEMENT_CONDITIONS = [
   'buildSolarInShadow',
   'shelterDuringFlare',
   'collectIce',
+  // 豆知識カードの条件（docs/SPEC.md ステップ17。実績はない）
+  'coverRegolith',
+  'firstRest',
 ] as const;
 export type AchievementCondition = (typeof ACHIEVEMENT_CONDITIONS)[number];
 

@@ -15,6 +15,8 @@ export interface Help {
   hasRead(): boolean;
   /** 説明した言葉を足す。announce なら、新しく足した言葉をボタンのそばで知らせる */
   learn(terms: readonly HelpTerm[], announce: boolean): void;
+  /** その言葉を開いた状態で、ことばじてんを出す（豆知識カードの言葉から飛ぶ）。まだ覚えていなければ足す */
+  openTerm(term: HelpTerm): void;
 }
 
 function readLearned(): Set<HelpTerm> {
@@ -143,6 +145,20 @@ export function createHelp(
 
   return {
     isOpen: () => open,
+    openTerm(term) {
+      if (!learned.has(term)) {
+        learned.add(term);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify([...learned]));
+        } catch (error) {
+          console.warn('ことばじてんの覚えた言葉を保存できない', error);
+        }
+      }
+      open = true;
+      openTerms.add(term);
+      render();
+      layer.querySelector(`details[data-term="${term}"]`)?.scrollIntoView({ block: 'center' });
+    },
     hasRead: () => read,
     learn(terms, announce) {
       const added = terms.filter((term) => !learned.has(term));

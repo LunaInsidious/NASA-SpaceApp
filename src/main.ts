@@ -2,11 +2,14 @@
 import { Engine } from '@babylonjs/core/Engines/engine';
 import { Scene } from '@babylonjs/core/scene';
 import achievementsJson from '../data/achievements.json';
+import cardsJson from '../data/cards.json';
 import donkiJson from '../data/donki-events.json';
 import missionsJson from '../data/missions.json';
 import nasaImagesJson from '../data/nasa-images.json';
 import tasksJson from '../data/tasks.json';
 import valuesJson from '../data/values.json';
+import { createCardStore, parseCards } from './cards/index.ts';
+import { cardsHtml } from './cards/view.ts';
 import type {
   ActiveEvent,
   DonkiEvent,
@@ -20,6 +23,7 @@ import type {
 } from './contracts/index.ts';
 import { createProceduralEnv } from './env/index.ts';
 import { createHelp } from './help/index.ts';
+import { asHelpTerm } from './help/terms.ts';
 import {
   type AchievementCondition,
   createAchievementStore,
@@ -137,6 +141,9 @@ let dayLog: DayLogEntry[] = [];
 // 休むときに見せた、休む理由（振り返りに「核になる知識の一言」として残す）
 let restReason: (typeof REST_REASONS)[number] | null = null;
 let lastRestKey = '';
+// くんれんの新しい段（インベントリ画面を開いた、マス目で建てた）
+let inventoryOpened = false;
+let gridBuilt = false;
 // 休息の画面で選んだ、次に外に出たときのタスク（選んだ順）と、今日外でこなすタスク
 let selectedTaskIds: string[] = [];
 let todayPlan: PlannedTask[] = [];
@@ -150,6 +157,7 @@ let collectedIce = false;
 // 氷を取った場所。居住モジュールに持ち帰るまで運んでいる
 let carriedIce: { x: number; z: number } | null = null;
 const achievementStore = createAchievementStore(parseAchievements(achievementsJson));
+const cardStore = createCardStore(parseCards(cardsJson, Object.keys(nasaImagesJson)));
 const pending: SimCommand[] = [];
 const isTouch = window.matchMedia('(pointer: coarse)').matches;
 const fx = createFx(document.body);
@@ -167,6 +175,8 @@ const tutorial = createTutorial(
 const title = createTitle(document.body, {
   saves: () => saves.list(),
   onNew: () => tutorial.startNew(),
+  cardsHtml: () => cardsHtml(cardStore.list(), nasaImages),
+  onOpenTerm: (term) => help.openTerm(asHelpTerm(term, '豆知識カード')),
   onContinue: (saveId) => {
     startFrom(saves.load(saveId), true);
     tutorial.startContinue();
@@ -217,6 +227,8 @@ const ui = createUi(
         help.learn(taskDef(taskDefs, chosen.kind).terms, true);
       }
     },
+    cardsHtml: () => cardsHtml(cardStore.list(), nasaImages),
+    onOpenTerm: (term) => help.openTerm(asHelpTerm(term, '豆知識カード')),
     gridCells: (kind, options, centerCol, centerRow) =>
       gridCells(kind, options, centerCol, centerRow),
     onGridBuild: (kind, options, x, z) => {
@@ -225,6 +237,7 @@ const ui = createUi(
       }
       pending.push({ type: 'build', kind, x, z, ...options });
       dayLog.push({ kind: 'build', facility: kind });
+      gridBuilt = true;
       fx.sound('pop');
     },
     iceOffset: () => {
@@ -246,6 +259,8 @@ const ui = createUi(
         // チュートリアルの訓練の警報では実績を取らない（本当のイベントのときだけ）
         if (state.activeEvents.length > 0) {
           earn('shelterDuringFlare');
+        } else {
+          collectCards('shelterDuringFlare');
         }
       }
       tutorial.answerFlare(choice);
@@ -544,6 +559,7 @@ function doAction(action: ContextAction): void {
           dayLog.push({ kind: 'regolith' });
           todayPlan = completeTask(todayPlan, 'regolith', target.id);
           fx.sound('dig');
+          earn('coverRegolith');
         });
       }
       break;
@@ -568,6 +584,7 @@ function startRest(): void {
     return;
   }
   restReason = REST_REASONS[restDays % REST_REASONS.length];
+  earn('firstRest');
   ui.notify(
     `${restReasonText(restReason)} ${tutorial.allowsGoingOutAgain() ? '' : t('rest.next')}`,
     false,
@@ -818,7 +835,17 @@ function confirmBuild(): void {
 }
 
 /** 実績の条件を満たした。初めてならトーストで知らせる */
+/** 豆知識カードの条件を満たした。初めてなら短く知らせる（中身は休息の画面で読む） */
+function collectCards(condition: AchievementCondition): void {
+  for (const card of cardStore.unlock(condition)) {
+    help.learn(card.terms, false);
+    ui.notify(t('cards.got', { title: t(`${card.textKey}.title`) }), false);
+    fx.sound('star');
+  }
+}
+
 function earn(condition: AchievementCondition): void {
+  collectCards(condition);
   const id = achievementStore.unlock(condition);
   if (id !== null) {
     fx.banner(t('fx.achievement', { name: t(`achievement.${id}`) }), 'big');
@@ -937,6 +964,9 @@ function updateTutorial(): void {
     manualSaves: manualSaveCount,
     userPaused: ui.isUserPaused(),
     readDictionary: help.hasRead(),
+    inventoryOpened,
+    gridBuilt,
+    tasksSelected: selectedTaskIds.length + todayPlan.length,
   });
   if (tutorial.takeFlareDrillRequest()) {
     showFlareDrill();
@@ -1203,6 +1233,9 @@ engine.runRenderLoop(() => {
   updateFootSounds();
   const actions = contextActions();
   updateRest();
+  if (ui.isInventoryOpen()) {
+    inventoryOpened = true;
+  }
   ui.setTaskList(todayPlan.map((task) => ({ label: taskLabel(task), done: task.done })));
   const actionsKey = actions.join(',');
   if (actionsKey !== lastActionsKey) {

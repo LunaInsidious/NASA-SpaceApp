@@ -93,6 +93,10 @@ export interface UiCallbacks {
   onGridBuild(kind: FacilityKind, options: BuildOptions, x: number, z: number): void;
   /** 地図を、いちばん近い氷の場所に合わせる（基地から何マスずらすか）。氷がなければ null */
   iceOffset(): { col: number; row: number } | null;
+  /** 豆知識カードの一覧（HTML。休息の画面の「カード」に出す） */
+  cardsHtml(): string;
+  /** 豆知識カードの言葉から、ことばじてんを開く */
+  onOpenTerm(term: string): void;
   /** ミニゲームの音（当たった・外した・できた） */
   onMinigameSound(name: 'hit' | 'miss' | 'success'): void;
   onFlareChoice(choice: 'shelter' | 'continue'): void;
@@ -146,6 +150,8 @@ export interface Ui {
   /** 短いお知らせ（下の真ん中）。bad なら赤い線で出す */
   notify(text: string, bad: boolean): void;
   isMenuOpen(): boolean;
+  /** くわしい様子（インベントリ画面）を見ているか（3D の窓か、休息の画面のページ） */
+  isInventoryOpen(): boolean;
   /** 「一時停止」のボタンで止めているか */
   isUserPaused(): boolean;
   /** 窓（メニュー）のいちばん上に出す、博士の「やること」。null なら出さない */

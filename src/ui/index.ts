@@ -57,7 +57,7 @@ const MENUS = ['build', 'status', 'data'] as const;
 // 休息フェーズの2D画面のタブ（docs/SPEC.md ステップ13）
 // 休息フェーズの2D画面は、タブではなく順に進むページ（何から開くかを選ばなくてよい）。セーブは順の外
 const REST_PAGES = ['review', 'crew', 'launch', 'build', 'tasks', 'plan'] as const;
-const NOTEBOOK_PAGES = [...REST_PAGES, 'save', 'status'] as const;
+const NOTEBOOK_PAGES = [...REST_PAGES, 'save', 'status', 'cards'] as const;
 // インベントリ画面に出す物資
 const INVENTORY_STOCKS = ['oxygen', 'water', 'food', 'spareParts', 'materials'] as const;
 type RestPage = (typeof NOTEBOOK_PAGES)[number];
@@ -1124,6 +1124,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         return saveMenuHtml();
       case 'status':
         return inventoryHtml(current, currentView);
+      case 'cards':
+        return callbacks.cardsHtml();
     }
   };
 
@@ -1169,7 +1171,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     }
     notebookEl.innerHTML = `
       <div class="nb">
-        <div class="nb-head"><b>${t('notebook.title', { day: Math.floor(view.day) + 1 })}</b><span class="nb-head-buttons"><button data-action="nbGo" data-page="status">${t('notebook.statusButton')}</button><button data-action="nbGo" data-page="save">${t('notebook.saveButton')}</button></span></div>
+        <div class="nb-head"><b>${t('notebook.title', { day: Math.floor(view.day) + 1 })}</b><span class="nb-head-buttons"><button data-action="nbGo" data-page="cards">${t('notebook.cardsButton')}</button><button data-action="nbGo" data-page="status">${t('notebook.statusButton')}</button><button data-action="nbGo" data-page="save">${t('notebook.saveButton')}</button></span></div>
         ${guideHtml}
         <nav class="nb-steps">${steps}</nav>
         <section class="nb-page">${restPageHtml(restPage, rest, state, view)}</section>
@@ -1377,6 +1379,14 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         }
         callbacks.onGridBuild(gridKind, optionsFor(gridKind), cell.x, cell.z);
         gridPick = null;
+        break;
+      }
+      case 'openTerm': {
+        const term = target.dataset.term;
+        if (term === undefined) {
+          throw new Error('ui の言葉がない');
+        }
+        callbacks.onOpenTerm(term);
         break;
       }
       case 'taskToggle': {
@@ -1677,6 +1687,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       if (rest !== null || dialogs[0]?.type === 'gameOver') {
         renderModal();
       }
+    },
+    isInventoryOpen() {
+      return menu === 'status' || (rest !== null && restPage === 'status');
     },
     isMenuOpen() {
       return menu !== null || dialogs.length > 0 || closeMinigame !== null;

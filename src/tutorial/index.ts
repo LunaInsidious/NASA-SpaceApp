@@ -22,6 +22,7 @@ export const STEPS = [
   'battery',
   'comm',
   'lifeLine',
+  'inventory',
   'buildHabitat',
   'goInsideWait',
   'order',
@@ -29,11 +30,14 @@ export const STEPS = [
   'waitArrival',
   'arrived',
   'assignCrew',
+  'gridBuild',
+  'chooseTask',
   'toIce',
   'takeIce',
   'goHome',
   'flareDrill',
   'save',
+  'sleepAgain',
   'goOutside',
   'regolith',
   'pause',
@@ -81,6 +85,21 @@ const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
     '[data-action="context"][data-context="nextDay"]',
     '[data-action="nbGo"][data-page="plan"]',
   ],
+  sleepAgain: [
+    '[data-action="context"][data-context="nextDay"]',
+    '[data-action="nbGo"][data-page="plan"]',
+  ],
+  inventory: ['[data-action="menu"][data-menu="status"]'],
+  gridBuild: [
+    '[data-action="gridBuild"]',
+    '.nb-cell.ok',
+    '[data-action="gridKind"][data-kind="solar"]',
+    '[data-action="nbGo"][data-page="build"]',
+  ],
+  chooseTask: [
+    '[data-action="taskToggle"][data-task="ice"]:not(.on)',
+    '[data-action="nbGo"][data-page="tasks"]',
+  ],
   waitArrival: [
     '[data-action="context"][data-context="nextDay"]',
     '[data-action="nbGo"][data-page="plan"]',
@@ -111,14 +130,16 @@ const ORDER_POINTS = [
 const POINTER_GAP_PX = 6;
 const POINTER_SIZE_PX = 44;
 
-/** 画面に見えている要素か（隠れた窓の中のものは指さない） */
+/** 画面に見えている要素（隠れた窓の中のものは指さない） */
 function visibleElement(selector: string): HTMLElement | null {
-  const el = document.querySelector<HTMLElement>(selector);
-  if (el === null || el.getClientRects().length === 0) {
-    return null;
+  // 同じボタンが 3D の画面と休息の画面の両方にあるので、見えているほうを探す（休息の画面の下の 3D のボタンは隠している）
+  for (const el of document.querySelectorAll<HTMLElement>(selector)) {
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0 && el.checkVisibility({ visibilityProperty: true })) {
+      return el;
+    }
   }
-  const rect = el.getBoundingClientRect();
-  return rect.width > 0 && rect.height > 0 ? el : null;
+  return null;
 }
 
 /** その段で、いま押すボタン */
@@ -231,6 +252,12 @@ export interface TutorialProgress {
   placing: FacilityKind | null;
   /** 「翌日へ」を押した回数 */
   restDays: number;
+  /** インベントリ画面（くわしい様子）を開いたか */
+  inventoryOpened: boolean;
+  /** 休息の画面のマス目の地図で建てたか */
+  gridBuilt: boolean;
+  /** 選んだタスクの数（次に外に出るとき・今日の分） */
+  tasksSelected: number;
   indoors: boolean;
   onIce: boolean;
   carryingIce: boolean;
@@ -749,7 +776,14 @@ export function createTutorial(
       case 'goInsideWait':
         return p.indoors;
       case 'nextDay':
+      case 'sleepAgain':
         return stepRest !== null && p.restDays > stepRest;
+      case 'inventory':
+        return p.inventoryOpened;
+      case 'gridBuild':
+        return p.gridBuilt;
+      case 'chooseTask':
+        return p.tasksSelected > 0;
       case 'waitArrival':
         return p.state.launches.length === 0;
       case 'assignCrew':
@@ -870,10 +904,15 @@ export function createTutorial(
       return mode !== 'tutorial' || TIME_STEPS.includes(step());
     },
     allowsNextDay() {
-      return mode !== 'tutorial' || step() === 'nextDay' || step() === 'waitArrival';
+      return (
+        mode !== 'tutorial' ||
+        step() === 'nextDay' ||
+        step() === 'waitArrival' ||
+        step() === 'sleepAgain'
+      );
     },
     allowsGoingOutAgain() {
-      // TODO(人間に確認): くんれんの今の段は、休んだ日にまた外に出る順になっている（例：氷を運んで戻る → 外に出る）。新しいサイクルを教える段はステップ17で足す
+      // くんれんの段は「外 → 中 → 翌日へ → 外」の順に並べてある。早めに中に入ってしまっても外でやる段で詰まらないよう、くんれん中だけはいつでも出られる
       return mode === 'tutorial';
     },
     startNew() {

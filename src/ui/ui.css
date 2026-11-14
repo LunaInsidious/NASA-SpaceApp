@@ -1408,3 +1408,49 @@ body[data-tutorial-step="comm"] .ui-top .ui-status {
 .nb-inv .ui-panel {
   margin: 0;
 }
+
+/* ---- 豆知識カード（docs/SPEC.md ステップ17）。休息の画面とタイトル画面で同じ見た目 ---- */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  padding: 10px 12px;
+  border: 2px solid #ffd27a;
+  border-radius: 12px;
+  background: rgba(40, 32, 12, 0.6);
+}
+
+.card.locked {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.card-title {
+  display: block;
+  margin-bottom: 6px;
+  color: #ffd27a;
+}
+
+.card-terms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.card-term {
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+  padding: 4px 8px;
+  border: 1px solid #8fb6ff;
+  border-radius: 999px;
+  background: rgba(61, 123, 224, 0.25);
+  cursor: pointer;
+}
