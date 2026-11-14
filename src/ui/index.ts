@@ -543,21 +543,47 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const items = FACILITY_KINDS.map((kind) => {
       const cost = buildCost(kind, optionsFor(kind), values);
       const affordable = cost.materials <= current.stocks.materials;
-      const materialChooser =
-        kind === 'shield'
-          ? `<div class="ui-row">${SHIELD_MATERIALS.map(
-              (material) =>
-                `<button data-action="shieldMaterial" data-material="${material}" class="${buildOptions.shieldMaterial === material ? 'on' : ''}">${t(`build.material.${material}`)}</button>`,
-            ).join(
-              '',
-            )}</div><small>${t(`build.materialDesc.${buildOptions.shieldMaterial}`)}</small>`
-          : '';
+      if (kind === 'shield') {
+        // 遮蔽の壁は、材料（レゴリスか水）を選んでから建てる。選ぶところを壁の枠の中にまとめる
+        const shield = values.facilities.shield;
+        const options = SHIELD_MATERIALS.map((material) => {
+          const materialCost = buildCost(
+            kind,
+            { ...optionsFor(kind), shieldMaterial: material },
+            values,
+          );
+          const need =
+            material === 'water'
+              ? t('build.materialNeed.water', {
+                  materials: fmt(materialCost.materials),
+                  water: fmt(shield.waterKg.value),
+                })
+              : t('build.cost', { materials: fmt(materialCost.materials) });
+          const protection =
+            material === 'water' ? shield.waterProtection.value : shield.regolithProtection.value;
+          return `<button class="ui-material ${buildOptions.shieldMaterial === material ? 'on' : ''}" data-action="shieldMaterial" data-material="${material}">
+            <b>${t(`build.material.${material}`)}</b>
+            <span>${need}</span>
+            <span class="ui-ok">${t('build.materialProtect', { pct: fmt(protection * PERCENT) })}</span>
+          </button>`;
+        }).join('');
+        return `<li class="ui-shield-card">
+          <button class="ui-item ${affordable ? '' : 'dim'}" data-action="buildSelect" data-kind="${kind}">
+            <b>${t('build.shieldWith', { material: t(`build.material.${buildOptions.shieldMaterial}`) })}</b> — ${t('build.cost', { materials: fmt(cost.materials) })}
+            <small>${t(`facilityDesc.${kind}`)}</small>
+          </button>
+          <div class="ui-material-pick">
+            <div class="ui-material-title">${t('build.materialPick')}</div>
+            <div class="ui-material-options">${options}</div>
+            <small>${t(`build.materialDesc.${buildOptions.shieldMaterial}`)}</small>
+          </div>
+        </li>`;
+      }
       return `<li>
         <button class="ui-item ${affordable ? '' : 'dim'}" data-action="buildSelect" data-kind="${kind}">
           <b>${t(`facility.${kind}`)}</b> — ${t('build.cost', { materials: fmt(cost.materials) })}
           <small>${t(`facilityDesc.${kind}`)}</small>
         </button>
-        ${materialChooser}
       </li>`;
     }).join('');
     return `
