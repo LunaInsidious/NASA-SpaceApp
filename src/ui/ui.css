@@ -827,3 +827,17 @@
   width: 44px;
   height: 52px;
 }
+
+/* 窓の下の「閉じる」：窓の中の操作（再開、ここに保存など）と分けて、線で区切った横いっぱいのボタンにする */
+.ui-close-row {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.ui-root .ui-close-row button {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  font-weight: 700;
+}

@@ -64,6 +64,8 @@ export interface TitleCallbacks {
 
 export interface Title {
   isOpen(): boolean;
+  /** ゲームの途中からタイトル画面に戻る */
+  show(): void;
 }
 
 export function createTitle(root: HTMLElement, callbacks: TitleCallbacks): Title {
@@ -192,5 +194,12 @@ export function createTitle(root: HTMLElement, callbacks: TitleCallbacks): Title
   onLangChange(render);
   render();
 
-  return { isOpen: () => open };
+  return {
+    isOpen: () => open,
+    show() {
+      open = true;
+      view = 'main';
+      render();
+    },
+  };
 }

@@ -126,12 +126,6 @@
   font-weight: 700;
 }
 
-.tutorial-modal .danger {
-  background: #b9473c;
-  border: none;
-  font-weight: 700;
-}
-
 /* アクシデントのカード（案内の下） */
 .advice-card {
   position: fixed;

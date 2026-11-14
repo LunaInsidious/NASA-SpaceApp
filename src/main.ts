@@ -181,7 +181,16 @@ const ui = createUi(
     onRestart: () => {
       startFrom(createInitialState(values, env, env.landerPosition));
     },
-    onRequestRestart: () => tutorial.confirmRestart(),
+    onBackToTitle: () => {
+      // タイトルの「つづきから」でここから続けられるよう、戻る前に自動でセーブする
+      if (state.phase !== 'gameOver') {
+        saves.autoSave(state);
+        ui.setSaves(saves.list());
+      }
+      cancelBuild();
+      tutorial.toTitle();
+      title.show();
+    },
     onSave: (slot) => {
       saves.manualSave(state, slot);
       manualSaveCount++;

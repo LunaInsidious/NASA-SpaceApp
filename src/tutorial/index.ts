@@ -250,8 +250,8 @@ export interface Tutorial {
   takeFlareDrillRequest(): boolean;
   /** 太陽フレアの警報で選んだこと */
   answerFlare(choice: 'shelter' | 'continue'): void;
-  /** 「ゲームを さいしょから やりなおす」（セーブの窓のボタン）。本当にやり直すかを確かめる窓を出す */
-  confirmRestart(): void;
+  /** タイトル画面に戻るとき：吹き出しも窓も出さずに待つ */
+  toTitle(): void;
   /** いまゲームの時間を進めてよいか（くんれん中は、時間が要る段だけ進める） */
   timeRuns(): boolean;
   /** いまの「やること」（くんれんの段かミッション）。窓の中にも出す。なければ null */
@@ -263,14 +263,7 @@ export interface Tutorial {
 }
 
 // title：タイトル画面で「はじめから」か「つづきから」を選ぶのを待っている（何も出さない）
-type Mode =
-  | 'title'
-  | 'ask'
-  | 'tutorial'
-  | 'finishedModal'
-  | 'missions'
-  | 'confirmRestart'
-  | 'failed';
+type Mode = 'title' | 'ask' | 'tutorial' | 'finishedModal' | 'missions' | 'failed';
 
 export function createTutorial(
   root: HTMLElement,
@@ -296,8 +289,6 @@ export function createTutorial(
   let dataOpened = false;
   let missionIndex = 0;
   let lastProgress: TutorialProgress | null = null;
-  // 「さいしょから」の確かめで「やめる」を選んだときに戻る先
-  let previousMode: Mode = mode;
 
   const panel = document.createElement('div');
   panel.className = 'tutorial';
@@ -468,17 +459,6 @@ export function createTutorial(
         ?.insertAdjacentHTML('afterend', deathAdviceHtml(failedAdvice));
       return;
     }
-    if (mode === 'confirmRestart') {
-      panel.hidden = true;
-      showModal('restart.title', 'restart.body', [
-        button(t('restart.yes'), 'tutorial-big danger', restart),
-        button(t('restart.no'), 'tutorial-big', () => {
-          mode = previousMode;
-          render();
-        }),
-      ]);
-      return;
-    }
     if (mode === 'finishedModal') {
       panel.hidden = true;
       showModal('tutorial.finished.title', 'tutorial.finished.body', [
@@ -559,12 +539,6 @@ export function createTutorial(
     render();
   }
 
-  function confirmRestart(): void {
-    previousMode = mode;
-    mode = 'confirmRestart';
-    render();
-  }
-
   let failedReason = '';
   let failedAdvice: DeathAdvice | null = null;
 
@@ -594,11 +568,6 @@ export function createTutorial(
     card.append(title, list, close);
     modal.replaceChildren(card);
     modal.hidden = false;
-  }
-
-  /** 新しいゲームにして、「あそんだことがある？」から始める */
-  function restart(): void {
-    resetTo('ask');
   }
 
   function resetTo(next: Mode): void {
@@ -859,7 +828,12 @@ export function createTutorial(
 
   return {
     update,
-    confirmRestart,
+    toTitle() {
+      // タイトル画面に戻るときは、吹き出しも窓も出さない
+      mode = 'title';
+      rereading = false;
+      render();
+    },
     currentInstruction() {
       if (mode === 'tutorial') {
         return t(`tutorial.step.${step()}.${variant}`);
@@ -894,13 +868,7 @@ export function createTutorial(
       }
     },
     isBlocking() {
-      return (
-        rereading ||
-        mode === 'ask' ||
-        mode === 'finishedModal' ||
-        mode === 'confirmRestart' ||
-        mode === 'failed'
-      );
+      return rereading || mode === 'ask' || mode === 'finishedModal' || mode === 'failed';
     },
     isTutorial() {
       return mode === 'tutorial';

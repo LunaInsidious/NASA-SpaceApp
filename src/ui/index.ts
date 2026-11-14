@@ -571,7 +571,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       )}</button>
       <small>${t('build.dustCoverDesc')}</small>
       <ul class="ui-list">${items}</ul>
-      <div class="ui-actions"><button data-action="closeMenu">${t('button.close')}</button></div>`;
+      <div class="ui-close-row"><button data-action="closeMenu">${t('button.close')}</button></div>`;
   };
 
   const launchMenuHtml = (current: SimView) => {
@@ -634,8 +634,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       ${reasons.map((reason) => `<div class="ui-small ui-bad">${reason}</div>`).join('')}
       <div class="ui-actions">
         <button data-action="order" class="primary" ${canOrder ? '' : 'disabled'}>${t('launch.order')}</button>
-        <button data-action="closeMenu">${t('button.close')}</button>
-      </div>`;
+      </div>
+      <div class="ui-close-row"><button data-action="closeMenu">${t('button.close')}</button></div>`;
   };
 
   const crewMenuHtml = (current: SimState, currentView: SimView) => {
@@ -663,7 +663,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <p>${t('crew.beds', { count: currentView.crew.count, capacity: currentView.crew.capacity })}</p>
       <ul class="ui-list">${rows}</ul>
       ${descriptions}
-      <div class="ui-actions"><button data-action="closeMenu">${t('button.close')}</button></div>`;
+      <div class="ui-close-row"><button data-action="closeMenu">${t('button.close')}</button></div>`;
   };
 
   /** 嵐の残りの時間を、ゲームの中の時間と、今の速さでの本当の秒数で */
@@ -785,8 +785,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <ul class="ui-list">${slots}</ul>
       <h3>${t('save.listTitle')}</h3>
       ${saveListHtml()}
-      <div class="ui-actions"><button data-action="closeMenu">${t('button.close')}</button></div>
-      <div class="ui-restart-row"><button data-action="requestRestart">${t('restart.button')}</button></div>`;
+      <div class="ui-close-row"><button data-action="closeMenu">${t('button.close')}</button></div>
+      <div class="ui-restart-row"><button data-action="backToTitle">${t('save.backToTitle')}</button></div>`;
   };
 
   // ---- データ出典 ----
@@ -819,7 +819,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       ${sources === '' ? `<p class="ui-small">${t('data.valuesPending')}</p>` : `<ul class="ui-list">${sources}</ul>`}
       <h3>${t('data.terrainTitle')}</h3>
       <p class="ui-small">${t('data.terrain')}</p>
-      <div class="ui-actions"><button data-action="closeMenu">${t('button.close')}</button></div>`;
+      <div class="ui-close-row"><button data-action="closeMenu">${t('button.close')}</button></div>`;
   };
 
   // 窓のいちばん上に出す博士の「やること」（main が毎フレーム渡す）
@@ -1009,11 +1009,12 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       case 'dialogOk':
         closeTopDialog();
         break;
-      case 'requestRestart':
+      case 'backToTitle':
+        dialogs.length = 0;
         menu = null;
         renderModal();
         updatePause();
-        callbacks.onRequestRestart();
+        callbacks.onBackToTitle();
         break;
       case 'restart':
         dialogs.length = 0;
