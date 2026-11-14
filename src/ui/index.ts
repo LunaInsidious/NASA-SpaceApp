@@ -656,20 +656,21 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         ? t('launch.itemAmount', { name: t(`launchItem.${kind}`), step: fmt(step) })
         : t(`launchItem.${kind}`);
       const costText = t('launch.stepCostOne', { cost: fmt(stepCost) });
-      const desc =
-        kind === 'materials' || kind === 'crew' || kind === 'relaySatellite'
-          ? `<small>${t(`launchItemDesc.${kind}`)}</small>`
-          : '';
+      // 何に使うかは「？」にのせる（マウスを重ねるか、タップして出す）
+      const why = `<button type="button" class="ui-why" aria-label="${tPlain('launch.whyLabel')}">?</button><span class="ui-why-tip" role="tooltip">${t(`launchItemWhy.${kind}`)}</span>`;
       const noRoom = kind === 'crew' && crewRoom <= 0;
       const roomNote =
         kind === 'crew'
           ? `<small class="${noRoom ? 'ui-bad' : 'ui-ok'}">${noRoom ? t('launch.crewNoRoom') : t('launch.crewRoom', { count: crewRoom })}</small>`
           : '';
-      return `<li>
-        <span class="ui-grow"><b>${nameText}</b> <span class="ui-small ui-cost">${costText}</span>${desc}${roomNote}</span>
-        <button data-action="cart" data-kind="${kind}" data-delta="-1">−</button>
-        <span class="ui-qty">${cart[kind]}</span>
-        <button data-action="cart" data-kind="${kind}" data-delta="1" ${noRoom ? 'disabled' : ''}>＋</button>
+      // 名前と −/＋ を1つのわくに入れ、どの数を増やすのかが分かるようにする
+      return `<li class="ui-supply-row${cart[kind] > 0 ? ' picked' : ''}">
+        <span class="ui-grow"><b>${nameText}</b>${why} <span class="ui-small ui-cost">${costText}</span>${roomNote}</span>
+        <span class="ui-stepper">
+          <button data-action="cart" data-kind="${kind}" data-delta="-1" aria-label="${tPlain(`launchItem.${kind}`)} −">−</button>
+          <span class="ui-qty">${cart[kind]}</span>
+          <button data-action="cart" data-kind="${kind}" data-delta="1" aria-label="${tPlain(`launchItem.${kind}`)} ＋" ${noRoom ? 'disabled' : ''}>＋</button>
+        </span>
       </li>`;
     }).join('');
     const meterRatio = capacity > 0 ? Math.min(1, used / capacity) : 1;

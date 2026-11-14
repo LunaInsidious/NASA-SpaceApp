@@ -880,3 +880,64 @@
   margin-left: 4px;
   opacity: 0.85;
 }
+
+/* 補給の窓：名前と −/＋ を1つのわくに入れ、どの数を増やすのかを分かりやすくする */
+.ui-list li.ui-supply-row {
+  position: relative;
+  flex-wrap: nowrap;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ui-list li.ui-supply-row.picked {
+  border-color: #6fd08c;
+  background: rgba(111, 208, 140, 0.12);
+}
+
+.ui-stepper {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 「？」：マウスを重ねるか、タップすると、何に使うかが出る */
+.ui-root button.ui-why {
+  min-width: 0;
+  min-height: 0;
+  width: 22px;
+  height: 22px;
+  margin-left: 6px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 13px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.ui-why-tip {
+  display: none;
+  position: absolute;
+  z-index: 2;
+  top: 100%;
+  left: 8px;
+  right: 8px;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid #8fb6ff;
+  border-radius: 8px;
+  background: #142033;
+  color: #e8f0ff;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: normal;
+}
+
+.ui-why:hover + .ui-why-tip,
+.ui-why:focus-visible + .ui-why-tip,
+.ui-why:focus + .ui-why-tip {
+  display: block;
+}
