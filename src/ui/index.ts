@@ -444,11 +444,17 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const capacity = current.launch.capacity;
     const over = used > capacity;
     const reasons: string[] = [];
+    // 今は注文できない理由（通信、次のロケット待ち）は、開いてすぐ見えるよう上に出す
+    const blockers: string[] = [];
     if (!current.comm.linked) {
-      reasons.push(t('launch.noLink'));
+      if (state === null) {
+        throw new Error('ui: state がないのに打ち上げメニューを描こうとした');
+      }
+      // できなかった理由から、やることまでを1本のつながりで見せる
+      blockers.push(t(`launch.noLinkChain.${commLostReason(state, current)}`));
     }
     if (current.launch.hoursUntilNext > 0) {
-      reasons.push(
+      blockers.push(
         t('launch.notYet', { days: fmt(current.launch.hoursUntilNext / HOURS_PER_DAY, 1) }),
       );
     }
@@ -489,6 +495,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       .join('');
     return `
       <h2>${t('launch.title')}</h2>
+      ${blockers.length > 0 ? `<div class="ui-blocker">${blockers.map((b) => `<div>${b}</div>`).join('')}</div>` : ''}
       <p class="ui-small">${t('launch.intro')}</p>
       <div class="ui-meter"><div class="${over ? 'over' : ''}" style="width:${fmt(meterRatio * PERCENT)}%"></div></div>
       <div>${t('launch.meter', { used: fmt(used), capacity: fmt(capacity) })}</div>

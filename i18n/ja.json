@@ -92,7 +92,7 @@
   "build.warn": "建てられるが：{reason}",
   "build.blocked": "ここには建てられない：{reason}",
   "placement.needsShadow": "暗くて凍った場所にしか置けない",
-  "placement.notEnoughMaterials": "資材が足りない",
+  "placement.notEnoughMaterials": "資材が たりない → 地球に「建設の資材」を ちゅうもんしよう（「打ち上げ」）",
   "placement.tooClose": "ほかの建物に近すぎる",
   "placement.noSunlight": "影の中なので、今は発電しない",
   "placement.noEarth": "ここからは地球が見えない",
@@ -103,8 +103,7 @@
   "launch.unitCost": "1つ {cost}",
   "launch.kitKind": "キットの施設",
   "launch.overCapacity": "1回のロケットに載りきらない。",
-  "launch.noLink": "地球と通信できないので、注文を送れない。",
-  "launch.notYet": "次のロケットまであと{days}日。",
+  "launch.notYet": "つぎの ロケットまで あと {days}日 → まとう（きょじゅう モジュールの 中で「4×」を おすと はやく なるよ）。",
   "launch.ready": "ロケットの準備ができている。",
   "launch.delivery": "注文してから{days}日で届く。",
   "launch.inFlight": "輸送中：あと{days}日で届く",
@@ -319,5 +318,9 @@
   "commHint.noAntenna": "→ アンテナが ない。「建設」で アンテナを たてよう。",
   "commHint.noPower": "→ アンテナに でんきが ない。太陽電池（と 蓄電池）を たてよう。",
   "commHint.earthDown": "→ 地球が 地へいせんの 下に しずんでいる。のぼるまで まとう。話せるときに「中継衛星」を たのむと いつでも 話せるよ。",
-  "commHint.blocked": "→ アンテナから 地球が 見えない（おかが じゃま）。地球が 見える ばしょに アンテナを たてよう。"
+  "commHint.blocked": "→ アンテナから 地球が 見えない（おかが じゃま）。地球が 見える ばしょに アンテナを たてよう。",
+  "launch.noLinkChain.noPower": "注文を おくるには 地球と 話す ひつようが ある → アンテナに でんきが ない → 太陽電池を たてよう（「建設」）。",
+  "launch.noLinkChain.earthDown": "注文を おくるには 地球と 話す ひつようが ある → いまは 地球が しずんでいる → のぼるまで まとう（中継衛星が あれば いつでも 話せる）。",
+  "launch.noLinkChain.blocked": "注文を おくるには 地球と 話す ひつようが ある → アンテナから 地球が 見えない → 地球が 見える ばしょに アンテナを たてよう。",
+  "launch.noLinkChain.noAntenna": "注文を おくるには 地球と 話す ひつようが ある → アンテナが ない → 「建設」で アンテナを たてよう。"
 }

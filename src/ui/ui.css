@@ -399,3 +399,14 @@
   color: #ffd27a;
   white-space: normal;
 }
+
+/* 今は注文できない理由と、やること（メニューの上） */
+.ui-blocker {
+  margin: 6px 0 8px;
+  padding: 8px 10px;
+  border: 2px solid #ff8a5c;
+  border-radius: 8px;
+  background: rgba(60, 20, 10, 0.6);
+  color: #ffd2c0;
+  font-weight: 700;
+}

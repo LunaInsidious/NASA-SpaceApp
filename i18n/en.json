@@ -92,7 +92,7 @@
   "build.warn": "You can build here, but: {reason}",
   "build.blocked": "Can't build here: {reason}",
   "placement.needsShadow": "it must sit in a dark, frozen spot",
-  "placement.notEnoughMaterials": "not enough materials",
+  "placement.notEnoughMaterials": "not enough materials → order Building materials from Earth (Launch)",
   "placement.tooClose": "too close to another building",
   "placement.noSunlight": "it is in shadow, so it won't make power now",
   "placement.noEarth": "Earth can't be seen from here",
@@ -103,8 +103,7 @@
   "launch.unitCost": "{cost} each",
   "launch.kitKind": "Kit for",
   "launch.overCapacity": "Too much for one rocket.",
-  "launch.noLink": "No contact with Earth, so the order can't be sent.",
-  "launch.notYet": "Next rocket in {days} days.",
+  "launch.notYet": "The next rocket leaves in {days} days → wait (press 4× inside the habitat to make time go faster).",
   "launch.ready": "A rocket is ready to fly.",
   "launch.delivery": "It arrives {days} days after you order.",
   "launch.inFlight": "On the way: arrives in {days} days",
@@ -319,5 +318,9 @@
   "commHint.noAntenna": "→ No antenna. Build an Antenna.",
   "commHint.noPower": "→ The antenna has no electricity. Build Solar Panels (and a Battery).",
   "commHint.earthDown": "→ Earth is below the horizon. Wait until it rises, or order a Relay satellite while you can talk.",
-  "commHint.blocked": "→ The antenna cannot see Earth (a hill is in the way). Build an antenna where Earth is visible."
+  "commHint.blocked": "→ The antenna cannot see Earth (a hill is in the way). Build an antenna where Earth is visible.",
+  "launch.noLinkChain.noPower": "To send an order you must talk to Earth → the antenna has no electricity → build Solar Panels (Build).",
+  "launch.noLinkChain.earthDown": "To send an order you must talk to Earth → Earth is below the horizon now → wait until it rises (a Relay satellite lets you talk any time).",
+  "launch.noLinkChain.blocked": "To send an order you must talk to Earth → the antenna cannot see Earth → build an Antenna where Earth is visible.",
+  "launch.noLinkChain.noAntenna": "To send an order you must talk to Earth → there is no antenna → build an Antenna (Build)."
 }
