@@ -46,10 +46,11 @@
 
 @media (max-width: 640px) {
   .tutorial {
-    top: auto;
-    bottom: 170px;
+    top: 150px;
+    right: 8px;
     transform: none;
-    max-width: 200px;
-    font-size: 12px;
+    max-width: 180px;
+    padding: 6px 8px;
+    font-size: 11px;
   }
 }

@@ -357,6 +357,11 @@
   .ui-panel {
     padding: 6px 8px;
   }
+
+  /* 左下の仮想パッドに重ならないよう、ボタンの列はパッドの右側で折り返す */
+  .ui-buttons {
+    max-width: calc(100vw - 170px);
+  }
 }
 
 .ui-modal h3 {

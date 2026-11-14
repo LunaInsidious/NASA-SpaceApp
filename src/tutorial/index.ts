@@ -24,6 +24,7 @@ export function createTutorial(root: HTMLElement): Tutorial {
   const panel = document.createElement('div');
   panel.className = 'tutorial';
   root.append(panel);
+  const narrowScreen = window.matchMedia('(max-width: 640px)');
 
   function render(): void {
     panel.hidden = skipped;
@@ -32,7 +33,9 @@ export function createTutorial(root: HTMLElement): Tutorial {
     title.className = 'tutorial-title';
     title.textContent = t('tutorial.title');
     const list = document.createElement('ul');
-    for (const goal of GOALS) {
+    // 狭い画面では、まだ終わっていない最初の目標だけを出す
+    const shown = narrowScreen.matches ? GOALS.filter((g) => !done.has(g)).slice(0, 1) : GOALS;
+    for (const goal of shown) {
       const item = document.createElement('li');
       item.className = done.has(goal) ? 'tutorial-done' : '';
       item.textContent = `${done.has(goal) ? '✓' : '・'} ${t(`tutorial.${goal}`)}`;
@@ -52,6 +55,7 @@ export function createTutorial(root: HTMLElement): Tutorial {
   }
 
   onLangChange(render);
+  narrowScreen.addEventListener('change', render);
   render();
 
   return {
