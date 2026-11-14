@@ -295,8 +295,21 @@ export function createTutorial(
         ? 'tutorial.step.flareDrillRetry'
         : `tutorial.step.${step()}.${variant}`;
     text.textContent = t(key);
+    // 小学生が指示の意味を分かって進めるよう、「どうして？」（理由と新しい言葉の意味）を先に出す
+    const whyLabel = document.createElement('div');
+    whyLabel.className = 'tutorial-label';
+    whyLabel.textContent = t('tutorial.whyLabel');
+    const why = document.createElement('p');
+    why.className = 'tutorial-why';
+    why.textContent = t(`tutorial.why.${step()}`);
+    const doLabel = document.createElement('div');
+    doLabel.className = 'tutorial-label';
+    doLabel.textContent = t('tutorial.doLabel');
     const parts: HTMLElement[] = [
       header(t('tutorial.title'), t('tutorial.progress', { n: index + 1, total: STEPS.length })),
+      whyLabel,
+      why,
+      doLabel,
       text,
     ];
     if (ACK_STEPS.includes(step())) {

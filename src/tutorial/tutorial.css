@@ -244,3 +244,16 @@ body[data-advice="broken"] [data-action="context"][data-context="repair"] {
     font-size: 13px;
   }
 }
+
+/* 「どうして？」と「やること」の見出し */
+.tutorial-label {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #9fd3ff;
+}
+
+.tutorial-why {
+  margin: 2px 0 4px;
+  color: #dbe6f5;
+}
