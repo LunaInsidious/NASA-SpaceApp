@@ -234,6 +234,10 @@ export function createTutorial(
   }
 
   function render(): void {
+    if (rereading) {
+      renderReread();
+      return;
+    }
     modal.hidden = true;
     panel.hidden = false;
     reopen.hidden = true;
@@ -298,9 +302,24 @@ export function createTutorial(
     const progress = document.createElement('span');
     progress.className = 'tutorial-progress';
     progress.textContent = progressText;
-    const restart = button(t('restart.button'), 'tutorial-restart', confirmRestart);
-    head.append(title, progress, restart);
+    // 説明を読み直すだけ（ゲームは進めも戻しもしない）
+    const reread = button(t('tutorial.reread'), 'tutorial-restart', openReread);
+    head.append(title, progress, reread);
     return head;
+  }
+
+  /** ゲーム全体を最初からやり直すボタン。読み直しと間違えないよう、窓のいちばん下に分けて置く */
+  function restartRow(): HTMLElement {
+    const row = document.createElement('div');
+    row.className = 'tutorial-restart-row';
+    row.append(button(t('restart.button'), 'tutorial-restart', confirmRestart));
+    return row;
+  }
+
+  /** これまでの「どうして？」と「やること」を1段目から並べて見せる。ミッション中は全部の段 */
+  function openReread(): void {
+    rereading = true;
+    render();
   }
 
   function confirmRestart(): void {
@@ -310,6 +329,34 @@ export function createTutorial(
   }
 
   let failedReason = '';
+
+  let rereading = false;
+
+  function renderReread(): void {
+    const last = mode === 'tutorial' ? index : STEPS.length - 1;
+    const card = document.createElement('div');
+    card.className = 'tutorial-modal tutorial-reread';
+    const title = document.createElement('h2');
+    title.textContent = t('tutorial.rereadTitle');
+    const list = document.createElement('ol');
+    for (const s of STEPS.slice(0, last + 1)) {
+      const item = document.createElement('li');
+      const why = document.createElement('p');
+      why.className = 'tutorial-why';
+      why.textContent = t(`tutorial.why.${s}`);
+      const what = document.createElement('p');
+      what.textContent = t(`tutorial.step.${s}.${variant}`);
+      item.append(why, what);
+      list.append(item);
+    }
+    const close = button(t('tutorial.rereadClose'), 'tutorial-big primary', () => {
+      rereading = false;
+      render();
+    });
+    card.append(title, list, close);
+    modal.replaceChildren(card);
+    modal.hidden = false;
+  }
 
   /** 新しいゲームにして、「あそんだことがある？」から始める */
   function restart(): void {
@@ -362,6 +409,7 @@ export function createTutorial(
       row.append(button(t('tutorial.ok'), 'tutorial-ok', advance));
       parts.push(row);
     }
+    parts.push(restartRow());
     panel.replaceChildren(...parts);
   }
 
@@ -392,6 +440,7 @@ export function createTutorial(
       );
       parts.push(row);
     }
+    parts.push(restartRow());
     panel.replaceChildren(...parts);
   }
 
@@ -544,7 +593,11 @@ export function createTutorial(
     },
     isBlocking() {
       return (
-        mode === 'ask' || mode === 'finishedModal' || mode === 'confirmRestart' || mode === 'failed'
+        rereading ||
+        mode === 'ask' ||
+        mode === 'finishedModal' ||
+        mode === 'confirmRestart' ||
+        mode === 'failed'
       );
     },
     isTutorial() {

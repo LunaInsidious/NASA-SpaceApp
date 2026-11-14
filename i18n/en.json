@@ -270,7 +270,7 @@
   "advice.open.build": "Open Build",
   "advice.open.launch": "Open Launch",
   "advice.open.crew": "Open Crew",
-  "restart.button": "Start over",
+  "restart.button": "🔄 Start the whole game over",
   "restart.title": "Start over from the beginning?",
   "restart.body": "Your current base will be gone. Your saves stay, so you can still resume them later.",
   "restart.yes": "Start over",
@@ -336,5 +336,8 @@
   "fx.iceWater": "Ice became water! +{kg} kg",
   "fx.achievement": "Achievement! {name}",
   "fx.arrived": "The rocket has arrived!",
-  "mission.closePanel": "Close this panel"
+  "mission.closePanel": "Close this panel",
+  "tutorial.reread": "📖 Read the explanations again",
+  "tutorial.rereadTitle": "Explanations so far",
+  "tutorial.rereadClose": "Back to the game"
 }

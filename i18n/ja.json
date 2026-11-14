@@ -270,7 +270,7 @@
   "advice.open.build": "「建設」を ひらく",
   "advice.open.launch": "「打ち上げ」を ひらく",
   "advice.open.crew": "「隊員」を ひらく",
-  "restart.button": "さいしょから",
+  "restart.button": "🔄 ゲームを さいしょから やりなおす",
   "restart.title": "さいしょから やりなおす？",
   "restart.body": "いまの きちは なくなるよ。セーブは のこるので、あとで つづきから あそべるよ。",
   "restart.yes": "やりなおす",
@@ -336,5 +336,8 @@
   "fx.iceWater": "こおりが 水に なった！ ＋{kg} kg",
   "fx.achievement": "じっせき ゲット！ {name}",
   "fx.arrived": "ロケット とうちゃく！",
-  "mission.closePanel": "この パネルを とじる"
+  "mission.closePanel": "この パネルを とじる",
+  "tutorial.reread": "📖 せつめいを よみなおす",
+  "tutorial.rereadTitle": "これまでの せつめい",
+  "tutorial.rereadClose": "ゲームに もどる"
 }

@@ -388,3 +388,29 @@ body[data-tutorial-step="comm"] .ui-status::before {
 .tutorial-reopen[hidden] {
   display: none;
 }
+
+/* 説明の読み直し（読むだけ） */
+.tutorial-reread {
+  max-height: 80vh;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.tutorial-reread ol {
+  padding-left: 1.4em;
+}
+
+.tutorial-reread li + li {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* ゲーム全体のやり直しは、窓のいちばん下に小さく分けて置く */
+.tutorial-restart-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
