@@ -20,7 +20,8 @@
     "gravity": {
       "value": 1.62,
       "unit": "m/s^2",
-      "source": "TBD"
+      "source": "NASA Moon Fact Sheet",
+      "url": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html"
     },
     "sunElevationDeg": {
       "value": 1.5,
@@ -28,14 +29,16 @@
       "source": "TBD"
     },
     "sunPeriodDays": {
-      "value": 29.5,
+      "value": 29.53,
       "unit": "day",
-      "source": "docs/SPEC.md 時間"
+      "source": "NASA Moon Fact Sheet（synodic period）",
+      "url": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html"
     },
     "commDelaySec": {
-      "value": 1.3,
+      "value": 1.28,
       "unit": "s",
-      "source": "TBD"
+      "source": "NASA Moon Fact Sheet（semimajor axis 384,400 km ÷ 光の速さ）",
+      "url": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html"
     },
     "radiationMsvPerDay": {
       "value": 1.4,

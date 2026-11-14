@@ -93,6 +93,76 @@ function pick<T extends string>(value: string | undefined, allowed: readonly T[]
   return found;
 }
 
+// 「?」で出典を見せる数値（HUD の項目ごと）
+const SOURCE_KEYS = {
+  tank: ['player.tankDurationHours'],
+  lifeSupport: [
+    'crew.oxygenKgPerDay',
+    'crew.waterKgPerDay',
+    'crew.foodKgPerDay',
+    'facilities.lifeSupport.oxygenKgPerDay',
+  ],
+  power: [
+    'facilities.solar.generationKw',
+    'facilities.battery.capacityKwh',
+    'facilities.habitat.powerKw',
+    'moon.sunPeriodDays',
+  ],
+  shielding: [
+    'moon.radiationMsvPerDay',
+    'crew.doseLimitMsv',
+    'facilities.habitat.indoorProtection',
+    'events.flareMultiplierX',
+  ],
+  development: ['development.clearThreshold', 'development.scalePerCrew'],
+  comm: ['comm.earthPeriodDays', 'moon.commDelaySec'],
+  flare: [
+    'events.flareMultiplierM',
+    'events.flareMultiplierX',
+    'events.sepMultiplier',
+    'events.flareDurationHours',
+    'moon.radiationMsvPerDay',
+  ],
+} as const;
+type SourceSection = keyof typeof SOURCE_KEYS;
+const SOURCE_SECTIONS = Object.keys(SOURCE_KEYS) as SourceSection[];
+
+interface ValueEntryLike {
+  value: number;
+  unit: string;
+  source: string;
+  url?: string;
+}
+
+/** values の中の "a.b.c" の値。なければ作りの誤りなので例外 */
+function valueAt(values: Values, path: string): ValueEntryLike {
+  let node: unknown = values;
+  for (const part of path.split('.')) {
+    if (typeof node !== 'object' || node === null || !(part in node)) {
+      throw new Error(`values に ${path} がない`);
+    }
+    node = (node as Record<string, unknown>)[part];
+  }
+  return node as ValueEntryLike;
+}
+
+/** 「?」の中身：数値と、その出典（リンクつき）。出典が決まっていなければそう書く */
+function sourcePopover(values: Values, section: SourceSection): string {
+  const rows = SOURCE_KEYS[section].map((path) => {
+    const entry = valueAt(values, path);
+    const source =
+      entry.source === 'TBD'
+        ? `<span class="ui-src-tbd">${t('source.tbd')}</span>`
+        : entry.source.startsWith('docs/SPEC.md')
+          ? t('source.gameDesign')
+          : entry.url !== undefined
+            ? `<a href="${esc(entry.url)}" target="_blank" rel="noopener noreferrer">${esc(entry.source)}</a>`
+            : esc(entry.source);
+    return `<li><b>${t(`valueName.${path}`)}</b>：${esc(String(entry.value))} ${esc(entry.unit)}<br><span class="ui-small">${t('source.label')} ${source}</span></li>`;
+  });
+  return `<div class="ui-src-pop"><div class="ui-src-title">${t('source.title')}</div><ul>${rows.join('')}</ul></div>`;
+}
+
 /** 地球と話せない理由。理由ごとに「やること」が違うので分けて見せる */
 function commLostReason(
   state: SimState,
@@ -268,7 +338,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     statusEl.hidden = false;
     const lines = [
       `<div>${t('hud.day', { day: Math.floor(view.day) + 1 })} · ${t(state.player.indoors ? 'hud.indoors' : 'hud.outdoors')}</div>`,
-      `<div class="${view.comm.linked ? 'ui-ok' : 'ui-bad'}">${t(view.comm.linked ? 'hud.commLinked' : 'hud.commLost')}</div>`,
+      `<div class="${view.comm.linked ? 'ui-ok' : 'ui-bad'}">${t(view.comm.linked ? 'hud.commLinked' : 'hud.commLost')} ${sourceButton('comm')}</div>`,
       ...(view.comm.linked
         ? []
         : [`<div class="ui-hint">${t(`commHint.${commLostReason(state, view)}`)}</div>`]),
@@ -293,6 +363,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
 
   // ---- 左上：資源と発展度 ----
   let lastLifeMin: number | null = null;
+  // 開いている「?」。HUD は時間が進むたびに描き直すので、開いたままにするために覚えておく
+  let openSource: SourceSection | null = null;
+  const sourceButton = (section: SourceSection) =>
+    `<span class="ui-src-wrap" data-src="${section}"><button class="ui-src" data-action="source" data-src="${section}" aria-label="?">?</button>${openSource === section ? sourcePopover(values, section) : ''}</span>`;
   /** 生き延びられる日数がふえた瞬間に、数字を弾ませ「＋N日」を飛ばして、きらきらを散らす */
   const celebrateLifeGain = (gainDays: number) => {
     const value = hudEl.querySelector<HTMLElement>('.ui-life-value');
@@ -352,24 +426,24 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           : 'ok';
     hudEl.innerHTML = `
       <div class="ui-panel ui-tank ui-tank-${tankLevel} ${state.player.indoors ? 'indoors' : ''}">
-        <div class="ui-tank-head"><span>🫧 ${t('hud.tankHp')}</span><span class="ui-tank-pct">${tankPct}%</span></div>
+        <div class="ui-tank-head"><span>🫧 ${t('hud.tankHp')} ${sourceButton('tank')}</span><span class="ui-tank-pct">${tankPct}%</span></div>
         <div class="ui-tank-bar"><div style="width:${tankPct}%"></div></div>
         <div class="ui-small">${t(state.player.indoors ? 'hud.tankIndoors' : 'hud.tankOutdoors')}</div>
       </div>
       <div class="ui-panel">
         <div class="ui-stat" data-action="toggleBreakdown">
-          <span class="ui-label">${t('hud.lifeSupport')}</span>
+          <span class="ui-label">${t('hud.lifeSupport')}</span> ${sourceButton('lifeSupport')}
           <span class="ui-value ui-life-value ${life.min < LOW_DAYS ? 'ui-bad' : ''}">${daysText(life.min)}</span>
           ${breakdown}
         </div>
         <div class="ui-stat ui-power">
-          <span class="ui-label">${t('hud.power')}</span>
+          <span class="ui-label">${t('hud.power')}</span> ${sourceButton('power')}
           <div><span class="ui-ok">${t('hud.powerGen', { kw: fmt(power.generationKw, 1) })}</span>　<span class="ui-bad">${t('hud.powerUse', { kw: fmt(power.consumptionKw, 1) })}</span></div>
           ${powerNet(power.generationKw - power.consumptionKw)}
           ${battery}
         </div>
         <div class="ui-stat">
-          <span class="ui-label">${t('hud.shielding')}</span>
+          <span class="ui-label">${t('hud.shielding')}</span> ${sourceButton('shielding')}
           <div class="${doseWarn ? 'ui-bad' : ''}">${t('hud.dose', {
             dose: fmt(shielding.playerDoseMsv, 1),
             limit: fmt(shielding.doseLimitMsv),
@@ -379,7 +453,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       </div>
       <div class="ui-panel">
         <div class="ui-stat">
-          <span class="ui-label">${t('development.total')}</span>
+          <span class="ui-label">${t('development.total')}</span> ${sourceButton('development')}
           <span class="ui-value">${fmt(development.total)}</span>
         </div>
         ${DEVELOPMENT_ELEMENTS.map(
@@ -599,7 +673,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     return `
       <h2>${t(`flare.title.${event.kind}`)}</h2>
       <p>${t(`flare.explain.${event.kind}`)}</p>
-      <p><b>${t('flare.class', { value: esc(event.classOrIntensity) })}</b></p>
+      <p><b>${t('flare.class', { value: esc(event.classOrIntensity) })}</b> ${sourceButton('flare')}</p>
       <p class="ui-small">${source}<small>${t('flare.donkiId', { id: esc(event.donkiId) })}</small></p>
       <p>${t('flare.hint')}</p>
       <div class="ui-actions">
@@ -782,6 +856,20 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   };
 
   // ---- 入力 ----
+  root.addEventListener('mouseover', (e) => {
+    if (!(e.target instanceof Element)) {
+      return;
+    }
+    const wrap = e.target.closest<HTMLElement>('[data-src]');
+    const next = wrap === null ? null : pick(wrap.dataset.src, SOURCE_SECTIONS, 'source');
+    if (next !== openSource && (next !== null || !isTouch)) {
+      openSource = next;
+      renderHud();
+      renderStatus();
+      renderModal();
+    }
+  });
+
   root.addEventListener('click', (e) => {
     if (!(e.target instanceof Element)) {
       return;
@@ -791,6 +879,14 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       return;
     }
     switch (target.dataset.action) {
+      case 'source': {
+        const section = pick(target.dataset.src, SOURCE_SECTIONS, 'source');
+        openSource = openSource === section ? null : section;
+        renderHud();
+        renderStatus();
+        renderModal();
+        break;
+      }
       case 'speed':
         speed = pick(target.dataset.speed, ['1', '4'] as const, 'speed') === '4' ? 4 : 1;
         callbacks.onSpeedChange(speed);
