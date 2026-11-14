@@ -1,123 +1,159 @@
-// BGM：WebAudio でその場で作る、元気の出るループ（素材ファイルは使わない。曲はこのファイルのオリジナル）。
-// 4小節をくり返す。四つ打ちのキック、手拍子、ハイハット、ベース、アルペジオ、メロディ
-const BPM = 124;
-const STEPS_PER_BEAT = 4;
-const STEPS_PER_BAR = 16;
-const BARS = 4;
+// BGM：WebAudio でその場で作る、静かでゆっくりした曲（素材ファイルは使わない。曲はこのファイルのオリジナル）。
+// やわらかいピアノのような音と、うしろで鳴る和音。音と音のあいだを空け、こだまをかけて広い場所の感じにする。
+// 8小節の分散和音 → 高いメロディを足した8小節 → 少し休む、をくり返す
+const BPM = 72;
+const STEPS_PER_BEAT = 2; // 8分音符で刻む
+const STEPS_PER_BAR = 8;
+const PHRASE_BARS = 8;
+const REST_BARS = 4;
 // 先にどこまで音を予約しておくか（秒）と、予約しなおす間隔（ミリ秒）
-const LOOKAHEAD_SEC = 0.25;
-const SCHEDULE_MS = 60;
+const LOOKAHEAD_SEC = 0.4;
+const SCHEDULE_MS = 100;
 /** BGM 全体の音量 */
-export const MASTER_VOLUME = 0.07;
+export const MASTER_VOLUME = 0.2;
+// こだま（秒、くり返しの強さ、混ぜる量）
+const ECHO_SEC = 0.45;
+const ECHO_FEEDBACK = 0.35;
+const ECHO_MIX = 0.3;
 
-// 和音（小節ごと）：C → G → Am → F。音は MIDI の番号
-const CHORDS = [
-  [60, 64, 67],
-  [55, 59, 62],
-  [57, 60, 64],
-  [53, 57, 60],
+// 小節ごとの和音。bass は左手の低い音、pad はうしろで鳴らす音（どれも MIDI の番号）
+// D△7 → F#m7 → G△7 → Gm6 → D△7/A → Bm7 → Em7 → A
+const BARS: { bass: number; pad: number[] }[] = [
+  { bass: 38, pad: [54, 57, 61] },
+  { bass: 42, pad: [54, 57, 61] },
+  { bass: 43, pad: [55, 59, 62] },
+  { bass: 43, pad: [55, 58, 62] },
+  { bass: 45, pad: [54, 57, 62] },
+  { bass: 47, pad: [54, 57, 62] },
+  { bass: 40, pad: [55, 59, 62] },
+  { bass: 45, pad: [52, 57, 61] },
 ];
-const BASS_ROOTS = [36, 31, 33, 29];
-// メロディ：小節ごとに16歩。null は休み
+// 右手の分散和音（1小節に8つ。null は休み）
+const ARPEGGIO: (number | null)[][] = [
+  [null, 66, 69, 73, null, 76, null, null],
+  [null, 69, 73, 76, null, 73, null, null],
+  [null, 71, 74, 78, null, 76, 74, null],
+  [null, 70, 74, 76, null, 74, null, null],
+  [null, 66, 69, 74, null, 78, 76, null],
+  [null, 69, 74, 78, null, 81, null, 78],
+  [null, 67, 71, 74, null, 79, 78, 76],
+  [null, 69, 74, 76, null, 73, null, null],
+];
+// 2回目の8小節で足す、高いメロディ
 const MELODY: (number | null)[][] = [
-  [72, null, 76, null, 79, null, 76, 79, 84, null, 79, null, 76, null, 74, null],
-  [74, null, 79, null, 83, null, 79, 83, 86, null, 83, null, 79, null, 76, null],
-  [76, null, 72, null, 76, null, 81, 79, 76, null, 72, null, 69, null, 72, 74],
-  [77, null, 76, null, 74, null, 72, null, 74, null, 77, 79, 81, null, 79, null],
+  [null, null, 78, null, 81, null, null, null],
+  [null, null, 76, null, 73, null, null, null],
+  [null, null, 74, null, 79, null, 78, null],
+  [null, null, 76, null, 74, null, null, null],
+  [null, null, 81, null, 78, null, 76, null],
+  [null, null, 78, null, 74, null, null, null],
+  [null, null, 79, null, 83, null, 81, null],
+  [null, null, 76, null, null, null, 73, null],
 ];
 
 const midiToHz = (note: number) => 440 * 2 ** ((note - 69) / 12);
-
 const STEP_SEC = 60 / BPM / STEPS_PER_BEAT;
-/** 1周（4小節）の歩数 */
-export const LOOP_STEPS = STEPS_PER_BAR * BARS;
+const PHRASE_STEPS = PHRASE_BARS * STEPS_PER_BAR;
+/** 1周（2回の8小節と休み）の歩数 */
+export const LOOP_STEPS = (PHRASE_BARS * 2 + REST_BARS) * STEPS_PER_BAR;
 
-function tone(
+/** ピアノのような音：すぐ鳴って、ゆっくり消える。倍音を少し重ねる */
+function piano(
   audio: BaseAudioContext,
   out: AudioNode,
-  wave: OscillatorType,
-  hz: number,
+  note: number,
   at: number,
-  seconds: number,
   volume: number,
 ): void {
-  const osc = audio.createOscillator();
+  const hz = midiToHz(note);
+  const seconds = 2.8;
   const gain = audio.createGain();
-  osc.type = wave;
-  osc.frequency.value = hz;
-  gain.gain.setValueAtTime(volume, at);
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(volume, at + 0.008);
   gain.gain.exponentialRampToValueAtTime(0.0001, at + seconds);
-  osc.connect(gain).connect(out);
-  osc.start(at);
-  osc.stop(at + seconds);
+  gain.connect(out);
+  for (const [multiple, level] of [
+    [1, 1],
+    [2, 0.25],
+    [3, 0.08],
+  ]) {
+    const osc = audio.createOscillator();
+    const partial = audio.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = hz * multiple;
+    partial.gain.value = level;
+    osc.connect(partial).connect(gain);
+    osc.start(at);
+    osc.stop(at + seconds);
+  }
 }
 
-function kick(audio: BaseAudioContext, out: AudioNode, at: number): void {
-  const osc = audio.createOscillator();
-  const gain = audio.createGain();
-  osc.frequency.setValueAtTime(150, at);
-  osc.frequency.exponentialRampToValueAtTime(45, at + 0.12);
-  gain.gain.setValueAtTime(1, at);
-  gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.18);
-  osc.connect(gain).connect(out);
-  osc.start(at);
-  osc.stop(at + 0.18);
-}
-
-function hiss(
+/** うしろの和音：ゆっくりふくらんで、ゆっくり消える */
+function pad(
   audio: BaseAudioContext,
   out: AudioNode,
-  noise: AudioBuffer,
+  notes: number[],
   at: number,
   seconds: number,
-  volume: number,
-  highpassHz: number,
 ): void {
-  const src = audio.createBufferSource();
-  src.buffer = noise;
-  const filter = audio.createBiquadFilter();
-  filter.type = 'highpass';
-  filter.frequency.value = highpassHz;
-  const gain = audio.createGain();
-  gain.gain.setValueAtTime(volume, at);
-  gain.gain.exponentialRampToValueAtTime(0.0001, at + seconds);
-  src.connect(filter).connect(gain).connect(out);
-  src.start(at);
-  src.stop(at + seconds);
+  for (const note of notes) {
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = midiToHz(note);
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.linearRampToValueAtTime(0.05, at + seconds * 0.4);
+    gain.gain.linearRampToValueAtTime(0.0001, at + seconds * 1.1);
+    osc.connect(gain).connect(out);
+    osc.start(at);
+    osc.stop(at + seconds * 1.1);
+  }
+}
+
+/** こだまをかける入り口を作る。ここに音をつなぐと、そのままの音とこだまの両方が out に出る */
+function createEchoBus(audio: BaseAudioContext, out: AudioNode): AudioNode {
+  const input = audio.createGain();
+  const delay = audio.createDelay(1);
+  delay.delayTime.value = ECHO_SEC;
+  const feedback = audio.createGain();
+  feedback.gain.value = ECHO_FEEDBACK;
+  const soften = audio.createBiquadFilter();
+  soften.type = 'lowpass';
+  soften.frequency.value = 2000;
+  const wet = audio.createGain();
+  wet.gain.value = ECHO_MIX;
+  input.connect(out);
+  input.connect(delay);
+  delay.connect(soften).connect(feedback).connect(delay);
+  soften.connect(wet).connect(out);
+  return input;
 }
 
 /** 曲の step 歩目（0 から LOOP_STEPS - 1）を、時刻 at に予約する */
-function playStep(
-  audio: BaseAudioContext,
-  out: AudioNode,
-  noise: AudioBuffer,
-  step: number,
-  at: number,
-): void {
-  const bar = Math.floor(step / STEPS_PER_BAR) % BARS;
-  const inBar = step % STEPS_PER_BAR;
-  // ドラム：四つ打ち、2拍目と4拍目に手拍子、裏拍にハイハット
-  if (inBar % STEPS_PER_BEAT === 0) {
-    kick(audio, out, at);
+function playStep(audio: BaseAudioContext, out: AudioNode, step: number, at: number): void {
+  if (step >= PHRASE_STEPS * 2) {
+    return; // 休み
   }
-  if (inBar === 4 || inBar === 12) {
-    hiss(audio, out, noise, at, 0.12, 0.35, 1200);
+  const second = step >= PHRASE_STEPS;
+  const inPhrase = step % PHRASE_STEPS;
+  const bar = Math.floor(inPhrase / STEPS_PER_BAR);
+  const inBar = inPhrase % STEPS_PER_BAR;
+  const chord = BARS[bar];
+  if (inBar === 0) {
+    piano(audio, out, chord.bass, at, 0.3);
+    pad(audio, out, chord.pad, at, STEP_SEC * STEPS_PER_BAR);
   }
-  if (inBar % STEPS_PER_BEAT === 2) {
-    hiss(audio, out, noise, at, 0.04, 0.18, 7000);
+  if (inBar === 4) {
+    piano(audio, out, chord.bass + 7, at, 0.16);
   }
-  // ベース：8分音符でオクターブを行き来する
-  if (inBar % 2 === 0) {
-    const octave = inBar % STEPS_PER_BEAT === 0 ? 0 : 12;
-    tone(audio, out, 'triangle', midiToHz(BASS_ROOTS[bar] + octave), at, STEP_SEC * 1.8, 0.5);
+  const arpeggio = ARPEGGIO[bar][inBar];
+  if (arpeggio !== null) {
+    // 2回目は、メロディが聞こえるように分散和音を少し小さく
+    piano(audio, out, arpeggio, at, second ? 0.1 : 0.16);
   }
-  // アルペジオ：16分音符で和音の音を順に
-  const chord = CHORDS[bar];
-  tone(audio, out, 'square', midiToHz(chord[inBar % chord.length] + 12), at, STEP_SEC * 0.9, 0.06);
-  // メロディ
-  const note = MELODY[bar][inBar];
-  if (note !== null) {
-    tone(audio, out, 'triangle', midiToHz(note), at, STEP_SEC * 1.9, 0.28);
+  const melody = second ? MELODY[bar][inBar] : null;
+  if (melody !== null) {
+    piano(audio, out, melody, at, 0.2);
   }
 }
 
@@ -128,9 +164,9 @@ export function scheduleMusic(
   count: number,
   startAt: number,
 ): void {
-  const noise = makeNoise(audio);
+  const bus = createEchoBus(audio, out);
   for (let i = 0; i < count; i++) {
-    playStep(audio, out, noise, i % LOOP_STEPS, startAt + i * STEP_SEC);
+    playStep(audio, bus, i % LOOP_STEPS, startAt + i * STEP_SEC);
   }
 }
 
@@ -143,18 +179,17 @@ export function createMusic(getAudio: () => AudioContext): Music {
   let on = false;
   let timer: number | null = null;
   let master: GainNode | null = null;
-  let noise: AudioBuffer | null = null;
+  let bus: AudioNode | null = null;
   let nextTime = 0;
   let stepIndex = 0;
 
   const schedule = () => {
     const audio = getAudio();
-    if (master === null) {
+    if (bus === null) {
       return;
     }
-    noise ??= makeNoise(audio);
     while (nextTime < audio.currentTime + LOOKAHEAD_SEC) {
-      playStep(audio, master, noise, stepIndex, nextTime);
+      playStep(audio, bus, stepIndex, nextTime);
       nextTime += STEP_SEC;
       stepIndex = (stepIndex + 1) % LOOP_STEPS;
     }
@@ -165,6 +200,7 @@ export function createMusic(getAudio: () => AudioContext): Music {
     master = audio.createGain();
     master.gain.value = MASTER_VOLUME;
     master.connect(audio.destination);
+    bus = createEchoBus(audio, master);
     nextTime = audio.currentTime + 0.05;
     stepIndex = 0;
     timer = window.setInterval(schedule, SCHEDULE_MS);
@@ -180,6 +216,7 @@ export function createMusic(getAudio: () => AudioContext): Music {
       // 予約ずみの音も含めて、すぐ消す
       master.disconnect();
       master = null;
+      bus = null;
     }
   };
 
@@ -210,7 +247,7 @@ export function createMusic(getAudio: () => AudioContext): Music {
   };
 }
 
-/** 1秒分の白いノイズ（手拍子とハイハットに使う） */
+/** 1秒分の白いノイズ（効果音の足音やドアなどに使う） */
 export function makeNoise(audio: BaseAudioContext): AudioBuffer {
   const buffer = audio.createBuffer(1, audio.sampleRate, audio.sampleRate);
   const data = buffer.getChannelData(0);
