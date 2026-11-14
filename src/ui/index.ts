@@ -15,6 +15,7 @@ import type { BuildOptions, Placement, SimView } from '../sim/api.ts';
 import { buildCost, commLostReason, launchItemCost, outdoorDoseMsvPerHour } from '../sim/index.ts';
 import type { DeathAdvice } from '../tutorial/death.ts';
 import { professorDeathAdviceHtml } from '../tutorial/deathView.ts';
+import { PROFESSOR_SVG } from '../tutorial/professor.ts';
 import type { PadInput } from '../world/api.ts';
 import type { ContextAction, Ui, UiCallbacks } from './api.ts';
 import { getLang, onLangChange, setLang, t, tPlain } from './i18n.ts';
@@ -821,6 +822,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <div class="ui-actions"><button data-action="closeMenu">${t('button.close')}</button></div>`;
   };
 
+  // 窓のいちばん上に出す博士の「やること」（main が毎フレーム渡す）
+  let guide: string | null = null;
   const renderModal = () => {
     const dialog = dialogs[0];
     if (dialog !== undefined) {
@@ -843,7 +846,11 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       }
       modalEl.hidden = false;
       // 閉じるボタンは下にもあるが、見つけやすいよう右上にも出す
-      modalEl.innerHTML = `<div class="ui-modal"><button class="ui-modal-x" data-action="closeMenu" aria-label="${tPlain('button.close')}">${t('button.closeIcon')}</button>${html}</div>`;
+      const guideHtml =
+        guide === null
+          ? ''
+          : `<div class="ui-modal-guide"><span class="ui-modal-guide-face">${PROFESSOR_SVG}</span><div>${guide}</div></div>`;
+      modalEl.innerHTML = `<div class="ui-modal"><button class="ui-modal-x" data-action="closeMenu" aria-label="${tPlain('button.close')}">${t('button.closeIcon')}</button>${guideHtml}${html}</div>`;
       return;
     }
     modalEl.hidden = true;
@@ -1234,6 +1241,15 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     },
     isMenuOpen() {
       return menu !== null || dialogs.length > 0;
+    },
+    setGuide(next) {
+      if (next === guide) {
+        return;
+      }
+      guide = next;
+      if (menu !== null) {
+        renderModal();
+      }
     },
     isUserPaused() {
       return userPaused;

@@ -799,3 +799,31 @@
   padding: 12px 28px;
   font-size: 20px;
 }
+
+/* 窓（メニュー）のいちばん上に、博士のいまの「やること」を出す（窓に隠れた吹き出しの代わり） */
+.ui-modal-guide {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 50px 10px 0;
+  padding: 6px 10px;
+  border: 2px solid #ffd27a;
+  border-radius: 12px;
+  background: rgba(255, 210, 122, 0.12);
+  font-weight: 700;
+}
+
+.ui-modal-guide-face {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #2a3550;
+}
+
+.ui-modal-guide-face svg {
+  display: block;
+  width: 44px;
+  height: 52px;
+}

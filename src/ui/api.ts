@@ -71,4 +71,6 @@ export interface Ui {
   isMenuOpen(): boolean;
   /** 「一時停止」のボタンで止めているか */
   isUserPaused(): boolean;
+  /** 窓（メニュー）のいちばん上に出す、博士の「やること」。null なら出さない */
+  setGuide(html: string | null): void;
 }

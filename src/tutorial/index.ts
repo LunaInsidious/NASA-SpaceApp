@@ -254,6 +254,8 @@ export interface Tutorial {
   confirmRestart(): void;
   /** いまゲームの時間を進めてよいか（くんれん中は、時間が要る段だけ進める） */
   timeRuns(): boolean;
+  /** いまの「やること」（くんれんの段かミッション）。窓の中にも出す。なければ null */
+  currentInstruction(): string | null;
   /** タイトルの「はじめから」：新しいゲームにして「あそんだことがある？」から */
   startNew(): void;
   /** タイトルの「つづきから」：くんれんを終えていればミッション、まだなら「あそんだことがある？」から */
@@ -858,6 +860,13 @@ export function createTutorial(
   return {
     update,
     confirmRestart,
+    currentInstruction() {
+      if (mode === 'tutorial') {
+        return t(`tutorial.step.${step()}.${variant}`);
+      }
+      const mission = missions[missionIndex];
+      return mode === 'missions' && mission !== undefined ? t(mission.textKey) : null;
+    },
     timeRuns() {
       return mode !== 'tutorial' || TIME_STEPS.includes(step());
     },

@@ -567,6 +567,7 @@ function updateFootSounds(): void {
 
 /** チュートリアルを進め、行く場所に光の柱を立てる */
 function updateTutorial(): void {
+  ui.setGuide(tutorial.currentInstruction());
   const p = world.getPlayer();
   tutorial.update({
     state,
