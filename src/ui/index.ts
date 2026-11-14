@@ -19,6 +19,7 @@ import { professorDeathAdviceHtml } from '../tutorial/deathView.ts';
 import { PROFESSOR_SVG } from '../tutorial/professor.ts';
 import type { PadInput } from '../world/api.ts';
 import type { ContextAction, MorningSummary, RestInfo, Ui, UiCallbacks } from './api.ts';
+import { SOUND_MODES } from './fx.ts';
 import { getLang, onLangChange, setLang, t, tPlain } from './i18n.ts';
 import { type MinigameOutcome, openMinigame } from './minigame.ts';
 import { type NasaImages, photoFigureHtml } from './photo.ts';
@@ -54,7 +55,7 @@ const CONTEXT_ACTIONS: readonly ContextAction[] = [
   'coverRegolith',
   'nextDay',
 ];
-const MENUS = ['build', 'status', 'data', 'cards'] as const;
+const MENUS = ['build', 'status', 'data'] as const;
 // 休息フェーズの2D画面のタブ（docs/SPEC.md ステップ13）
 // 休息フェーズの2D画面は、タブではなく順に進むページ（何から開くかを選ばなくてよい）。セーブは順の外
 const REST_PAGES = ['review', 'crew', 'launch', 'tasks', 'plan'] as const;
@@ -327,6 +328,28 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
 
   const pauseEl = part('pauseOverlay');
   /** 一時停止のボタンで止めている間は、画面全体を暗くして大きく知らせる（メニューや窓で止まっているときは出さない） */
+  // メニューの窓の中：いつもの選ぶところか、豆知識カードを読んでいるところか
+  let pauseView: 'main' | 'cards' = 'main';
+  const pauseMainHtml = () => {
+    const mode = callbacks.soundMode();
+    const sound = SOUND_MODES.map(
+      (m) =>
+        `<button class="${m === mode ? 'on' : ''}" data-action="soundMode" data-mode="${m}">${t(`sound.${m}`)}</button>`,
+    ).join('');
+    return `
+      <div class="ui-menu-grid">
+        <button data-action="openDictionary">${t('menu.dictionary')}</button>
+        <button data-action="pauseView" data-view="cards">${t('menu.cards')}</button>
+      </div>
+      <div class="ui-menu-sound"><span>${t('menu.sound')}</span><span class="ui-row">${sound}</span></div>
+      <div class="ui-pause-save">${saveMenuHtml()}</div>`;
+  };
+  const pauseCardsHtml = () => `
+    <div class="ui-pause-save">
+      <button data-action="pauseView" data-view="main">${t('menu.back')}</button>
+      ${callbacks.cardsHtml()}
+    </div>`;
+
   const renderPauseOverlay = () => {
     pauseEl.hidden = !userPaused;
     pauseEl.innerHTML = userPaused
@@ -334,7 +357,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           <div class="ui-pause-title">${t('pause.title')}</div>
           <p>${t('pause.body')}</p>
           <button class="primary ui-pause-resume" data-action="pause">${t('pause.resume')}</button>
-          <div class="ui-pause-save">${saveMenuHtml()}</div>
+          ${pauseView === 'cards' ? pauseCardsHtml() : pauseMainHtml()}
         </div>`
       : '';
   };
@@ -378,7 +401,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const lang = getLang();
     topButtonsEl.innerHTML = `
       <button data-action="pause" class="${userPaused ? 'on' : ''}">${t(userPaused ? 'hud.resume' : 'hud.pause')}</button>
-      <button data-action="menu" data-menu="cards" aria-label="${tPlain('hud.cardsLabel')}">${t('hud.cards')}</button>
       <button data-action="lang" data-lang="en" class="${lang === 'en' ? 'on' : ''}">${t('hud.langEn')}</button>
       <button data-action="lang" data-lang="ja" class="${lang === 'ja' ? 'on' : ''}">${t('hud.langJa')}</button>`;
   };
@@ -647,12 +669,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     buttonsEl.innerHTML = `
       <div class="ui-row ui-context">${contextHtml}</div>
       <div class="ui-row">
-        ${MENUS.filter((m) => m !== 'cards')
-          .map(
-            (menuKind) =>
-              `<button class="ui-menu-button" data-action="menu" data-menu="${menuKind}"><span class="ui-menu-icon">${t(`button.icon.${menuKind}`)}</span><span>${t(isTouch ? `button.short.${menuKind}` : `button.${menuKind}`)}</span></button>`,
-          )
-          .join('')}
+        ${MENUS.map(
+          (menuKind) =>
+            `<button class="ui-menu-button" data-action="menu" data-menu="${menuKind}"><span class="ui-menu-icon">${t(`button.icon.${menuKind}`)}</span><span>${t(isTouch ? `button.short.${menuKind}` : `button.${menuKind}`)}</span></button>`,
+        ).join('')}
       </div>
 `;
   };
@@ -1260,8 +1280,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         html = buildMenuHtml(state);
       } else if (menu === 'status') {
         html = inventoryHtml(state, view);
-      } else if (menu === 'cards') {
-        html = callbacks.cardsHtml();
       } else {
         html = dataMenuHtml();
       }
@@ -1416,8 +1434,20 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       return;
     }
     switch (target.dataset.action) {
+      case 'openDictionary':
+        callbacks.onOpenDictionary();
+        break;
+      case 'pauseView':
+        pauseView = pick(target.dataset.view, ['main', 'cards'] as const, 'menu view');
+        renderPauseOverlay();
+        break;
+      case 'soundMode':
+        callbacks.setSoundMode(pick(target.dataset.mode, SOUND_MODES, 'sound mode'));
+        renderPauseOverlay();
+        break;
       case 'pause':
         userPaused = !userPaused;
+        pauseView = 'main';
         renderPauseOverlay();
         renderTopButtons();
         updatePause();

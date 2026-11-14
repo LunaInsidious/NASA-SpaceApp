@@ -13,6 +13,7 @@ import type { BuildOptions, Placement, SimView } from '../sim/api.ts';
 import type { MinigameKind } from '../tasks/minigame.ts';
 import type { DeathAdvice } from '../tutorial/death.ts';
 import type { PadInput } from '../world/api.ts';
+import type { SoundMode } from './fx.ts';
 import type { NasaImages } from './photo.ts';
 
 /** その場でできること。E キー（スマホではボタン）で先頭のものを行う */
@@ -71,7 +72,12 @@ export interface UiCallbacks {
   onContextAction(action: ContextAction): void;
   /** 休息の画面で、翌日のタスクを選ぶ・やめる */
   onTaskToggle(taskId: string): void;
-  /** 豆知識カードの一覧（HTML。右上の🃏の窓に出す） */
+  /** メニューの窓から、ことばじてんを開く */
+  onOpenDictionary(): void;
+  /** 音の切り替え（メニューの窓で選ぶ） */
+  soundMode(): SoundMode;
+  setSoundMode(mode: SoundMode): void;
+  /** 豆知識カードの一覧（HTML。メニューの窓に出す） */
   cardsHtml(): string;
   /** 豆知識カードの言葉から、ことばじてんを開く */
   onOpenTerm(term: string): void;
@@ -108,7 +114,7 @@ export interface Ui {
    * 建設・くわしい様子（インベントリ画面、I キー）・データは 3D の窓を開く。隊員・ほきゅう・セーブは休息の画面のタブ（中にいればそのタブにし、外ならひとこと出す）。
    * キーボードの近道（B：建設、L：ほきゅう、C：隊員）と困りごとカードから呼ぶ
    */
-  openMenu(menu: 'build' | 'status' | 'launch' | 'crew' | 'data' | 'cards'): void;
+  openMenu(menu: 'build' | 'status' | 'launch' | 'crew' | 'data'): void;
   /** 休息フェーズの2D画面を出す（中にいる間）。null で閉じる */
   setRest(info: RestInfo | null): void;
   /** 外で今日こなすタスクの一覧（ボンベの下に出す）。中では出さない */

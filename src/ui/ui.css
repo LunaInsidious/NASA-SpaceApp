@@ -58,8 +58,7 @@
 /* 左上：資源 */
 .ui-hud {
   position: absolute;
-  /* 左上の音とことばじてんのボタンの下 */
-  top: calc(52px + env(safe-area-inset-top));
+  top: calc(8px + env(safe-area-inset-top));
   left: calc(8px + env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
@@ -1598,4 +1597,27 @@ body.nb-open .ui-hud-tank {
   font-weight: 800;
   font-size: 14px;
   letter-spacing: -0.5px;
+}
+
+/* メニューの窓（一時停止中）：ことばじてん・豆知識カード・音・セーブ・タイトル */
+.ui-menu-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.ui-root .ui-menu-grid button {
+  padding: 12px 8px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.ui-menu-sound {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
 }

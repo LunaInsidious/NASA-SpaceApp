@@ -203,7 +203,8 @@ body[data-tutorial-step="goHome"] [data-action="context"],
 body[data-tutorial-step="flareDrill"] [data-action="flare"],
 body[data-tutorial-step="goOutside"] [data-action="context"],
 body[data-tutorial-step="regolith"] [data-action="context"][data-context="coverRegolith"],
-body[data-tutorial-step="dictionary"] .help-toggle,
+body[data-tutorial-step="dictionary"] [data-action="openDictionary"],
+body[data-tutorial-step="dictionary"] [data-action="pause"],
 body[data-tutorial-step="dictionary"] .help-card details[data-term="solar"]:not([open]) summary,
 body[data-tutorial-step="dictionary"]
   .help-card:has(details[data-term="solar"][open])

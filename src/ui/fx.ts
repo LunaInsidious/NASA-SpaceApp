@@ -1,7 +1,6 @@
 // できた瞬間をお祝いする演出：大きな文字、紙ふぶき、短い効果音と BGM（WebAudio で合成。素材ファイルは使わない）。
 // ごほうびは「学んだ・できた」に結びつけ、運まかせの報酬は作らない
 import './fx.css';
-import { onLangChange, t, tPlain } from './i18n.ts';
 import { createMusic, makeNoise } from './music.ts';
 
 export type FxSound =
@@ -107,7 +106,6 @@ const SOUNDS: Record<FxSound, Voice[]> = {
 // 音のボタンを押すたびに、音楽と効果音 → 効果音だけ → 音なし、と切り替わる
 export const SOUND_MODES = ['all', 'sfx', 'off'] as const;
 export type SoundMode = (typeof SOUND_MODES)[number];
-const MODE_ICON: Record<SoundMode, string> = { all: '🎵', sfx: '🔊', off: '🔇' };
 
 function readSoundMode(): SoundMode {
   try {
@@ -141,20 +139,8 @@ export function createFx(root: HTMLElement): Fx {
   window.addEventListener('pointerdown', startOnFirstInput);
   window.addEventListener('keydown', startOnFirstInput);
 
-  // 音の切り替え（記号だけのボタン。押すと、いまの切り替えを文字でも出す）
-  const toggle = document.createElement('button');
-  toggle.type = 'button';
-  toggle.className = 'fx-sound-toggle';
-  const renderToggle = () => {
-    toggle.textContent = MODE_ICON[mode];
-    toggle.title = tPlain(`sound.${mode}`);
-    toggle.setAttribute('aria-label', tPlain(`sound.${mode}`));
-  };
-  renderToggle();
-  onLangChange(renderToggle);
   const setSoundMode = (next: SoundMode) => {
     mode = next;
-    renderToggle();
     music.setOn(mode === 'all');
     try {
       localStorage.setItem(STORAGE_KEY, mode);
@@ -162,11 +148,6 @@ export function createFx(root: HTMLElement): Fx {
       console.warn('音の設定を保存できない', error);
     }
   };
-  toggle.addEventListener('click', () => {
-    setSoundMode(SOUND_MODES[(SOUND_MODES.indexOf(mode) + 1) % SOUND_MODES.length]);
-    banner(t(`sound.${mode}`), 'small');
-  });
-  root.append(toggle);
 
   // ボタンを押したら小さく「カチッ」
   document.addEventListener('click', (e) => {

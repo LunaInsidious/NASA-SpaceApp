@@ -72,7 +72,8 @@ const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
   dictionary: [
     '.help-card details[data-term="solar"]:not([open]) summary',
     '.help-card:has(details[data-term="solar"][open]) .help-close-x',
-    '.help-toggle',
+    '[data-action="openDictionary"]',
+    '[data-action="pause"]',
   ],
   battery: [
     '[data-action="buildConfirm"]',
@@ -436,10 +437,20 @@ export function createTutorial(
         target = pointTarget(step());
       }
     }
-    // 説明の窓（朝の窓など）が開いている間は、その下に隠れたボタンを指さない
+    // 説明の窓（朝の窓など）が開いている間は、その下に隠れたボタンを指さない。
+    // メニューの窓（時間が止まっている）の下のボタンを指すときは、まず「再開する」を指す
     const dialog = document.querySelector('.ui-modal-layer:not([hidden])');
+    const pauseMenu = document.querySelector('.ui-pause:not([hidden])');
+    const helpOpen = document.querySelector('.help-layer:not([hidden])');
     if (target !== null && dialog !== null && !dialog.contains(target)) {
       target = null;
+    } else if (
+      target !== null &&
+      helpOpen === null &&
+      pauseMenu !== null &&
+      !pauseMenu.contains(target)
+    ) {
+      target = pauseMenu.querySelector<HTMLElement>('[data-action="pause"]');
     }
     if (target === null) {
       pointer.hidden = true;

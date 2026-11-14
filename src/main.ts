@@ -244,11 +244,11 @@ const ui = createUi(
         help.learn(taskDef(taskDefs, chosen.kind).terms, true);
       }
     },
+    onOpenDictionary: () => help.open(),
+    soundMode: () => fx.soundMode(),
+    setSoundMode: (mode) => fx.setSoundMode(mode),
     cardsHtml: () => cardsHtml(cardStore.list(), nasaImages),
-    onOpenTerm: (term) => {
-      ui.closeMenus();
-      help.openTerm(asHelpTerm(term, '豆知識カード'));
-    },
+    onOpenTerm: (term) => help.openTerm(asHelpTerm(term, '豆知識カード')),
     onMinigameSound: (name) => {
       fx.sound(name === 'hit' ? 'pop' : name === 'miss' ? 'land' : 'star');
     },

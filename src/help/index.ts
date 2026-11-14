@@ -18,6 +18,10 @@ export interface Help {
   learn(terms: readonly HelpTerm[], announce: boolean): void;
   /** その言葉を開いた状態で、ことばじてんを出す（豆知識カードの言葉から飛ぶ）。まだ覚えていなければ足す */
   openTerm(term: HelpTerm): void;
+  /** ことばじてんを開く（メニューの窓から） */
+  open(): void;
+  /** 覚えた言葉の数 */
+  count(): number;
   /** いちばん上に出す、博士の今の「やること」（建設の窓と同じ。なければ null） */
   setGuide(html: string | null): void;
 }
@@ -45,14 +49,6 @@ export function createHelp(
   let guide: string | null = null;
   const learned = readLearned();
 
-  const toggle = document.createElement('button');
-  toggle.type = 'button';
-  toggle.className = 'help-toggle';
-  toggle.addEventListener('click', () => {
-    open = true;
-    render();
-  });
-
   const layer = document.createElement('div');
   layer.className = 'help-layer';
   layer.hidden = true;
@@ -61,7 +57,7 @@ export function createHelp(
   note.className = 'help-note';
   note.hidden = true;
   let noteTimer: number | null = null;
-  root.append(toggle, note, layer);
+  root.append(note, layer);
 
   function closeHelp(): void {
     open = false;
@@ -82,17 +78,6 @@ export function createHelp(
   });
 
   function render(): void {
-    // スマホでは「?」だけを見せる（CSS で名前を隠す）。名前は読み上げとホバーに残す
-    const icon = document.createElement('span');
-    icon.innerHTML = t('help.icon');
-    const label = document.createElement('span');
-    label.className = 'help-toggle-label';
-    label.innerHTML = t('help.label');
-    toggle.replaceChildren(icon, label);
-    toggle.title = tPlain('help.label');
-    toggle.setAttribute('aria-label', tPlain('help.label'));
-    // まだ1つも言葉がなければ、ボタンも出さない
-    toggle.hidden = learned.size === 0;
     layer.hidden = !open;
     if (!open) {
       return;
@@ -168,6 +153,11 @@ export function createHelp(
 
   return {
     isOpen: () => open,
+    open() {
+      open = true;
+      render();
+    },
+    count: () => learned.size,
     setGuide(html) {
       if (html === guide) {
         return;
@@ -209,7 +199,6 @@ export function createHelp(
       if (!announce) {
         return;
       }
-      toggle.classList.add('help-pulse');
       note.innerHTML = t('help.learned', {
         names: added.map((term) => t(`help.term.${term}.name`)).join('・'),
       });
@@ -218,7 +207,6 @@ export function createHelp(
         window.clearTimeout(noteTimer);
       }
       noteTimer = window.setTimeout(() => {
-        toggle.classList.remove('help-pulse');
         note.hidden = true;
       }, PULSE_MS);
       onLearned();
