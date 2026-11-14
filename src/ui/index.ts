@@ -81,7 +81,12 @@ const BUBBLE_GAP_PX = 12;
 const BUBBLE_MARGIN_PX = 8;
 const LOW_BAR_RATIO = 0.25; // バーを赤くする残りの割合
 const LOW_DAYS = 7; // 生命維持の日数を赤くする
-const DOSE_WARN_RATIO = 0.5; // 被ばくが上限のこの割合を超えたら赤くする
+const DOSE_WARN_RATIO = 0.5; // 被ばくが上限のこの割合を超えたら赤くする（ゲージは黄色）
+const DOSE_DANGER_RATIO = 0.8; // 被ばくのゲージを赤くする（表示だけ）
+const LIFE_WARN_DAYS = 14; // 生命維持のゲージを黄色にする（表示だけ）
+// いつも見せるゲージの種類と色
+type GaugeKey = 'tank' | 'life' | 'power' | 'dose';
+type GaugeLevel = 'ok' | 'warn' | 'danger';
 const KNOB_TRAVEL = 0.6; // パッドのつまみが動ける範囲（半径に対する割合）
 const ISO_DATE_LENGTH = 10;
 const TANK_WARN_RATIO = 0.6; // ボンベのバーを黄色にする残り（表示だけ）
@@ -416,7 +421,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   let lastLifeMin: number | null = null;
   /** 生き延びられる日数がふえた瞬間に、数字を弾ませ「＋N日」を飛ばして、きらきらを散らす */
   const celebrateLifeGain = (gainDays: number) => {
-    const value = hudEl.querySelector<HTMLElement>('.ui-life-value');
+    const value = hudTankEl.querySelector<HTMLElement>('.ui-gauge-life .ui-gauge-value');
     if (value === null) {
       return;
     }
@@ -526,6 +531,69 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       </div>`;
   };
 
+  /**
+   * いつも見せるゲージ（アイコンと横のバー）：ボンベ・生命維持・電力・被ばく。数字は横に小さく。
+   * 色は ok（緑）・warn（黄）・danger（赤）。アイコンにマウスを重ねると意味を出す
+   */
+  const gaugesHtml = (current: SimState, currentView: SimView, tankLevel: GaugeLevel) => {
+    const gauge = (key: GaugeKey, ratio: number, value: string, level: GaugeLevel) => {
+      const pct = Math.round(Math.min(1, Math.max(0, ratio)) * PERCENT);
+      return `<div class="ui-gauge ui-gauge-${key} ui-gauge-${level}" title="${tPlain(`gauge.${key}`)}">
+        <span class="ui-gauge-icon" aria-hidden="true">${t(`gauge.icon.${key}`)}</span>
+        <span class="ui-gauge-bar" role="meter" aria-label="${tPlain(`gauge.${key}`)}" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><span style="width:${pct}%"></span></span>
+        <span class="ui-gauge-value">${value}</span>
+      </div>`;
+    };
+    // ボンベ：中では満タンに戻る。外では、あと何時間何分いられるか
+    const left = timeLeft(currentView.tankRatio);
+    const tank = gauge(
+      'tank',
+      currentView.tankRatio,
+      current.player.indoors
+        ? t('gauge.inside')
+        : t('gauge.time', { hours: left.hours, minutes: String(left.minutes).padStart(2, '0') }),
+      current.player.indoors ? 'ok' : tankLevel,
+    );
+    // 生命維持：酸素・水・食料のうち、いちばん早くなくなるものが、あと何日もつか
+    const days = currentView.lifeSupportDays.min;
+    const steady = days >= values.display.maxLifeSupportDays.value;
+    const life = gauge(
+      'life',
+      steady ? 1 : days / values.display.lifeGaugeFullDays.value,
+      steady ? t('gauge.steady') : t('gauge.days', { days: fmt(days) }),
+      days < LOW_DAYS ? 'danger' : days < LIFE_WARN_DAYS ? 'warn' : 'ok',
+    );
+    // 電力：蓄電池があればたまり具合。なければ、作る電気が使う電気にどれだけ足りているか
+    const power = currentView.power;
+    const net = power.generationKw - power.consumptionKw;
+    // 止まった機械は電気を使わないので、動かすのに要る分も足して「足りているか」を見る
+    const stoppedNeedKw = current.facilities
+      .filter((f) => currentView.facilityStatus[f.id]?.reason === 'noPower')
+      .reduce((sum, f) => sum + powerKw(f.kind, values), 0);
+    const demandKw = power.consumptionKw + stoppedNeedKw;
+    const powerRatio =
+      power.batteryCapacityKwh > 0
+        ? power.batteryKwh / power.batteryCapacityKwh
+        : demandKw > 0
+          ? power.generationKw / demandKw
+          : 1;
+    const powerGauge = gauge(
+      'power',
+      powerRatio,
+      Math.abs(net) < POWER_EVEN_KW ? '±' : net > 0 ? '▲' : '▼',
+      stoppedNeedKw > 0 ? 'danger' : net < -POWER_EVEN_KW ? 'warn' : 'ok',
+    );
+    // 被ばく：これまでに浴びた量が、上限のどれだけか
+    const doseRatio = currentView.shielding.playerDoseMsv / currentView.shielding.doseLimitMsv;
+    const dose = gauge(
+      'dose',
+      doseRatio,
+      `${fmt(doseRatio * PERCENT)}%`,
+      doseRatio >= DOSE_DANGER_RATIO ? 'danger' : doseRatio >= DOSE_WARN_RATIO ? 'warn' : 'ok',
+    );
+    return `<div class="ui-panel ui-gauges ui-tank ui-tank-${tankLevel} ${current.player.indoors ? 'indoors' : ''}">${tank}${life}${powerGauge}${dose}</div>`;
+  };
+
   const renderHud = () => {
     if (state === null || view === null) {
       hudEl.innerHTML = '';
@@ -533,8 +601,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       return;
     }
     const life = view.lifeSupportDays;
-    const tankPct = Math.round(Math.min(1, Math.max(0, view.tankRatio)) * PERCENT);
-    const tankLevel =
+    const tankLevel: GaugeLevel =
       view.tankRatio < values.advice.tankLowRatio.value
         ? 'danger'
         : view.tankRatio < TANK_WARN_RATIO
@@ -551,11 +618,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
               .join('')}</div>`
           : ''
       }
-      <div class="ui-panel ui-tank ui-tank-${tankLevel} ${state.player.indoors ? 'indoors' : ''}">
-        <div class="ui-tank-head"><span>🫧 <span class="ui-long">${t('hud.tankHp')}</span><span class="ui-short">${t('hud.tankShort')}</span></span><span class="ui-tank-pct">${tankPct}%</span></div>
-        <div class="ui-tank-bar"><div style="width:${tankPct}%"></div></div>
-        <div class="ui-small">${state.player.indoors ? t('hud.tankIndoors') : t('hud.timeLeft', timeLeft(view.tankRatio))}</div>
-      </div>`;
+      ${gaugesHtml(state, view, tankLevel)}`;
     hudEl.innerHTML = detailPanelsHtml(state, view);
     const maxDays = values.display.maxLifeSupportDays.value;
     if (

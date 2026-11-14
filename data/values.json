@@ -835,6 +835,11 @@
       "value": 999,
       "unit": "day",
       "source": "TBD"
+    },
+    "lifeGaugeFullDays": {
+      "value": 30,
+      "unit": "day",
+      "source": "TBD"
     }
   },
   "save": {

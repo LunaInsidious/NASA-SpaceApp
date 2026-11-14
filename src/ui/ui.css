@@ -412,44 +412,9 @@
   border: 2px solid #6fd3ff;
 }
 
-.ui-tank-head {
-  display: flex;
-  justify-content: space-between;
-  font-weight: 700;
-  font-size: 15px;
-}
-
-.ui-tank-pct {
-  font-size: 22px;
-  line-height: 1;
-}
-
-.ui-tank-bar {
-  height: 16px;
-  margin: 4px 0;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.15);
-  overflow: hidden;
-}
-
-.ui-tank .ui-tank-bar > div {
-  height: 100%;
-  border-radius: 8px;
-  background: #4fd27a;
-  transition: width 0.3s;
-}
-
-.ui-tank-warn .ui-tank-bar > div {
-  background: #f2c94c;
-}
-
 .ui-tank-danger {
   border-color: #ff5a4f;
   animation: ui-tank-alarm 0.7s ease-in-out infinite alternate;
-}
-
-.ui-tank-danger .ui-tank-bar > div {
-  background: #ff5a4f;
 }
 
 .ui-tank.indoors {
@@ -593,19 +558,6 @@
 
   .ui-tank {
     padding: 4px 8px;
-  }
-
-  .ui-tank-head {
-    font-size: 13px;
-  }
-
-  .ui-tank-pct {
-    font-size: 16px;
-  }
-
-  .ui-tank-bar {
-    height: 10px;
-    margin: 3px 0 1px;
   }
 
   /* 右上：速さ・一時停止・言語を1列に。言語は切り替え先だけ見せる */
@@ -1535,5 +1487,121 @@ body.nb-open .ui-hud-tank {
   /* スマホ（左上）ではボンベを上に、今日のタスクをその下に */
   .ui-hud-tank .ui-tank {
     order: -1;
+  }
+}
+
+/* ---- いつも見せるゲージ：アイコンと横のバーが4本（ボンベ・生命維持・電力・被ばく） ---- */
+.ui-gauges {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+}
+
+.ui-gauge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ui-gauge-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  background: rgba(8, 12, 22, 0.8);
+  font-size: 16px;
+  line-height: 1;
+  cursor: help;
+}
+
+.ui-gauge-bar {
+  flex: 1 1 auto;
+  height: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.ui-gauge-bar > span {
+  display: block;
+  height: 100%;
+  background: #4fd27a;
+  transition: width 0.3s;
+}
+
+.ui-gauge-warn .ui-gauge-bar > span {
+  background: #f2c94c;
+}
+
+.ui-gauge-danger .ui-gauge-bar > span {
+  background: #ff5a4f;
+}
+
+.ui-gauge-danger .ui-gauge-icon {
+  border-color: #ff5a4f;
+}
+
+/* ボンベのゲージだけは太く、目立たせる（命に関わる） */
+.ui-gauge-tank .ui-gauge-icon {
+  width: 36px;
+  height: 36px;
+  border-color: #6fd3ff;
+  font-size: 19px;
+}
+
+.ui-gauge-tank .ui-gauge-bar {
+  height: 16px;
+  border-radius: 8px;
+}
+
+.ui-gauge-value {
+  flex: none;
+  min-width: 3.2em;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* スマホ：ゲージは小さめにして、上のほうにおさめる */
+@media (max-width: 640px) {
+  .ui-gauges {
+    gap: 3px;
+    padding: 5px 8px;
+  }
+
+  .ui-gauge {
+    gap: 6px;
+  }
+
+  .ui-gauge-icon {
+    width: 22px;
+    height: 22px;
+    border-width: 1px;
+    font-size: 12px;
+  }
+
+  .ui-gauge-tank .ui-gauge-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 15px;
+  }
+
+  .ui-gauge-bar {
+    height: 9px;
+  }
+
+  .ui-gauge-tank .ui-gauge-bar {
+    height: 12px;
+  }
+
+  .ui-gauge-value {
+    min-width: 2.8em;
+    font-size: 12px;
   }
 }
