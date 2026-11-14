@@ -778,5 +778,12 @@
       "unit": "slot",
       "source": "docs/SPEC.md 未決事項（仮の値）"
     }
+  },
+  "tutorial": {
+    "moveMeters": {
+      "value": 3,
+      "unit": "m",
+      "source": "TBD"
+    }
   }
 }

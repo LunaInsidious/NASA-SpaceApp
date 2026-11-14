@@ -1,81 +1,173 @@
-// チュートリアル（docs/SPEC.md ステップ8）の最小版：仕様の3課題を目標の一覧で見せ、できたら印を付ける
-import type { SimState } from '../contracts/index.ts';
+// チュートリアル（docs/SPEC.md ステップ8）。1つずつ指示を出し、できたら次へ進む。
+// 押すボタンは光らせ（tutorial.css）、行く場所には world の光の柱を立てる（guide()）
+import type { FacilityKind, SimState, Values } from '../contracts/index.ts';
 import { onLangChange, t } from '../ui/i18n.ts';
 import './tutorial.css';
 
-type Goal = 'solar' | 'battery' | 'ice' | 'flare';
-const GOALS: Goal[] = ['solar', 'battery', 'ice', 'flare'];
+const STEPS = [
+  'move',
+  'build',
+  'place',
+  'power',
+  'battery',
+  'toIce',
+  'takeIce',
+  'goHome',
+  'done',
+] as const;
+type Step = (typeof STEPS)[number];
+// 読んで「わかった」を押すと進む段
+const ACK_STEPS: readonly Step[] = ['power', 'done'];
+const STORAGE_KEY = 'lunar-outpost-tutorial';
 
 export interface TutorialProgress {
   state: SimState;
-  indoors: boolean;
-  /** 氷の場所で「氷を取る」をしたか */
-  collectedIce: boolean;
+  /** 最初の位置から歩いた距離 */
+  movedMeters: number;
+  /** 建設メニューで選んで、置く場所を選んでいる施設 */
+  placing: FacilityKind | null;
+  onIce: boolean;
+  carryingIce: boolean;
+  /** 氷を居住モジュールに持ち帰った */
+  deliveredIce: boolean;
 }
 
 export interface Tutorial {
+  /** 毎フレーム呼ぶ。段が変わったときだけ描き直す */
   update(progress: TutorialProgress): void;
+  /** 光の柱を立てる場所 */
+  guide(): 'ice' | 'home' | null;
 }
 
-export function createTutorial(root: HTMLElement): Tutorial {
-  const done = new Set<Goal>();
-  let skipped = false;
+function readFinished(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEY) === 'finished';
+  } catch (error) {
+    console.warn('チュートリアルの進み具合を読めない', error);
+    return false;
+  }
+}
+
+function saveFinished(): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, 'finished');
+  } catch (error) {
+    console.warn('チュートリアルの進み具合を保存できない', error);
+  }
+}
+
+export function createTutorial(root: HTMLElement, isTouch: boolean, values: Values): Tutorial {
+  let index = 0;
+  let finished = readFinished();
 
   const panel = document.createElement('div');
   panel.className = 'tutorial';
   root.append(panel);
-  const narrowScreen = window.matchMedia('(max-width: 640px)');
+
+  const step = (): Step => STEPS[index];
+
+  function finish(): void {
+    finished = true;
+    saveFinished();
+    render();
+  }
+
+  function next(): void {
+    index = Math.min(STEPS.length - 1, index + 1);
+    render();
+  }
 
   function render(): void {
-    panel.hidden = skipped;
+    panel.hidden = finished;
+    if (finished) {
+      delete document.body.dataset.tutorialStep;
+      return;
+    }
+    document.body.dataset.tutorialStep = step();
     panel.replaceChildren();
-    const title = document.createElement('div');
+
+    const head = document.createElement('div');
+    head.className = 'tutorial-head';
+    const title = document.createElement('span');
     title.className = 'tutorial-title';
     title.textContent = t('tutorial.title');
-    const list = document.createElement('ul');
-    // 狭い画面では、まだ終わっていない最初の目標だけを出す
-    const shown = narrowScreen.matches ? GOALS.filter((g) => !done.has(g)).slice(0, 1) : GOALS;
-    for (const goal of shown) {
-      const item = document.createElement('li');
-      item.className = done.has(goal) ? 'tutorial-done' : '';
-      item.textContent = `${done.has(goal) ? '✓' : '・'} ${t(`tutorial.${goal}`)}`;
-      list.append(item);
+    const progress = document.createElement('span');
+    progress.className = 'tutorial-progress';
+    progress.textContent = t('tutorial.progress', { n: index + 1, total: STEPS.length });
+    head.append(title, progress);
+
+    const text = document.createElement('p');
+    text.className = 'tutorial-text';
+    text.textContent = t(`tutorial.step.${step()}.${isTouch ? 'touch' : 'keys'}`);
+
+    const buttons = document.createElement('div');
+    buttons.className = 'tutorial-buttons';
+    if (ACK_STEPS.includes(step())) {
+      const ok = document.createElement('button');
+      ok.type = 'button';
+      ok.className = 'tutorial-ok';
+      ok.textContent = t('tutorial.ok');
+      ok.addEventListener('click', () => (step() === 'done' ? finish() : next()));
+      buttons.append(ok);
     }
-    const next = document.createElement('div');
-    next.className = 'tutorial-next';
-    next.textContent = t(done.size === GOALS.length ? 'tutorial.allDone' : 'tutorial.goal');
     const skip = document.createElement('button');
     skip.type = 'button';
     skip.textContent = t('tutorial.skip');
-    skip.addEventListener('click', () => {
-      skipped = true;
-      render();
-    });
-    panel.append(title, list, next, skip);
+    skip.addEventListener('click', finish);
+    buttons.append(skip);
+
+    panel.append(head, text, buttons);
+  }
+
+  /** 今の段ができたか（読んで進む段は false） */
+  function isDone(s: Step, p: TutorialProgress): boolean {
+    const has = (kind: FacilityKind) => p.state.facilities.some((f) => f.kind === kind);
+    switch (s) {
+      case 'move':
+        return p.movedMeters >= values.tutorial.moveMeters.value;
+      case 'build':
+        return p.placing === 'solar' || has('solar');
+      case 'place':
+        return has('solar');
+      case 'battery':
+        return has('battery');
+      case 'toIce':
+        return p.onIce || p.carryingIce || p.deliveredIce;
+      case 'takeIce':
+        return p.carryingIce || p.deliveredIce;
+      case 'goHome':
+        return p.deliveredIce;
+      case 'power':
+      case 'done':
+        return false;
+    }
   }
 
   onLangChange(render);
-  narrowScreen.addEventListener('change', render);
   render();
 
   return {
-    update({ state, indoors, collectedIce }) {
-      const before = done.size;
-      if (state.facilities.some((f) => f.kind === 'solar')) {
-        done.add('solar');
+    update(progress) {
+      if (finished) {
+        return;
       }
-      if (state.facilities.some((f) => f.kind === 'battery')) {
-        done.add('battery');
+      let advanced = false;
+      while (!ACK_STEPS.includes(step()) && isDone(step(), progress)) {
+        index++;
+        advanced = true;
       }
-      if (collectedIce && indoors) {
-        done.add('ice');
-      }
-      if (state.activeEvents.length > 0 && indoors) {
-        done.add('flare');
-      }
-      if (done.size !== before) {
+      if (advanced) {
         render();
       }
+    },
+    guide() {
+      if (finished) {
+        return null;
+      }
+      if (step() === 'toIce' || step() === 'takeIce') {
+        return 'ice';
+      }
+      return step() === 'goHome' ? 'home' : null;
     },
   };
 }

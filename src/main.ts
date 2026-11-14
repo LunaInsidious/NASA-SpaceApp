@@ -97,7 +97,11 @@ let carriedIce: { x: number; z: number } | null = null;
 let downedThisRun = false;
 const achievementStore = createAchievementStore(parseAchievements(achievementsJson));
 const pending: SimCommand[] = [];
-const tutorial = createTutorial(document.body);
+const isTouch = window.matchMedia('(pointer: coarse)').matches;
+const tutorial = createTutorial(document.body, isTouch, values);
+// チュートリアルの「歩けたか」を測る起点
+const moveOrigin = { x: state.player.x, z: state.player.z };
+let lastGuideKey = '';
 
 world.teleportPlayer(state.player.x, state.player.z);
 
@@ -175,7 +179,6 @@ function applyPlayerMode(): void {
   carryBadge.hidden = carriedIce === null;
   world.setPlayerVisible(!indoors);
   world.setMovementEnabled(!menuPaused && !indoors);
-  tutorial.update({ state, indoors, collectedIce });
 }
 
 function distanceToPlayer(f: Facility): number {
@@ -347,6 +350,45 @@ function updateBuildPreview(): void {
   }
 }
 
+function nearestToPlayer<T extends { x: number; z: number }>(items: T[]): T | null {
+  const p = world.getPlayer();
+  let best: T | null = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const item of items) {
+    const d = Math.hypot(item.x - p.x, item.z - p.z);
+    if (d < bestDistance) {
+      best = item;
+      bestDistance = d;
+    }
+  }
+  return best;
+}
+
+/** チュートリアルを進め、行く場所に光の柱を立てる */
+function updateTutorial(): void {
+  const p = world.getPlayer();
+  tutorial.update({
+    state,
+    movedMeters: Math.hypot(p.x - moveOrigin.x, p.z - moveOrigin.z),
+    placing: buildMode === null ? null : buildMode.kind,
+    onIce: env.isIceAt(p.x, p.z),
+    carryingIce: carriedIce !== null,
+    deliveredIce: collectedIce,
+  });
+  const guide = tutorial.guide();
+  const target =
+    guide === 'ice'
+      ? nearestToPlayer(env.iceSpots)
+      : guide === 'home'
+        ? nearestToPlayer(state.facilities.filter((f) => f.kind === 'habitat'))
+        : null;
+  const key = target === null ? '' : `${target.x},${target.z}`;
+  if (key !== lastGuideKey) {
+    lastGuideKey = key;
+    world.setGuideMarker(target === null ? null : { x: target.x, z: target.z });
+  }
+}
+
 function findDonki(donkiId: string): DonkiEvent {
   const found = timeline.find((e) => e.donkiId === donkiId);
   if (found === undefined) {
@@ -403,7 +445,6 @@ function refreshView(): void {
     working[id] = status.working;
   }
   world.syncFacilities(state.facilities, working);
-  tutorial.update({ state, indoors, collectedIce });
 }
 
 // ボタンにフォーカスが残ると、Space（ジャンプ）や Enter でそのボタンがまた押されるので外す
@@ -475,6 +516,7 @@ engine.runRenderLoop(() => {
   }
   world.setPadInput(ui.getPadInput());
   updateBuildPreview();
+  updateTutorial();
   const actions = contextActions();
   const actionsKey = actions.join(',');
   if (actionsKey !== lastActionsKey) {

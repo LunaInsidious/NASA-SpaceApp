@@ -40,6 +40,10 @@ import {
   CAMERA_TARGET_HEIGHT_M,
   CELESTIAL_DISTANCE_M,
   EARTH_DIAMETER_M,
+  GUIDE_ALPHA,
+  GUIDE_COLOR,
+  GUIDE_DIAMETER_M,
+  GUIDE_HEIGHT_M,
   HOP_SPEED_MPS,
   ICE_BRIGHTNESS,
   ICE_COLOR,
@@ -476,6 +480,20 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
     astronaut.root.rotation.y = player.heading;
   };
 
+  // チュートリアルで行く場所を示す光の柱
+  const guide = CreateCylinder(
+    'guide',
+    { height: GUIDE_HEIGHT_M, diameter: GUIDE_DIAMETER_M },
+    scene,
+  );
+  const guideMat = new StandardMaterial('guide-mat', scene);
+  guideMat.emissiveColor = new Color3(GUIDE_COLOR[0], GUIDE_COLOR[1], GUIDE_COLOR[2]);
+  guideMat.disableLighting = true;
+  guideMat.alpha = GUIDE_ALPHA;
+  guide.material = guideMat;
+  guide.isPickable = false;
+  guide.setEnabled(false);
+
   return {
     frame(dtSec) {
       const dt = Math.min(dtSec, 0.1);
@@ -569,6 +587,16 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
     },
     setPlayerVisible(visible) {
       astronaut.root.setEnabled(visible);
+    },
+    setGuideMarker(target) {
+      guide.setEnabled(target !== null);
+      if (target !== null) {
+        guide.position.set(
+          target.x,
+          env.heightAt(target.x, target.z) + GUIDE_HEIGHT_M / 2,
+          target.z,
+        );
+      }
     },
   };
 }

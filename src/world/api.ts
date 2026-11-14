@@ -34,4 +34,6 @@ export interface World {
   getPlayer(): PlayerPose;
   teleportPlayer(x: number, z: number): void;
   setPlayerVisible(visible: boolean): void;
+  /** チュートリアルで行く場所に光の柱を立てる。null で消す */
+  setGuideMarker(target: { x: number; z: number } | null): void;
 }

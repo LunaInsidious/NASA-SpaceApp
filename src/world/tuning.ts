@@ -58,3 +58,9 @@ export const PREVIEW_ALPHA = 0.45;
 /** 止まっている施設、傷んだ施設、影の中の施設の暗さ */
 export const STOPPED_TINT = 0.4;
 export const MIN_CONDITION_TINT = 0.45;
+
+// チュートリアルの光の柱（見た目）
+export const GUIDE_HEIGHT_M = 40;
+export const GUIDE_DIAMETER_M = 1.6;
+export const GUIDE_COLOR: [number, number, number] = [1, 0.85, 0.3];
+export const GUIDE_ALPHA = 0.55;
