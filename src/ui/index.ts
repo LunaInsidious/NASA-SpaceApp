@@ -17,7 +17,7 @@ import type { DeathAdvice } from '../tutorial/death.ts';
 import { professorDeathAdviceHtml } from '../tutorial/deathView.ts';
 import { PROFESSOR_SVG } from '../tutorial/professor.ts';
 import type { PadInput } from '../world/api.ts';
-import type { ContextAction, Ui, UiCallbacks } from './api.ts';
+import type { ContextAction, MorningSummary, Ui, UiCallbacks } from './api.ts';
 import { getLang, onLangChange, setLang, t, tPlain } from './i18n.ts';
 import { type NasaImages, photoFigureHtml } from './photo.ts';
 import './ui.css';
@@ -50,6 +50,7 @@ const CONTEXT_ACTIONS: readonly ContextAction[] = [
   'collectIce',
   'repair',
   'coverRegolith',
+  'nextDay',
 ];
 const MENUS = ['build', 'launch', 'crew', 'save', 'data'] as const;
 const DEVELOPMENT_ELEMENTS = ['selfSufficiency', 'stability', 'safety', 'scale'] as const;
@@ -78,7 +79,8 @@ type Dialog =
   | { type: 'flare'; event: ActiveEvent; donki: DonkiEvent | null }
   | { type: 'downed'; advice: DeathAdvice }
   | { type: 'cleared'; total: number }
-  | { type: 'gameOver'; advice: DeathAdvice };
+  | { type: 'gameOver'; advice: DeathAdvice }
+  | { type: 'morning'; summary: MorningSummary };
 
 function esc(text: string): string {
   return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -99,7 +101,7 @@ function pick<T extends string>(value: string | undefined, allowed: readonly T[]
 
 // 「データ」の窓で、出典と並べて見せる数値（HUD の項目ごと）
 const SOURCE_KEYS = {
-  tank: ['player.tankDurationHours'],
+  tank: ['eva.maxHours', 'crew.sleepHours', 'eva.weeklyHoursPerPerson'],
   lifeSupport: [
     'crew.oxygenKgPerDay',
     'crew.waterKgPerDay',
@@ -260,7 +262,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
 
   let state: SimState | null = null;
   let view: SimView | null = null;
-  let speed: 1 | 4 = 1;
   let userPaused = false;
   let lastPaused = false;
   let showBreakdown = false;
@@ -334,12 +335,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       quantity: cart[kind],
     }));
 
-  // ---- 右上：速さ・一時停止・言語 ----
+  // ---- 右上：一時停止・言語 ----
   const renderTopButtons = () => {
     const lang = getLang();
     topButtonsEl.innerHTML = `
-      <button data-action="speed" data-speed="1" class="${speed === 1 ? 'on' : ''}">${t('hud.speed1')}</button>
-      <button data-action="speed" data-speed="4" class="${speed === 4 ? 'on' : ''}">${t('hud.speed4')}</button>
       <button data-action="pause" class="${userPaused ? 'on' : ''}">${t(userPaused ? 'hud.resume' : 'hud.pause')}</button>
       <button data-action="lang" data-lang="en" class="${lang === 'en' ? 'on' : ''}">${t('hud.langEn')}</button>
       <button data-action="lang" data-lang="ja" class="${lang === 'ja' ? 'on' : ''}">${t('hud.langJa')}</button>`;
@@ -723,12 +722,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <div class="ui-close-row"><button data-action="closeMenu">${t('button.close')}</button></div>`;
   };
 
-  /** 嵐の残りの時間を、ゲームの中の時間と、今の速さでの本当の秒数で */
+  /** 嵐の残りの時間を、ゲームの中の時間と、外にいるときの本当の秒数で */
   const stormLeft = (hours: number) => ({
     hours: fmt(Math.ceil(hours)),
-    seconds: fmt(
-      Math.ceil(((hours / HOURS_PER_DAY) * values.time.secondsPerEarthDay.value) / speed),
-    ),
+    seconds: fmt(Math.ceil(hours * values.time.evaSecondsPerHour.value)),
   });
 
   /** 待つと失う時間と、外にいると浴びる量を並べて、退避するかを決める手がかりにする */
@@ -778,6 +775,29 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       </div>`;
   };
 
+  /** 「翌日へ」で寝ている間に起きたこと（物資の増減、ロケットの到着、宇宙天気） */
+  const morningHtml = (summary: MorningSummary) => {
+    const rows = summary.stockChanges
+      .map(
+        (change) =>
+          `<li><span class="ui-grow">${t(`launchItem.${change.kind}`)}</span><b class="${change.delta >= 0 ? 'ui-ok' : 'ui-bad'}">${change.delta >= 0 ? '+' : ''}${fmt(change.delta, 1)}</b></li>`,
+      )
+      .join('');
+    const weather = summary.spaceWeather
+      .map(
+        (event) =>
+          `<p class="ui-small">${t(`morning.spaceWeather.${event.kind}`, { cls: esc(event.classOrIntensity) })}</p>`,
+      )
+      .join('');
+    return `
+      <h2>${t('morning.title', { day: summary.day + 1 })}</h2>
+      <p>${t('morning.lead')}</p>
+      ${rows === '' ? '' : `<ul class="ui-list">${rows}</ul>`}
+      ${summary.arrived > 0 ? `<p class="ui-ok">${t('morning.arrived')}</p>` : ''}
+      ${weather}
+      <div class="ui-actions"><button data-action="dialogOk" class="primary">${t('morning.ok')}</button></div>`;
+  };
+
   const dialogHtml = (dialog: Dialog): string => {
     switch (dialog.type) {
       case 'flare':
@@ -794,6 +814,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           <p>${t('cleared.body', { value: fmt(dialog.total) })}</p>
           <p>${t('cleared.next')}</p>
           <div class="ui-actions"><button data-action="dialogOk" class="primary">${t('cleared.continue')}</button></div>`;
+      case 'morning':
+        return morningHtml(dialog.summary);
       case 'gameOver': {
         const kind = dialog.advice.kind;
         // 宇宙飛行士が倒れた（ボンベ・放射線）か、基地の物資が尽きたか
@@ -977,11 +999,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       return;
     }
     switch (target.dataset.action) {
-      case 'speed':
-        speed = pick(target.dataset.speed, ['1', '4'] as const, 'speed') === '4' ? 4 : 1;
-        callbacks.onSpeedChange(speed);
-        renderTopButtons();
-        break;
       case 'pause':
         userPaused = !userPaused;
         renderPauseOverlay();
@@ -1243,6 +1260,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       renderStatus();
     },
     showEvents,
+    showMorning(summary) {
+      pushDialog({ type: 'morning', summary });
+    },
     showFlareAlert(event, donki) {
       pushDialog({ type: 'flare', event, donki });
     },
@@ -1297,10 +1317,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       if (menu !== null) {
         renderModal();
       }
-    },
-    setSpeed(next) {
-      speed = next;
-      renderTopButtons();
     },
     isUserPaused() {
       return userPaused;

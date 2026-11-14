@@ -20,7 +20,6 @@ function context(options: {
   status?: SimView['facilityStatus'];
   farming?: boolean;
   linked?: boolean;
-  speed?: 1 | 4;
   days?: Partial<SimView['lifeSupportDays']>;
 }): DeathContext {
   const state = {
@@ -35,16 +34,13 @@ function context(options: {
     comm: { linked: options.linked ?? true, earthUp: true, relaySatellites: 0, unsentResearch: 0 },
     lifeSupportDays: { oxygen: 5, water: 5, food: 5, min: 5, ...options.days },
   } as unknown as SimView;
-  return { state, view, metersFromHabitat: 123.4, speed: options.speed ?? 1 };
+  return { state, view, metersFromHabitat: 123.4 };
 }
 
 describe('diagnoseDeath', () => {
-  it('ボンベ切れ：居住モジュールからの距離を言い、4× ならそれも原因に挙げる', () => {
-    const slow = diagnoseDeath('tankEmpty', context({}));
-    expect(slow.causes).toEqual([{ key: 'tankEmpty', params: { meters: 123 } }]);
-    const fast = diagnoseDeath('tankEmpty', context({ speed: 4 }));
-    expect(fast.causes.map((c) => c.key)).toEqual(['tankEmpty', 'tankFast']);
-    expect(fast.tips[0]).toBe('tankSpeed');
+  it('ボンベ切れ：居住モジュールからの距離を言う', () => {
+    const advice = diagnoseDeath('tankEmpty', context({}));
+    expect(advice.causes).toEqual([{ key: 'tankEmpty', params: { meters: 123 } }]);
   });
 
   it('放射線：通信できなかったら、警報が届かなかったことを原因に挙げる', () => {

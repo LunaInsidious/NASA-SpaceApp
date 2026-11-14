@@ -15,6 +15,7 @@ import {
   describe as describeState,
   launchItemCost,
   outdoorDoseMsvPerHour,
+  restUntilNextDay,
   step,
 } from './index.ts';
 
@@ -263,7 +264,7 @@ describe('sim', () => {
       rng,
     );
     const breathedFromTank =
-      values.crew.oxygenKgPerDay.value * (values.player.tankDurationHours.value / 24) * 0.5;
+      values.crew.oxygenKgPerDay.value * (values.eva.maxHours.value / 24) * 0.5;
     const crewBreathing = values.crew.oxygenKgPerDay.value * (HOURS / 24);
     expect(halfTank.stocks.oxygen - result.state.stocks.oxygen).toBeCloseTo(
       breathedFromTank + crewBreathing,
@@ -326,5 +327,40 @@ describe('sim', () => {
       expect(cost % step).toBe(0);
       expect(cost).toBeGreaterThanOrEqual(step);
     }
+  });
+
+  it('翌日へは、次の日の始まりまで刻みを1つずつ回したのと同じ結果になり、届くはずのロケットも届く', () => {
+    const env = fakeEnv();
+    const initial = createInitialState(values, env, [0, 0]);
+    // 外で3時間働いてから中に入り、ロケットを頼んだあと
+    const outside = run(initial, env, 3).state;
+    const ordered = step(
+      { ...outside, commLinked: true },
+      0,
+      env,
+      [
+        { type: 'setPlayer', x: outside.player.x, z: outside.player.z, indoors: true },
+        { type: 'orderLaunch', items: [{ kind: 'food', quantity: 100 }] },
+      ],
+      values,
+      [],
+      rng,
+    ).state;
+    expect(ordered.launches).toHaveLength(1);
+
+    const rested = restUntilNextDay(ordered, env, values, [], rng);
+    expect(rested.state.timeHours).toBe(24);
+    expect(rested.state).toEqual(run(ordered, env, 24 - ordered.timeHours).state);
+
+    // 届くまでの日数のぶん翌日へを押すと、ロケットが届く
+    let state = rested.state;
+    const emitted: GameEvent[] = [...rested.emitted];
+    for (let day = 0; day < Math.ceil(values.launch.deliveryDays.value); day++) {
+      const next = restUntilNextDay(state, env, values, [], rng);
+      state = next.state;
+      emitted.push(...next.emitted);
+    }
+    expect(state.launches).toHaveLength(0);
+    expect(emitted.some((e) => e.type === 'launchArrived')).toBe(true);
   });
 });

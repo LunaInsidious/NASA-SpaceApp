@@ -26,12 +26,19 @@ import {
 } from './save/achievements.ts';
 import { createSaveStore } from './save/index.ts';
 import type { BuildOptions, CommLostReason, Placement } from './sim/api.ts';
-import { checkPlacement, commLostReason, createInitialState, describe, step } from './sim/index.ts';
+import {
+  checkPlacement,
+  commLostReason,
+  createInitialState,
+  describe,
+  restUntilNextDay,
+  step,
+} from './sim/index.ts';
 import { createTitle } from './title/index.ts';
 import { type Advice, createAdviceCard, pickAdvices } from './tutorial/advice.ts';
 import { type DeathAdvice, type DeathKind, diagnoseDeath } from './tutorial/death.ts';
 import { createTutorial, parseMissions } from './tutorial/index.ts';
-import type { ContextAction } from './ui/api.ts';
+import type { ContextAction, MorningSummary } from './ui/api.ts';
 import { createFx } from './ui/fx.ts';
 import { onLangChange, t, tPlain } from './ui/i18n.ts';
 import { createUi } from './ui/index.ts';
@@ -46,6 +53,13 @@ const MAX_STEPS_PER_FRAME = 8;
 const TERRAIN_SEED = 1;
 // 足音を鳴らす間隔（歩いた距離、m）。見た目と音だけの値
 const STEP_SOUND_METERS = 1.6;
+const MINUTES_PER_HOUR = 60;
+// 朝の窓に出す物資（増減があったものだけ）
+const MORNING_STOCKS = ['oxygen', 'water', 'food', 'spareParts', 'materials'] as const;
+// 休むときに1つずつ順に見せる、休む理由（文言は rest.reason.<キー>、数は values.json）
+const REST_REASONS = ['eva', 'sleep', 'weekly'] as const;
+// 朝の窓で、ほとんど変わらなかった物資は出さない（見た目だけの値）
+const MORNING_MIN_DELTA = 0.05;
 
 const values: Values = valuesJson;
 const timeline: DonkiTimeline = parseDonkiTimeline(donkiJson);
@@ -96,7 +110,14 @@ world.onGroundClick(() => confirmBuild());
 const saves = createSaveStore(values);
 // セーブがあれば、いちばん新しいものから続ける（リロードしても続きから遊べる）
 let state = saves.latest() ?? createInitialState(values, env, env.landerPosition);
-let speed: 1 | 4 = 1;
+// 活動フェーズ（外）と休息フェーズ（居住モジュールの中）。sim の phase とは別（docs/SPEC.md 追加の仕様）。
+// 中にいる間は時間が止まり、「翌日へ」で次の日の始まりまで一気に進める。外に出られるのは1日1回
+// 新しいゲームは外（着陸船のそば）から始まるので、その日はもう外に出ている
+let wentOutToday = !state.player.indoors;
+// 「翌日へ」を押した回数（くんれんの段と、休む理由を順に見せるのに使う）
+let restDays = 0;
+// ボンベの残りの警告をいくつ出したか（外に出るたびに 0 に戻す）
+let tankWarnings = 0;
 let menuPaused = false;
 let indoors = state.player.indoors;
 let buildMode: { kind: FacilityKind; options: BuildOptions } | null = null;
@@ -125,7 +146,7 @@ const title = createTitle(document.body, {
   saves: () => saves.list(),
   onNew: () => tutorial.startNew(),
   onContinue: (saveId) => {
-    startFrom(saves.load(saveId));
+    startFrom(saves.load(saveId), true);
     tutorial.startContinue();
   },
   soundMode: () => fx.soundMode(),
@@ -147,9 +168,6 @@ world.teleportPlayer(state.player.x, state.player.z);
 const ui = createUi(
   uiRoot,
   {
-    onSpeedChange: (next) => {
-      speed = next;
-    },
     onPauseChange: (paused) => {
       menuPaused = paused;
       applyPlayerMode();
@@ -179,7 +197,7 @@ const ui = createUi(
       tutorial.answerFlare(choice);
     },
     onRestart: () => {
-      startFrom(createInitialState(values, env, env.landerPosition));
+      startFrom(createInitialState(values, env, env.landerPosition), false);
     },
     onBackToTitle: () => {
       // タイトルの「つづきから」でここから続けられるよう、戻る前に自動でセーブする
@@ -197,7 +215,7 @@ const ui = createUi(
       ui.setSaves(saves.list());
     },
     onLoad: (saveId) => {
-      startFrom(saves.load(saveId));
+      startFrom(saves.load(saveId), true);
     },
   },
   values,
@@ -254,7 +272,7 @@ function celebrateProgress(): void {
 
 /** 「さいしょから」：新しいゲームにする（セーブは消さない） */
 function restartGame(): void {
-  startFrom(createInitialState(values, env, env.landerPosition));
+  startFrom(createInitialState(values, env, env.landerPosition), false);
   manualSaveCount = 0;
 }
 
@@ -302,9 +320,12 @@ const renderCarryBadge = () => {
 renderCarryBadge();
 onLangChange(renderCarryBadge);
 
-/** セーブからの再開や、新しく始めるとき */
-function startFrom(next: SimState): void {
+/** セーブからの再開や、新しく始めるとき。セーブからは休息フェーズ（居住モジュールの中）で始める */
+function startFrom(next: SimState, fromSave: boolean): void {
   state = next;
+  wentOutToday = fromSave || !next.player.indoors;
+  restDays = 0;
+  tankWarnings = 0;
   pending.length = 0;
   accumulatedHours = 0;
   collectedIce = false;
@@ -314,8 +335,22 @@ function startFrom(next: SimState): void {
   cancelBuild();
   indoors = state.player.indoors;
   world.teleportPlayer(state.player.x, state.player.z);
+  if (fromSave && !indoors) {
+    moveIntoNearestHabitat();
+  }
   applyPlayerMode();
   refreshView();
+}
+
+/** いちばん近い居住モジュールの中に入れる（退避、セーブからの再開） */
+function moveIntoNearestHabitat(): void {
+  const habitats = state.facilities.filter((f) => f.kind === 'habitat');
+  if (habitats.length === 0) {
+    throw new Error('居住モジュールが1つもない（最初に1つあり、こわせない）');
+  }
+  const nearest = habitats.reduce((a, b) => (distanceToPlayer(a) <= distanceToPlayer(b) ? a : b));
+  world.teleportPlayer(nearest.x, nearest.z);
+  indoors = true;
 }
 
 function applyPlayerMode(): void {
@@ -340,7 +375,17 @@ function nearbyFacilities(): Facility[] {
 
 function contextActions(): ContextAction[] {
   if (indoors) {
-    return ['exitHabitat'];
+    // 朝（まだ外に出ていない日）は外に出るのが先（E キー）。休んだあとは「翌日へ」が先
+    const actions: ContextAction[] = [];
+    if (!wentOutToday || tutorial.allowsGoingOutAgain()) {
+      actions.push('exitHabitat');
+    }
+    if (tutorial.allowsNextDay() && wentOutToday) {
+      actions.unshift('nextDay');
+    } else if (tutorial.allowsNextDay()) {
+      actions.push('nextDay');
+    }
+    return actions;
   }
   const p = world.getPlayer();
   const near = nearbyFacilities();
@@ -369,9 +414,15 @@ function doAction(action: ContextAction): void {
       indoors = true;
       fx.sound('door');
       deliverIce();
+      startRest();
+      break;
+    case 'nextDay':
+      sleepUntilMorning();
       break;
     case 'exitHabitat': {
       indoors = false;
+      wentOutToday = true;
+      tankWarnings = 0;
       fx.sound('door');
       // 居住モジュールの真ん中（倒れたあと、退避したあと）にいると、ドームの中に隠れてしまう。ドアの前に出す
       const home = state.facilities
@@ -383,12 +434,6 @@ function doAction(action: ContextAction): void {
       if (home !== null && distanceToPlayer(home) < values.player.exitDistanceMeters.value) {
         world.teleportPlayer(home.x, home.z + values.player.exitDistanceMeters.value);
         world.pointCameraAwayFrom(home.x, home.z);
-      }
-      // 外で 4× のままだと歩くのもボンベの減りも速すぎるので、外に出たら 1× に戻す（外で自分で 4× にはできる）
-      if (speed === 4) {
-        speed = 1;
-        ui.setSpeed(1);
-        ui.notify(t('speed.backToNormal'), false);
       }
       break;
     }
@@ -431,16 +476,91 @@ function doAction(action: ContextAction): void {
 
 /** 太陽フレアの警報で「退避する」を選んだとき：いちばん近い居住モジュールに入る */
 function shelter(): void {
-  const habitats = state.facilities.filter((f) => f.kind === 'habitat');
-  if (habitats.length === 0) {
-    return;
-  }
-  const nearest = habitats.reduce((a, b) => (distanceToPlayer(a) <= distanceToPlayer(b) ? a : b));
-  world.teleportPlayer(nearest.x, nearest.z);
-  indoors = true;
+  moveIntoNearestHabitat();
   fx.sound('door');
   deliverIce();
+  startRest();
   applyPlayerMode();
+}
+
+/** 居住モジュールに入った：その日の活動はおしまい。休む理由を1つ見せ、自動でセーブする */
+function startRest(): void {
+  if (!wentOutToday) {
+    return;
+  }
+  const reason = REST_REASONS[restDays % REST_REASONS.length];
+  const hours = {
+    eva: values.eva.maxHours.value,
+    sleep: values.crew.sleepHours.value,
+    weekly: values.eva.weeklyHoursPerPerson.value,
+  }[reason];
+  ui.notify(
+    `${t(`rest.reason.${reason}`, { hours })} ${tutorial.allowsGoingOutAgain() ? '' : t('rest.next')}`,
+    false,
+  );
+  if (state.phase !== 'gameOver') {
+    saves.autoSave(state);
+    ui.setSaves(saves.list());
+  }
+}
+
+/** 「翌日へ」：次の日の始まりまで、中で一気に進める。寝ている間に起きたことは朝の窓で見せる */
+function sleepUntilMorning(): void {
+  // 建てる・注文するなどの操作を先に反映する
+  tick(0);
+  const before = state;
+  // くんれん中は、本物の宇宙天気は起こさない（太陽フレアは訓練の警報で教える）
+  const result = restUntilNextDay(
+    state,
+    env,
+    values,
+    tutorial.isTutorial() ? [] : timeline,
+    Math.random,
+  );
+  state = result.state;
+  restDays++;
+  wentOutToday = false;
+  // 中にいたので、警報（退避するか）は出さない。届いた・宇宙天気は朝の窓にまとめる
+  handleEvents(
+    result.emitted.filter(
+      (e) =>
+        e.type !== 'eventStarted' &&
+        e.type !== 'launchArrived' &&
+        e.type !== 'commLost' &&
+        e.type !== 'commRestored',
+    ),
+  );
+  if (state.phase !== 'gameOver') {
+    const summary: MorningSummary = {
+      day: Math.floor(state.timeHours / HOURS_PER_DAY),
+      stockChanges: MORNING_STOCKS.map((kind) => ({
+        kind,
+        delta: state.stocks[kind] - before.stocks[kind],
+      })).filter((change) => Math.abs(change.delta) >= MORNING_MIN_DELTA),
+      arrived: result.emitted.filter((e) => e.type === 'launchArrived').length,
+      spaceWeather: result.emitted.flatMap((e) => (e.type === 'eventStarted' ? [e.event] : [])),
+    };
+    ui.showMorning(summary);
+    if (summary.arrived > 0) {
+      fx.sound('coin');
+    }
+  }
+  refreshView();
+}
+
+/** 外にいられる残りの時間が決めた時間を切ったら、知らせる（1時間と30分） */
+function warnTank(): void {
+  if (indoors) {
+    return;
+  }
+  const hoursLeft = state.player.tankOxygen * values.eva.maxHours.value;
+  const thresholds = [values.eva.warnHoursFirst.value, values.eva.warnHoursSecond.value];
+  const next = thresholds[tankWarnings];
+  if (next !== undefined && hoursLeft <= next) {
+    tankWarnings++;
+    ui.notify(t('eva.warn', { minutes: Math.round(next * MINUTES_PER_HOUR) }), true);
+    fx.sound('warn');
+  }
 }
 
 /** 運んできた氷を居住モジュールに届ける */
@@ -604,7 +724,7 @@ function updateTutorial(): void {
     viewYawRad: world.getViewYawRad(),
     airborne: p.y > env.heightAt(p.x, p.z) + values.tutorial.airborneMeters.value,
     placing: buildMode === null ? null : buildMode.kind,
-    speed,
+    restDays,
     indoors,
     onIce: env.isIceAt(p.x, p.z),
     carryingIce: carriedIce !== null,
@@ -679,7 +799,6 @@ function deathAdviceFor(events: GameEvent[]): DeathAdvice | null {
     state,
     view: describe(state, values, env),
     metersFromHabitat: Math.min(...habitats.map((h) => Math.hypot(h.x - p.x, h.z - p.z))),
-    speed,
   });
 }
 
@@ -709,11 +828,12 @@ function handleEvents(events: GameEvent[]): void {
       fx.sound('down');
     }
     if (event.type === 'playerDowned') {
-      // sim が着陸船の近くの居住モジュールに戻している
+      // sim が着陸船の近くの居住モジュールに戻している。その日の活動はおしまい
       world.teleportPlayer(state.player.x, state.player.z);
       indoors = state.player.indoors;
       // 倒れると、運んでいた氷はなくなる
       carriedIce = null;
+      startRest();
       applyPlayerMode();
     }
   }
@@ -743,7 +863,6 @@ function tick(dtHours: number): void {
     { type: 'setPlayer', x: p.x, z: p.z, indoors },
     ...pending.splice(0),
   ];
-  const dayBefore = Math.floor(state.timeHours / HOURS_PER_DAY);
   const launchesBefore = state.launches.length;
   // くんれん中は、本物の宇宙天気は起こさない（太陽フレアは訓練の警報で教える）
   const events = tutorial.isTutorial() ? [] : timeline;
@@ -759,11 +878,7 @@ function tick(dtHours: number): void {
     fx.sound('launch');
   }
   handleEvents(result.emitted);
-  // ゲーム内の1日ごとに自動セーブ（ゲームオーバーの状態は残さない）
-  if (Math.floor(state.timeHours / HOURS_PER_DAY) !== dayBefore && state.phase !== 'gameOver') {
-    saves.autoSave(state);
-    ui.setSaves(saves.list());
-  }
+  warnTank();
 }
 
 function refreshView(): void {
@@ -850,8 +965,8 @@ engine.runRenderLoop(() => {
     lastBlocking = blocking;
     applyPlayerMode();
   }
-  if (!menuPaused && !blocking && state.phase !== 'gameOver' && !tutorial.timeRuns()) {
-    // くんれんで時間を止めている段：時間は進めず、建てる・出入りなどの操作だけを sim に反映する
+  if (!menuPaused && !blocking && state.phase !== 'gameOver' && (indoors || !tutorial.timeRuns())) {
+    // 中にいる間（休息フェーズ）と、くんれんで時間を止めている段：時間は進めず、建てる・出入りなどの操作だけを sim に反映する
     accumulatedHours = 0;
     if (pending.length > 0 || indoors !== state.player.indoors) {
       tick(0);
@@ -859,7 +974,7 @@ engine.runRenderLoop(() => {
     }
   } else if (!menuPaused && !blocking && state.phase !== 'gameOver') {
     const stepHours = values.time.stepHours.value;
-    accumulatedHours += dtSec * speed * (HOURS_PER_DAY / values.time.secondsPerEarthDay.value);
+    accumulatedHours += dtSec / values.time.evaSecondsPerHour.value;
     let steps = 0;
     while (accumulatedHours >= stepHours && steps < MAX_STEPS_PER_FRAME) {
       accumulatedHours -= stepHours;
@@ -883,7 +998,7 @@ engine.runRenderLoop(() => {
     lastActionsKey = actionsKey;
     ui.setContextActions(actions);
   }
-  world.frame(dtSec, speed);
+  world.frame(dtSec);
   scene.render();
 });
 

@@ -1,19 +1,38 @@
 {
   "time": {
-    "secondsPerEarthDay": {
+    "evaSecondsPerHour": {
       "value": 20,
       "unit": "s",
-      "source": "docs/SPEC.md 時間"
-    },
-    "stepHours": {
-      "value": 1,
-      "unit": "h",
       "source": "TBD"
     },
-    "fastSpeedMultiplier": {
-      "value": 4,
-      "unit": "x",
-      "source": "docs/SPEC.md 時間"
+    "stepHours": {
+      "value": 0.125,
+      "unit": "h",
+      "source": "TBD"
+    }
+  },
+  "eva": {
+    "maxHours": {
+      "value": 8,
+      "unit": "h",
+      "source": "NASA: Exploration EVA System Concept of Operations Summary for Artemis Phase 1（6±2 h）",
+      "url": "https://www.nasa.gov/wp-content/uploads/2020/01/topic_1-_eva_lunar_surface_concept_of_operations.pdf"
+    },
+    "weeklyHoursPerPerson": {
+      "value": 24,
+      "unit": "h/week",
+      "source": "NASA: Human Performance in Surface EVA Operations (2024)",
+      "url": "https://ntrs.nasa.gov/api/citations/20240004073/downloads/Estep%20-%20Human%20Perf%20in%20SSEO%20-%20SHOP%20-%202024-04-17_v2.pdf"
+    },
+    "warnHoursFirst": {
+      "value": 1,
+      "unit": "h",
+      "source": "docs/SPEC.md 追加の仕様（活動フェーズと休息フェーズ）"
+    },
+    "warnHoursSecond": {
+      "value": 0.5,
+      "unit": "h",
+      "source": "docs/SPEC.md 追加の仕様（活動フェーズと休息フェーズ）"
     }
   },
   "moon": {
@@ -76,6 +95,12 @@
       "value": 10,
       "unit": "person",
       "source": "TBD"
+    },
+    "sleepHours": {
+      "value": 8.5,
+      "unit": "h",
+      "source": "NASA-STD-3001 6.0 Medical Operations",
+      "url": "https://www.nasa.gov/reference/6-0-medical-operations/"
     }
   },
   "development": {
@@ -171,11 +196,6 @@
     "exitDistanceMeters": {
       "value": 5,
       "unit": "m",
-      "source": "TBD"
-    },
-    "tankDurationHours": {
-      "value": 240,
-      "unit": "h",
       "source": "TBD"
     },
     "iceKgPerTrip": {
@@ -313,7 +333,7 @@
         "source": "TBD"
       },
       "powerKw": {
-        "value": 1.0,
+        "value": 1,
         "unit": "kW",
         "source": "TBD"
       },
@@ -421,7 +441,7 @@
         "source": "TBD"
       },
       "waterKgPerDay": {
-        "value": 1.0,
+        "value": 1,
         "unit": "kg/day",
         "source": "TBD"
       },
@@ -453,7 +473,7 @@
         "source": "TBD"
       },
       "oxygenKgPerDay": {
-        "value": 2.0,
+        "value": 2,
         "unit": "kg/day",
         "source": "TBD"
       },

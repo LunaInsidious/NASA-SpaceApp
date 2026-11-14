@@ -671,7 +671,7 @@ export const step: Step = (prev, dtHours, env, commands, values, events, rng) =>
   if (state.player.indoors) {
     // ボンベが空から満タンになる量 ＝ ボンベがもつ時間に、1人が吸う酸素
     const fullTankKg =
-      values.crew.oxygenKgPerDay.value * (values.player.tankDurationHours.value / HOURS_PER_DAY);
+      values.crew.oxygenKgPerDay.value * (values.eva.maxHours.value / HOURS_PER_DAY);
     const refill = (1 - state.player.tankOxygen) * fullTankKg;
     state.stocks.oxygen -= refill;
     record.consumed.oxygen += refill;
@@ -679,7 +679,7 @@ export const step: Step = (prev, dtHours, env, commands, values, events, rng) =>
   } else {
     state.player.tankOxygen = Math.max(
       0,
-      state.player.tankOxygen - dtHours / values.player.tankDurationHours.value,
+      state.player.tankOxygen - dtHours / values.eva.maxHours.value,
     );
     const acute = values.player.acuteDoseMsv.value;
     if (state.player.tankOxygen <= 0) {
@@ -734,6 +734,40 @@ export const step: Step = (prev, dtHours, env, commands, values, events, rng) =>
 
   return { state, emitted };
 };
+
+/**
+ * 休息フェーズの「翌日へ」：次の日の始まり（24時間の区切り）まで、屋内で step を固定の刻みで回して一気に進める。
+ * 刻みを1つずつ回したのと同じ結果になる。ゲームオーバーになったらそこで止める
+ */
+export function restUntilNextDay(
+  prev: SimState,
+  env: Env,
+  values: Values,
+  events: DonkiTimeline,
+  rng: () => number,
+): { state: SimState; emitted: GameEvent[] } {
+  const target = (Math.floor(prev.timeHours / HOURS_PER_DAY + EPSILON) + 1) * HOURS_PER_DAY;
+  const stepHours = values.time.stepHours.value;
+  let state = prev;
+  const emitted: GameEvent[] = [];
+  while (state.timeHours < target - EPSILON && state.phase !== 'gameOver') {
+    const commands: SimCommand[] = state.player.indoors
+      ? []
+      : [{ type: 'setPlayer', x: state.player.x, z: state.player.z, indoors: true }];
+    const result = step(
+      state,
+      Math.min(stepHours, target - state.timeHours),
+      env,
+      commands,
+      values,
+      events,
+      rng,
+    );
+    state = result.state;
+    emitted.push(...result.emitted);
+  }
+  return { state, emitted };
+}
 
 /** 地球と話せない理由。理由ごとに「やること」が違うので、画面で分けて見せる */
 export function commLostReason(state: SimState, view: SimView): CommLostReason {

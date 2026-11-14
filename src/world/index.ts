@@ -565,22 +565,18 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
   });
 
   return {
-    frame(dtSec, timeScale) {
+    frame(dtSec) {
       const dt = Math.min(dtSec, 0.1);
-      const gameDt = dt * timeScale;
       for (const [node, elapsed] of popping) {
-        const t = Math.min(1, (elapsed + gameDt) / POP_SECONDS);
+        const t = Math.min(1, (elapsed + dt) / POP_SECONDS);
         // 少し大きくなりすぎてから戻る（ease-out-back）
         const back = POP_OVERSHOOT;
         const scale = 1 + (back + 1) * (t - 1) ** 3 + back * (t - 1) ** 2;
         node.scaling.setAll(scale);
         if (t >= 1) popping.delete(node);
-        else popping.set(node, elapsed + gameDt);
+        else popping.set(node, elapsed + dt);
       }
-      // 速いときは、ふつうの刻みを何回か重ねて動かす（1回で大きく動かすと、すり抜けたり飛びすぎたりする）
-      for (let i = 0; i < timeScale; i++) {
-        updatePlayer(dt);
-      }
+      updatePlayer(dt);
       updateCamera(dt);
       terrain.progress();
       shadowCheckTimer -= dt;

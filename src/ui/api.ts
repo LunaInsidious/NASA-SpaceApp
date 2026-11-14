@@ -20,10 +20,22 @@ export type ContextAction =
   | 'exitHabitat'
   | 'collectIce'
   | 'repair'
-  | 'coverRegolith';
+  | 'coverRegolith'
+  | 'nextDay';
+
+/** 「翌日へ」で進めた間に起きたこと。翌朝の活動フェーズに入る前に1枚の窓で見せる */
+export interface MorningSummary {
+  /** 新しい日（着陸の日を 0 とする） */
+  day: number;
+  /** 物資の増減（変わらなかったものは入れない） */
+  stockChanges: { kind: 'oxygen' | 'water' | 'food' | 'spareParts' | 'materials'; delta: number }[];
+  /** 届いたロケットの数 */
+  arrived: number;
+  /** 寝ている間に起きた宇宙天気（中にいたので被ばくは基地の守りの分だけ） */
+  spaceWeather: ActiveEvent[];
+}
 
 export interface UiCallbacks {
-  onSpeedChange(speed: 1 | 4): void;
   /** メニューや解説を開くと true、閉じると false（main が時間を止める） */
   onPauseChange(paused: boolean): void;
   onBuildSelect(kind: FacilityKind, options: BuildOptions): void;
@@ -51,6 +63,8 @@ export interface Ui {
    * 倒れた・ゲームオーバーのときは、death にルナはかせのアドバイス（原因とつぎにやること）を渡す
    */
   showEvents(events: GameEvent[], state: SimState, death: DeathAdvice | null): void;
+  /** 「翌日へ」のあとの朝の窓 */
+  showMorning(summary: MorningSummary): void;
   /** 太陽フレアの警報。退避するか作業を続けるかを選ばせる。出典（過去の実際のイベントと日付）を必ず見せる */
   showFlareAlert(event: ActiveEvent, donki: DonkiEvent | null): void;
   getPadInput(): PadInput;
@@ -71,8 +85,6 @@ export interface Ui {
   isMenuOpen(): boolean;
   /** 「一時停止」のボタンで止めているか */
   isUserPaused(): boolean;
-  /** 速さのボタンの表示を合わせる（main が速さを変えたとき。onSpeedChange は呼ばない） */
-  setSpeed(speed: 1 | 4): void;
   /** 窓（メニュー）のいちばん上に出す、博士の「やること」。null なら出さない */
   setGuide(html: string | null): void;
 }

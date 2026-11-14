@@ -1,5 +1,5 @@
 // 倒れたとき・ゲームオーバーのときに、ルナはかせが「どうしてそうなったか」と「つぎはどうするか」を話すための診断。
-// そのときの基地の様子（施設が動いていたか、通信、速さ、居住モジュールからの距離）から、本当の原因を1つ選ぶ
+// そのときの基地の様子（施設が動いていたか、通信、居住モジュールからの距離）から、本当の原因を1つ選ぶ
 import type { FacilityKind, ResourceKey, SimState } from '../contracts/index.ts';
 import type { SimView } from '../sim/api.ts';
 
@@ -8,7 +8,6 @@ export type DeathKind = 'tankEmpty' | 'radiation' | ResourceKey;
 // 文言は i18n の death.cause.<キー> と death.tip.<キー>
 export const DEATH_CAUSES = [
   'tankEmpty',
-  'tankFast',
   'radiationStorm',
   'radiationNoAlert',
   'oxygenNoLifeSupport',
@@ -29,7 +28,6 @@ export const DEATH_CAUSES = [
 export const DEATH_TIPS = [
   'tankHalf',
   'tankOutpost',
-  'tankSpeed',
   'shelter',
   'stormTime',
   'shield',
@@ -62,7 +60,6 @@ export interface DeathContext {
   view: SimView;
   /** 倒れた場所から、いちばん近い居住モジュールまで（m）。ボンベが切れたときだけ使う */
   metersFromHabitat: number;
-  speed: 1 | 4;
 }
 
 type Stop = 'none' | 'noPower' | 'broken' | null;
@@ -83,15 +80,11 @@ function stoppedBecause(kind: FacilityKind, ctx: DeathContext): Stop {
 export function diagnoseDeath(kind: DeathKind, ctx: DeathContext): DeathAdvice {
   switch (kind) {
     case 'tankEmpty': {
-      const causes: DeathAdvice['causes'] = [
-        { key: 'tankEmpty', params: { meters: Math.round(ctx.metersFromHabitat) } },
-      ];
-      const tips: DeathTip[] = ['tankHalf', 'tankOutpost'];
-      if (ctx.speed === 4) {
-        causes.push({ key: 'tankFast' });
-        tips.unshift('tankSpeed');
-      }
-      return { kind, causes, tips };
+      return {
+        kind,
+        causes: [{ key: 'tankEmpty', params: { meters: Math.round(ctx.metersFromHabitat) } }],
+        tips: ['tankHalf', 'tankOutpost'],
+      };
     }
     case 'radiation': {
       const causes: DeathAdvice['causes'] = [{ key: 'radiationStorm' }];

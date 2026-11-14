@@ -25,9 +25,9 @@ export const STEPS = [
   'buildHabitat',
   'order',
   'goInsideWait',
-  'fastForward',
+  'nextDay',
   'waitArrival',
-  'normalSpeed',
+  'arrived',
   'assignCrew',
   'toIce',
   'takeIce',
@@ -77,8 +77,8 @@ const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
     '[data-action="menu"][data-menu="build"]',
   ],
   goInsideWait: ['[data-action="context"][data-context="enterHabitat"]'],
-  fastForward: ['[data-action="speed"][data-speed="4"]'],
-  normalSpeed: ['[data-action="speed"][data-speed="1"]'],
+  nextDay: ['[data-action="context"][data-context="nextDay"]'],
+  waitArrival: ['[data-action="context"][data-context="nextDay"]'],
   assignCrew: [
     '[data-action="assign"][data-task="farming"]',
     '[data-action="menu"][data-menu="crew"]',
@@ -135,24 +135,16 @@ function pointTarget(step: Step): HTMLElement | null {
   return null;
 }
 
-// くんれん中に時間が進む段（はやおくり・ロケット待ち・こおり運び・一時停止）。ほかの段は時間を止めて、読んでいる間に物資やボンベが減らないようにする
-const TIME_STEPS: readonly Step[] = [
-  'fastForward',
-  'waitArrival',
-  'normalSpeed',
-  'toIce',
-  'takeIce',
-  'goHome',
-  'pause',
-  'resume',
-];
+// くんれん中に外で時間が進む段（こおり運び・一時停止）。ほかの段は時間を止めて、読んでいる間にボンベが減らないようにする。
+// 中にいる間は、くんれんの外でも時間は止まっている（「翌日へ」で進める）
+const TIME_STEPS: readonly Step[] = ['toIce', 'takeIce', 'goHome', 'pause', 'resume'];
 
 // 外でやる段。中にいるときは「外に出る」を指して、ひとこと出す
 const OUTDOOR_STEPS: readonly Step[] = ['move', 'look', 'jump', 'toIce', 'takeIce', 'regolith'];
 const MS_PER_SECOND = 1000;
 
 // 読んで「わかった」を押すと進む段
-const ACK_STEPS: readonly Step[] = ['power', 'comm', 'lifeLine'];
+const ACK_STEPS: readonly Step[] = ['power', 'comm', 'lifeLine', 'arrived'];
 // 大きな窓が出たときに、博士の口が動く長さ（見た目だけ）
 const MODAL_SPEAK_MS = 1500;
 
@@ -228,7 +220,8 @@ export interface TutorialProgress {
   airborne: boolean;
   /** 建設メニューで選んで、置く場所を選んでいる施設 */
   placing: FacilityKind | null;
-  speed: 1 | 4;
+  /** 「翌日へ」を押した回数 */
+  restDays: number;
   indoors: boolean;
   onIce: boolean;
   carryingIce: boolean;
@@ -260,6 +253,10 @@ export interface Tutorial {
   toTitle(): void;
   /** いまゲームの時間を進めてよいか（くんれん中は、時間が要る段だけ進める） */
   timeRuns(): boolean;
+  /** 「翌日へ」を押してよいか（くんれん中は、翌日へを教える段とロケットを待つ段だけ） */
+  allowsNextDay(): boolean;
+  /** 休んだあとでも、その日にもう一度外に出てよいか（くんれん中は段の順に出入りするので、いつでも出られる） */
+  allowsGoingOutAgain(): boolean;
   /** いまの「やること」（くんれんの段かミッション）。窓の中にも出す。なければ null */
   currentInstruction(): string | null;
   /** タイトルの「はじめから」：新しいゲームにして「あそんだことがある？」から */
@@ -288,6 +285,8 @@ export function createTutorial(
   let stepYaw: number | null = null;
   // 「あるく」の段を始めた場所
   let stepOrigin: { x: number; z: number } | null = null;
+  // 段を出したときの「翌日へ」の回数
+  let stepRest: number | null = null;
   // いまの段を出した時刻（読み終わる前に次の段へ進まないように使う）
   let stepShownAt = performance.now();
   let flareDrillRequested = false;
@@ -587,6 +586,7 @@ export function createTutorial(
     index = 0;
     stepYaw = null;
     stepOrigin = null;
+    stepRest = null;
     stepShownAt = performance.now();
     flareDrillRequested = false;
     flareChoice = null;
@@ -691,6 +691,7 @@ export function createTutorial(
   function advance(): void {
     stepYaw = null;
     stepOrigin = null;
+    stepRest = null;
     stepShownAt = performance.now();
     panel.classList.remove('tutorial-cleared');
     // 再描画のあとにつけ直して、アニメーションをもう一度動かす
@@ -738,12 +739,10 @@ export function createTutorial(
         return p.state.launches.length > 0;
       case 'goInsideWait':
         return p.indoors;
-      case 'fastForward':
-        return p.speed === 4 && p.indoors;
+      case 'nextDay':
+        return stepRest !== null && p.restDays > stepRest;
       case 'waitArrival':
         return p.state.launches.length === 0;
-      case 'normalSpeed':
-        return p.speed === 1;
       case 'assignCrew':
         return p.state.crew.some((c) => !c.isPlayer && c.task !== null && c.task !== 'research');
       case 'toIce':
@@ -771,6 +770,7 @@ export function createTutorial(
       case 'power':
       case 'comm':
       case 'lifeLine':
+      case 'arrived':
         return false;
     }
   }
@@ -811,6 +811,7 @@ export function createTutorial(
       }
       // 段を出したときの場所と向き（読み終わる前に歩いたり見回したりしても数える）
       stepOrigin ??= { x: progress.playerX, z: progress.playerZ };
+      stepRest ??= progress.restDays;
       stepYaw ??= progress.viewYawRad;
       // 1回に1段だけ。文を出し終えて、少し時間がたってから進む（すでにできていた段も、読む前に飛ばさない）
       const readEnough =
@@ -858,6 +859,13 @@ export function createTutorial(
     },
     timeRuns() {
       return mode !== 'tutorial' || TIME_STEPS.includes(step());
+    },
+    allowsNextDay() {
+      return mode !== 'tutorial' || step() === 'nextDay' || step() === 'waitArrival';
+    },
+    allowsGoingOutAgain() {
+      // TODO(人間に確認): くんれんの今の段は、休んだ日にまた外に出る順になっている（例：氷を運んで戻る → 外に出る）。新しいサイクルを教える段はステップ17で足す
+      return mode === 'tutorial';
     },
     startNew() {
       resetTo('ask');
