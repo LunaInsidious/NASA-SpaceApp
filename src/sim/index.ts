@@ -278,10 +278,7 @@ export function checkPlacement(
 }
 
 function addPlayerOutdoorDose(state: SimState, hours: number, values: Values): void {
-  playerOf(state).doseMsv +=
-    (values.moon.radiationMsvPerDay.value / HOURS_PER_DAY) *
-    activeMultiplier(state.activeEvents, values) *
-    hours;
+  playerOf(state).doseMsv += outdoorDoseMsvPerHour(state.activeEvents, values) * hours;
 }
 
 function countItems(items: LaunchItem[], kind: LaunchItemKind): number {
@@ -470,6 +467,11 @@ function activeMultiplier(active: ActiveEvent[], values: Values): number {
   return active.reduce((m, a) => Math.max(m, eventMultiplier(a, values)), 1);
 }
 
+/** 屋外での1時間あたりの線量。active はそのとき起きているイベント（警報の窓で、これから浴びる量を見せるのにも使う） */
+export function outdoorDoseMsvPerHour(active: ActiveEvent[], values: Values): number {
+  return (values.moon.radiationMsvPerDay.value / HOURS_PER_DAY) * activeMultiplier(active, values);
+}
+
 /**
  * 活動中のイベントがなければ、平均 meanIntervalDays に1回の割合で、一覧から1件をランダムに選んで始める。
  * 記憶のないランダムなので、同じイベントが続けて選ばれてもよい
@@ -633,10 +635,7 @@ export const step: Step = (prev, dtHours, env, commands, values, events, rng) =>
 
   // 被ばく。プレイヤー以外の隊員は屋内にいる
   const duringEvent = state.activeEvents.length > 0;
-  const outdoorDose =
-    (values.moon.radiationMsvPerDay.value / HOURS_PER_DAY) *
-    activeMultiplier(state.activeEvents, values) *
-    dtHours;
+  const outdoorDose = outdoorDoseMsvPerHour(state.activeEvents, values) * dtHours;
   const indoorDose = outdoorDose * (1 - evaluation.indoorProtection);
   const player = playerOf(state);
   const playerDoseBefore = player.doseMsv;

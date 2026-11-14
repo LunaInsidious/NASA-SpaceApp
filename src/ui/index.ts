@@ -13,7 +13,7 @@ import type {
 } from '../contracts/index.ts';
 import type { SaveSummary } from '../save/api.ts';
 import type { BuildOptions, Placement, SimView } from '../sim/api.ts';
-import { buildCost, launchItemCost } from '../sim/index.ts';
+import { buildCost, launchItemCost, outdoorDoseMsvPerHour } from '../sim/index.ts';
 import type { PadInput } from '../world/api.ts';
 import type { ContextAction, Ui, UiCallbacks } from './api.ts';
 import { getLang, onLangChange, setLang, t } from './i18n.ts';
@@ -351,7 +351,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       );
     }
     if (state.activeEvents.length > 0) {
-      lines.push(`<div class="ui-bad">${t('hud.flareActive')}</div>`);
+      const hours = Math.max(...state.activeEvents.map((e) => e.endsAtHours)) - state.timeHours;
+      lines.push(`<div class="ui-bad">${t('hud.flareActive', stormLeft(hours))}</div>`);
     }
     if (state.phase === 'cleared') {
       lines.push(`<div class="ui-ok">${t('hud.cleared')}</div>`);
@@ -659,6 +660,33 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <div class="ui-actions"><button data-action="closeMenu">${t('button.close')}</button></div>`;
   };
 
+  /** 嵐の残りの時間を、ゲームの中の時間と、今の速さでの本当の秒数で */
+  const stormLeft = (hours: number) => ({
+    hours: fmt(Math.ceil(hours)),
+    seconds: fmt(
+      Math.ceil(((hours / HOURS_PER_DAY) * values.time.secondsPerEarthDay.value) / speed),
+    ),
+  });
+
+  /** 待つと失う時間と、外にいると浴びる量を並べて、退避するかを決める手がかりにする */
+  const stormChoiceHtml = (event: ActiveEvent) => {
+    if (state === null || view === null) {
+      throw new Error('ui: state がないのに嵐の警報を描こうとした');
+    }
+    const hours = event.endsAtHours - state.timeHours;
+    const outside = outdoorDoseMsvPerHour([event], values) * hours;
+    const inside = outside * (1 - view.shielding.indoorProtection);
+    const { playerDoseMsv, doseLimitMsv } = view.shielding;
+    const over = playerDoseMsv + outside >= doseLimitMsv;
+    return `
+      <ul class="ui-storm">
+        <li><b>${t('flare.duration', stormLeft(hours))}</b></li>
+        <li>${t('flare.waitInside', { dose: fmt(inside, 1) })}</li>
+        <li>${t('flare.stayOutside', { dose: fmt(outside, 1), now: fmt(playerDoseMsv, 1), limit: fmt(doseLimitMsv) })}</li>
+      </ul>
+      <p class="${over ? 'ui-bad' : 'ui-small'}">${t(over ? 'flare.overLimit' : 'flare.underLimit')}</p>`;
+  };
+
   // ---- 説明の窓 ----
   // 太陽フレアの警報に出す NASA の写真（main が setNasaImages で渡す）
   let nasaImages: NasaImages = {};
@@ -680,6 +708,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <p><b>${t('flare.class', { value: esc(event.classOrIntensity) })}</b> ${sourceButton('flare')}</p>
       <p class="ui-small">${source}<small>${t('flare.donkiId', { id: esc(event.donkiId) })}</small></p>
       <p>${t('flare.hint')}</p>
+      ${stormChoiceHtml(event)}
       <div class="ui-actions">
         <button data-action="flare" data-choice="continue">${t('flare.continue')}</button>
         <button data-action="flare" data-choice="shelter" class="primary">${t('flare.shelter')}</button>

@@ -9,7 +9,12 @@ import type {
   SimState,
   Values,
 } from '../contracts/index.ts';
-import { createInitialState, describe as describeState, step } from './index.ts';
+import {
+  createInitialState,
+  describe as describeState,
+  outdoorDoseMsvPerHour,
+  step,
+} from './index.ts';
 
 const values: Values = valuesJson;
 const rng = () => 0.5;
@@ -207,6 +212,17 @@ describe('sim', () => {
       return result.state.crew[0].doseMsv;
     };
     expect(doseDuring('X8.7')).toBeGreaterThan(doseDuring('M5.9'));
+    // 警報の窓に出す見込みの量は、実際に外で浴びる量と同じ計算
+    const x87 = {
+      kind: 'solarFlare',
+      source: 'archived',
+      donkiId: 'd',
+      classOrIntensity: 'X8.7',
+      endsAtHours: 100,
+    } as const;
+    expect(doseDuring('X8.7') - initial.crew[0].doseMsv).toBeCloseTo(
+      outdoorDoseMsvPerHour([x87], values) * HOURS,
+    );
   });
 
   it('describe が SimView を埋める', () => {

@@ -242,7 +242,12 @@ function showFlareDrill(): void {
       source: 'archived',
       donkiId: record.donkiId,
       classOrIntensity: record.classOrIntensity,
-      endsAtHours: state.timeHours,
+      // 訓練でも、本物の嵐ならどれだけ続くかを見せる
+      endsAtHours:
+        state.timeHours +
+        (record.kind === 'sep'
+          ? values.events.sepDurationHours.value
+          : values.events.flareDurationHours.value),
     },
     record,
   );

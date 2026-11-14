@@ -606,3 +606,16 @@
   top: auto;
   bottom: 22px;
 }
+
+/* 太陽フレアの警報：待つか、外にいるかを比べる */
+.ui-storm {
+  margin: 8px 0 4px;
+  padding: 8px 10px 8px 12px;
+  list-style: none;
+  border-radius: 8px;
+  background: rgba(255, 210, 122, 0.1);
+}
+
+.ui-storm li + li {
+  margin-top: 4px;
+}
