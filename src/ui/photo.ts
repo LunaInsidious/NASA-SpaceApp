@@ -49,12 +49,15 @@ function esc(text: string): string {
 /** 写真・タイトル・出典の HTML。警報の窓の中でも使う */
 export function photoFigureHtml(image: NasaImage): string {
   const title = getLang() === 'ja' ? image.titleJa : image.titleEn;
+  // クレジットは著作権の表示なので、説明とは分けて写真の隅に小さく出す
   return `<figure class="nasa-photo">
-    <img src="/nasa/${esc(image.file)}" alt="${esc(title)}" loading="lazy">
+    <div class="nasa-photo-frame">
+      <img src="/nasa/${esc(image.file)}" alt="${esc(title)}" loading="lazy">
+      <small class="nasa-photo-credit">${t('photo.credit', { credit: esc(image.credit) })}</small>
+    </div>
     <figcaption>
       <b>${esc(title)}</b>
       ${image.isExample ? `<span class="nasa-photo-example">${t('photo.example')}</span>` : ''}
-      <small>${t('photo.credit', { credit: esc(image.credit) })}</small>
     </figcaption>
   </figure>`;
 }

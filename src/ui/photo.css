@@ -49,6 +49,23 @@
   border-radius: 8px;
 }
 
+.nasa-photo-frame {
+  position: relative;
+}
+
+/* 著作権の表示：写真の右下に小さく */
+.nasa-photo-credit {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 10px;
+  line-height: 1.3;
+}
+
 .nasa-photo figcaption {
   display: flex;
   flex-direction: column;

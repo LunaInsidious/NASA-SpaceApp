@@ -397,7 +397,7 @@
   "tutorial.professorName": "Professor Luna",
   "tutorial.skipTyping": "Show all",
   "photo.title": "A real photo from NASA",
-  "photo.credit": "Image: {credit}",
+  "photo.credit": "Credit: {credit}",
   "photo.close": "Close",
   "photo.example": "(an example photo of this kind)",
   "title.subtitle": "Build a base at the Moon's south pole",

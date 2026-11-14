@@ -397,7 +397,7 @@
   "tutorial.professorName": "ルナはかせ",
   "tutorial.skipTyping": "ぜんぶ よむ",
   "photo.title": "NASA の ほんものの しゃしん",
-  "photo.credit": "しゃしん：{credit}",
+  "photo.credit": "Credit: {credit}",
   "photo.close": "とじる",
   "photo.example": "（にた ものの しゃしん）",
   "title.subtitle": "月の 南極に きちを つくろう",
