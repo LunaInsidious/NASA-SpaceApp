@@ -1,8 +1,9 @@
-/* ことばじてんのボタン（右下、音の切り替えの左。スマホは下の @media） */
+/* ことばじてんのボタン（左下、音の切り替えの右。右下はその場の行動のボタンが増えるので使わない。
+   タブレットは仮想パッドの上、スマホは上の小さな丸：下の @media） */
 .help-toggle {
   position: fixed;
-  right: 56px;
-  bottom: 60px;
+  left: 56px;
+  bottom: 12px;
   z-index: 1;
   padding: 6px 12px;
   border: 2px solid #9fd3ff;
@@ -96,8 +97,19 @@
 }
 
 /* スマホ：右上の状態の窓に重ならないよう、上の言語ボタンの左に小さな丸で置く */
+@media (pointer: coarse) and (min-width: 641px) {
+  .help-toggle {
+    bottom: 160px;
+  }
+
+  .help-note {
+    bottom: 208px;
+  }
+}
+
 @media (max-width: 640px) {
   .help-toggle {
+    left: auto;
     right: 8px;
     bottom: auto;
     top: 44px;
@@ -140,8 +152,8 @@ body:has(.ui-modal-layer:not([hidden])) .fx-sound-toggle {
 /* 足した言葉のお知らせ：ことばじてんのボタンの上に出す吹き出し */
 .help-note {
   position: fixed;
-  right: 12px;
-  bottom: 104px;
+  left: 12px;
+  bottom: 60px;
   z-index: 1;
   max-width: min(320px, calc(100vw - 24px));
   padding: 8px 12px;
@@ -173,6 +185,7 @@ body:has(.ui-modal-layer:not([hidden])) .fx-sound-toggle {
 @media (max-width: 640px) {
   .help-note {
     top: 88px;
+    left: auto;
     right: 8px;
     bottom: auto;
     font-size: 13px;

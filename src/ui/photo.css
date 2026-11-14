@@ -1,8 +1,8 @@
-/* NASA の本物の写真（建てたとき・実績を取ったとき） */
+/* NASA の本物の写真（建てたとき・実績を取ったとき）。左下の音とことばじてんのボタンの上に出す */
 .nasa-photo-card {
   position: fixed;
   left: 12px;
-  bottom: 12px;
+  bottom: 60px;
   z-index: 2;
   width: min(300px, calc(100vw - 24px));
   padding: 10px;
