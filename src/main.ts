@@ -1,6 +1,7 @@
 // 結合（docs/SPEC.md ステップ4）。固定の刻みで step を呼び、world・ui とつなぐ
 import { Engine } from '@babylonjs/core/Engines/engine';
 import { Scene } from '@babylonjs/core/scene';
+import achievementsJson from '../data/achievements.json';
 import donkiJson from '../data/donki-events.json';
 import valuesJson from '../data/values.json';
 import type {
@@ -14,6 +15,11 @@ import type {
   Values,
 } from './contracts/index.ts';
 import { createProceduralEnv } from './env/index.ts';
+import {
+  type AchievementCondition,
+  createAchievementStore,
+  parseAchievements,
+} from './save/achievements.ts';
 import { createSaveStore } from './save/index.ts';
 import type { BuildOptions, Placement } from './sim/api.ts';
 import { checkPlacement, createInitialState, describe, step } from './sim/index.ts';
@@ -85,6 +91,9 @@ let lastPlacement: Placement | null = null;
 let accumulatedHours = 0;
 let lastActionsKey: string | null = null;
 let collectedIce = false;
+// この回で倒れたか（実績「一度も倒れずに基地を完成」用。セーブから再開したときは分からないので数えない）
+let downedThisRun = false;
+const achievementStore = createAchievementStore(parseAchievements(achievementsJson));
 const pending: SimCommand[] = [];
 const tutorial = createTutorial(document.body);
 
@@ -116,6 +125,7 @@ const ui = createUi(
     onFlareChoice: (choice) => {
       if (choice === 'shelter') {
         shelter();
+        earn('shelterDuringFlare');
       }
     },
     onRestart: () => {
@@ -132,6 +142,7 @@ const ui = createUi(
   values,
 );
 ui.setSaves(saves.list());
+ui.setDonkiEvents(timeline);
 
 /** セーブからの再開や、新しく始めるとき */
 function startFrom(next: SimState): void {
@@ -139,6 +150,7 @@ function startFrom(next: SimState): void {
   pending.length = 0;
   accumulatedHours = 0;
   collectedIce = false;
+  downedThisRun = false;
   cancelBuild();
   indoors = state.player.indoors;
   world.teleportPlayer(state.player.x, state.player.z);
@@ -200,6 +212,7 @@ function doAction(action: ContextAction): void {
     case 'collectIce':
       pending.push({ type: 'collectIce', x: p.x, z: p.z });
       collectedIce = true;
+      earn('collectIce');
       break;
     case 'repair': {
       const target = near.find(needsRepair);
@@ -270,7 +283,18 @@ function confirmBuild(): void {
     dustCover: buildMode.options.dustCover,
     shieldMaterial: buildMode.options.shieldMaterial,
   });
+  if (buildMode.kind === 'solar' && !current.placement.works) {
+    earn('buildSolarInShadow');
+  }
   cancelBuild();
+}
+
+/** 実績の条件を満たした。初めてならトーストで知らせる */
+function earn(condition: AchievementCondition): void {
+  const id = achievementStore.unlock(condition);
+  if (id !== null) {
+    ui.showEvents([{ type: 'achievement', id }], state);
+  }
 }
 
 function cancelBuild(): void {
@@ -316,10 +340,14 @@ function handleEvents(events: GameEvent[]): void {
       // sim が着陸船の近くの居住モジュールに戻している
       world.teleportPlayer(state.player.x, state.player.z);
       indoors = state.player.indoors;
+      downedThisRun = true;
       applyPlayerMode();
     }
   }
   ui.showEvents(events, state);
+  if (events.some((e) => e.type === 'cleared') && !downedThisRun) {
+    earn('clearWithoutDowned');
+  }
 }
 
 function tick(dtHours: number): void {

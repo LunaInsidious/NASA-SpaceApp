@@ -51,9 +51,11 @@ export interface Ui {
   setBuildMode(mode: { kind: FacilityKind; placement: Placement } | null): void;
   setContextActions(actions: ContextAction[]): void;
   /** キーボードの近道（B：建設、L：打ち上げ、C：隊員）から開く。'save' はセーブの窓 */
-  openMenu(menu: 'build' | 'launch' | 'crew' | 'save'): void;
+  openMenu(menu: 'build' | 'launch' | 'crew' | 'save' | 'data'): void;
   /** セーブの一覧が変わったら main が呼ぶ（新しい順） */
   setSaves(saves: SaveSummary[]): void;
+  /** データ出典の窓に出す、ゲームで使う DONKI の記録（data/donki-events.json）。起動時に main が1回呼ぶ */
+  setDonkiEvents(events: DonkiEvent[]): void;
   closeMenus(): void;
   isMenuOpen(): boolean;
 }

@@ -47,7 +47,7 @@ const CONTEXT_ACTIONS: readonly ContextAction[] = [
   'repair',
   'coverRegolith',
 ];
-const MENUS = ['build', 'launch', 'crew', 'save'] as const;
+const MENUS = ['build', 'launch', 'crew', 'save', 'data'] as const;
 const DEVELOPMENT_ELEMENTS = ['selfSufficiency', 'stability', 'safety', 'scale'] as const;
 const LIFE_SUPPORT_KEYS = ['oxygen', 'water', 'food'] as const;
 const SHIELD_MATERIALS = ['regolith', 'water'] as const;
@@ -98,6 +98,34 @@ function bar(ratio: number, extraClass: string): string {
   return `<div class="ui-bar ${extraClass} ${low}"><div style="width:${fmt(clamped * PERCENT)}%"></div></div>`;
 }
 
+/**
+ * values をたどり、確かめられた出典（"TBD" でも "docs/SPEC.md" で始まるものでもない）を重複なしで集める。
+ * 値の形は tests/data.test.ts が確かめているので、形が違えば作りの誤りとして例外にする
+ */
+function collectValueSources(values: Values): { source: string; url: string | undefined }[] {
+  const found = new Map<string, { source: string; url: string | undefined }>();
+  const walk = (node: unknown) => {
+    if (typeof node !== 'object' || node === null) {
+      return;
+    }
+    if ('value' in node) {
+      const { source, url } = node as { source?: unknown; url?: unknown };
+      if (typeof source !== 'string' || (url !== undefined && typeof url !== 'string')) {
+        throw new Error('values の出典の形が違う');
+      }
+      if (source !== 'TBD' && !source.startsWith('docs/SPEC.md')) {
+        found.set(`${source}\n${url ?? ''}`, { source, url });
+      }
+      return;
+    }
+    for (const child of Object.values(node)) {
+      walk(child);
+    }
+  };
+  walk(values);
+  return [...found.values()];
+}
+
 export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Values): Ui {
   const isTouch = window.matchMedia('(pointer: coarse)').matches;
   root.classList.add('ui-root');
@@ -139,6 +167,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   let menu: MenuKind | null = null;
   const dialogs: Dialog[] = [];
   let saves: SaveSummary[] = [];
+  let donkiEvents: DonkiEvent[] = [];
   const buildOptions: { dustCover: boolean; shieldMaterial: 'regolith' | 'water' } = {
     dustCover: false,
     shieldMaterial: 'regolith',
@@ -305,6 +334,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         <button data-action="menu" data-menu="launch">${t('button.launch')}</button>
         <button data-action="menu" data-menu="crew">${t('button.crew')}</button>
         <button data-action="menu" data-menu="save">${t('button.save')}</button>
+        <button data-action="menu" data-menu="data">${t('button.data')}</button>
       </div>
       ${isTouch ? `<button class="ui-jump" data-action="jump">${t('button.jump')}</button>` : ''}`;
   };
@@ -551,6 +581,37 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <div class="ui-actions"><button data-action="closeMenu">${t('button.close')}</button></div>`;
   };
 
+  // ---- データ出典 ----
+  const dataMenuHtml = () => {
+    const events = donkiEvents
+      .map(
+        (event) => `<li>
+          <span class="ui-grow"><b>${t(`data.kind.${event.kind}`)}</b> ${t('data.eventLine', {
+            strength: esc(event.classOrIntensity),
+            date: event.eventTime.slice(0, ISO_DATE_LENGTH),
+          })}</span>
+          <a href="${esc(event.link)}" target="_blank" rel="noopener noreferrer">${t('data.donkiLink')}</a>
+        </li>`,
+      )
+      .join('');
+    const sources = collectValueSources(values)
+      .map(
+        ({ source, url }) =>
+          `<li>${url === undefined ? esc(source) : `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(source)}</a>`}</li>`,
+      )
+      .join('');
+    return `
+      <h2>${t('data.title')}</h2>
+      <h3>${t('data.spaceWeather')}</h3>
+      <p class="ui-small">${t('data.spaceWeatherNote')}</p>
+      <ul class="ui-list">${events}</ul>
+      <h3>${t('data.values')}</h3>
+      ${sources === '' ? `<p class="ui-small">${t('data.valuesPending')}</p>` : `<ul class="ui-list">${sources}</ul>`}
+      <h3>${t('data.terrainTitle')}</h3>
+      <p class="ui-small">${t('data.terrain')}</p>
+      <div class="ui-actions"><button data-action="closeMenu">${t('button.close')}</button></div>`;
+  };
+
   const renderModal = () => {
     const dialog = dialogs[0];
     if (dialog !== undefined) {
@@ -566,8 +627,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         html = launchMenuHtml(view);
       } else if (menu === 'crew') {
         html = crewMenuHtml(state, view);
-      } else {
+      } else if (menu === 'save') {
         html = saveMenuHtml();
+      } else {
+        html = dataMenuHtml();
       }
       modalEl.hidden = false;
       modalEl.innerHTML = `<div class="ui-modal">${html}</div>`;
@@ -856,7 +919,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           pushDialog({ type: 'gameOver', reason: event.reason });
           break;
         case 'achievement':
-          toast(t('event.achievement', { id: event.id }), false);
+          toast(t('event.achievement', { name: t(`achievement.${event.id}`) }), false);
           break;
         // 警報は DONKI の記録と合わせて main が showFlareAlert で出す。発展度は HUD に出る
         case 'eventStarted':
@@ -921,6 +984,12 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     },
     openMenu,
     closeMenus,
+    setDonkiEvents(events) {
+      donkiEvents = [...events];
+      if (menu === 'data') {
+        renderModal();
+      }
+    },
     setSaves(next) {
       saves = [...next];
       if (menu === 'save' || dialogs[0]?.type === 'gameOver') {
