@@ -390,3 +390,12 @@
     max-width: none;
   }
 }
+
+/* 通信できないときの「やること」 */
+.ui-hint {
+  max-width: 230px;
+  margin-left: auto;
+  font-size: 12px;
+  color: #ffd27a;
+  white-space: normal;
+}

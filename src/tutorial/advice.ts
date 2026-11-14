@@ -30,50 +30,53 @@ const MENU_FOR: Partial<Record<AdviceKind, 'build' | 'launch' | 'crew'>> = {
   commLost: 'launch',
 };
 
-/** いちばん急ぐアクシデント。onlyUrgent のときはボンベと生命維持の不足だけを見る（チュートリアル中） */
-export function pickAdvice(
+/**
+ * いま起きているアクシデントを、急ぐ順にすべて返す。直るまで出し続けるため、毎刻み呼ぶ。
+ * onlyUrgent のときはボンベと生命維持の不足だけを見る（チュートリアル中）
+ */
+export function pickAdvices(
   state: SimState,
   view: SimView,
   indoors: boolean,
   values: Values,
   onlyUrgent: boolean,
-): Advice | null {
+): Advice[] {
   const a = values.advice;
+  const list: Advice[] = [];
   if (!indoors && view.tankRatio < a.tankLowRatio.value) {
-    return { kind: 'tankLow', facilityId: null };
+    list.push({ kind: 'tankLow', facilityId: null });
   }
   // 命に関わる不足は、チュートリアル中も出す
   const days = view.lifeSupportDays;
-  if (days.min < a.lifeSupportLowDays.value) {
-    const kind: AdviceKind =
-      days.oxygen === days.min ? 'oxygenLow' : days.water === days.min ? 'waterLow' : 'foodLow';
-    return { kind, facilityId: null };
-  }
+  const low = a.lifeSupportLowDays.value;
+  if (days.oxygen < low) list.push({ kind: 'oxygenLow', facilityId: null });
+  if (days.water < low) list.push({ kind: 'waterLow', facilityId: null });
+  if (days.food < low) list.push({ kind: 'foodLow', facilityId: null });
   if (onlyUrgent) {
-    return null;
+    return list;
   }
-  const stopped = Object.entries(view.facilityStatus).find(([, s]) => s.reason === 'noPower');
-  if (stopped !== undefined) {
-    return { kind: 'noPower', facilityId: null };
+  if (Object.values(view.facilityStatus).some((s) => s.reason === 'noPower')) {
+    list.push({ kind: 'noPower', facilityId: null });
   }
   const broken = state.facilities.find((f) => f.condition < a.brokenCondition.value);
   if (broken !== undefined) {
     const partsNeeded = (1 - broken.condition) * values.maintenance.sparePartsPerFullRepair.value;
-    return {
+    list.push({
       kind: state.stocks.spareParts < partsNeeded ? 'noParts' : 'broken',
       facilityId: broken.id,
-    };
+    });
   }
   if (!view.comm.linked) {
-    return { kind: 'commLost', facilityId: null };
+    list.push({ kind: 'commLost', facilityId: null });
   }
-  return null;
+  return list;
 }
 
 export interface AdviceCard {
-  show(advice: Advice | null): void;
+  show(advices: Advice[]): void;
 }
 
+/** アクシデントの一覧。見出しはいつも出し、「やること」は折りたたみ。新しく出た項目は最初だけ開いておく */
 export function createAdviceCard(
   root: HTMLElement,
   openMenu: (menu: 'build' | 'launch' | 'crew') => void,
@@ -82,45 +85,64 @@ export function createAdviceCard(
   card.className = 'advice-card';
   card.hidden = true;
   root.append(card);
-  let current: AdviceKind | null = null;
+  let current: AdviceKind[] = [];
+  // 子どもが開いた・閉じたを覚えておく（直って消えたら忘れる）
+  const open = new Set<AdviceKind>();
 
   function render(): void {
-    card.hidden = current === null;
-    delete document.body.dataset.advice;
-    if (current === null) {
+    card.hidden = current.length === 0;
+    if (current.length === 0) {
+      delete document.body.dataset.advice;
       return;
     }
-    const kind = current;
-    document.body.dataset.advice = kind;
-    const title = document.createElement('div');
-    title.className = 'advice-title';
-    title.textContent = `⚠ ${t(`advice.${kind}.title`)}`;
-    const label = document.createElement('div');
-    label.className = 'advice-label';
-    label.textContent = t('advice.label');
-    const todo = document.createElement('div');
-    todo.className = 'advice-todo';
-    todo.textContent = t(`advice.${kind}.todo`);
-    card.replaceChildren(title, label, todo);
-    const menu = MENU_FOR[kind];
-    if (menu !== undefined) {
-      const open = document.createElement('button');
-      open.type = 'button';
-      open.textContent = t(`advice.open.${menu}`);
-      open.addEventListener('click', () => openMenu(menu));
-      card.append(open);
-    }
+    document.body.dataset.advice = current[0];
+    const items = current.map((kind) => {
+      const item = document.createElement('details');
+      item.className = 'advice-item';
+      item.open = open.has(kind);
+      item.addEventListener('toggle', () => {
+        if (item.open) open.add(kind);
+        else open.delete(kind);
+      });
+      const title = document.createElement('summary');
+      title.className = 'advice-title';
+      title.textContent = `⚠ ${t(`advice.${kind}.title`)}`;
+      const label = document.createElement('div');
+      label.className = 'advice-label';
+      label.textContent = t('advice.label');
+      const todo = document.createElement('div');
+      todo.className = 'advice-todo';
+      todo.textContent = t(`advice.${kind}.todo`);
+      item.append(title, label, todo);
+      const menu = MENU_FOR[kind];
+      if (menu !== undefined) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = t(`advice.open.${menu}`);
+        button.addEventListener('click', () => openMenu(menu));
+        item.append(button);
+      }
+      return item;
+    });
+    card.replaceChildren(...items);
   }
 
   onLangChange(render);
 
   return {
-    show(advice) {
-      const next = advice === null ? null : advice.kind;
-      if (next !== current) {
-        current = next;
-        render();
+    show(advices) {
+      const next = advices.map((a) => a.kind);
+      if (next.join() === current.join()) {
+        return;
       }
+      for (const kind of next) {
+        if (!current.includes(kind)) open.add(kind);
+      }
+      for (const kind of current) {
+        if (!next.includes(kind)) open.delete(kind);
+      }
+      current = next;
+      render();
     },
   };
 }

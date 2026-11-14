@@ -25,7 +25,7 @@ import {
 import { createSaveStore } from './save/index.ts';
 import type { BuildOptions, Placement } from './sim/api.ts';
 import { checkPlacement, createInitialState, describe, step } from './sim/index.ts';
-import { type Advice, createAdviceCard, pickAdvice } from './tutorial/advice.ts';
+import { type Advice, createAdviceCard, pickAdvices } from './tutorial/advice.ts';
 import { createTutorial, parseMissions } from './tutorial/index.ts';
 import type { ContextAction } from './ui/api.ts';
 import { onLangChange, t } from './ui/i18n.ts';
@@ -111,7 +111,7 @@ const moveOrigin = { x: state.player.x, z: state.player.z };
 let lastGuideKey = '';
 let manualSaveCount = 0;
 let lastBlocking: boolean | null = null;
-let currentAdvice: Advice | null = null;
+let currentAdvices: Advice[] = [];
 
 world.teleportPlayer(state.player.x, state.player.z);
 
@@ -428,6 +428,7 @@ function guideTarget(): { x: number; z: number } | null {
   if (guide === 'home') {
     return nearestToPlayer(habitats);
   }
+  const currentAdvice = currentAdvices.at(0) ?? null;
   if (currentAdvice?.kind === 'tankLow') {
     return nearestToPlayer(habitats);
   }
@@ -543,14 +544,14 @@ function refreshView(): void {
   }
   world.syncFacilities(state.facilities, working);
   // チュートリアル中や大きな窓を出している間は、命に関わるボンベの警告だけにする
-  currentAdvice = pickAdvice(
+  currentAdvices = pickAdvices(
     state,
     view,
     indoors,
     values,
     tutorial.isTutorial() || tutorial.isBlocking(),
   );
-  adviceCard.show(currentAdvice);
+  adviceCard.show(currentAdvices);
 }
 
 // ボタンにフォーカスが残ると、Space（ジャンプ）や Enter でそのボタンがまた押されるので外す

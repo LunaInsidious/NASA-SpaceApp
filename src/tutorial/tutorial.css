@@ -136,7 +136,8 @@
 .advice-card {
   position: fixed;
   right: 12px;
-  top: 130px;
+  /* 右上の日数・通信の表示（通信できないときは理由の行が増える）の下に出す */
+  top: 185px;
   width: min(300px, calc(100vw - 24px));
   padding: 10px 14px;
   border: 2px solid #ff8a5c;
@@ -185,11 +186,9 @@ body[data-tutorial-step="jump"] [data-action="jump"],
 body[data-tutorial-step="buildSolar"] [data-action="menu"][data-menu="build"],
 body[data-tutorial-step="buildSolar"] [data-action="buildSelect"][data-kind="solar"],
 body[data-tutorial-step="placeSolar"] [data-action="buildConfirm"],
-body[data-tutorial-step="power"] .ui-hud,
 body[data-tutorial-step="battery"] [data-action="menu"][data-menu="build"],
 body[data-tutorial-step="battery"] [data-action="buildSelect"][data-kind="battery"],
 body[data-tutorial-step="battery"] [data-action="buildConfirm"],
-body[data-tutorial-step="comm"] .ui-status,
 body[data-tutorial-step="order"] [data-action="menu"][data-menu="launch"],
 body[data-tutorial-step="order"] [data-action="cart"][data-kind="food"][data-delta="1"],
 body[data-tutorial-step="order"] [data-action="cart"][data-kind="crew"][data-delta="1"],
@@ -295,4 +294,76 @@ body[data-tutorial-step="assignCrew"] [data-action="assign"][data-task="research
 body[data-tutorial-step="goInsideWait"] [data-action="context"] {
   outline: 3px solid #ffd27a;
   animation: tutorial-pulse 1.2s infinite;
+}
+
+/* 「見てごらん」の段：まわりを暗くして、その場所だけを照らし、矢印で指す */
+body[data-tutorial-step="power"] .tutorial,
+body[data-tutorial-step="comm"] .tutorial {
+  z-index: 3;
+}
+
+body[data-tutorial-step="power"] .ui-power,
+body[data-tutorial-step="comm"] .ui-status {
+  position: relative;
+  z-index: 5;
+  border-radius: 8px;
+  outline: 4px solid #ffd27a;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+  animation: tutorial-spot 1s ease-in-out infinite alternate;
+}
+
+@keyframes tutorial-spot {
+  from {
+    outline-offset: 2px;
+  }
+  to {
+    outline-offset: 8px;
+  }
+}
+
+body[data-tutorial-step="power"] .ui-power::after,
+body[data-tutorial-step="comm"] .ui-status::before {
+  position: absolute;
+  top: 50%;
+  font-size: 34px;
+  line-height: 1;
+  color: #ffd27a;
+  text-shadow: 0 0 6px #000;
+  animation: tutorial-nudge 0.6s ease-in-out infinite alternate;
+}
+
+body[data-tutorial-step="power"] .ui-power::after {
+  content: "◀";
+  right: -48px;
+}
+
+body[data-tutorial-step="comm"] .ui-status::before {
+  content: "▶";
+  left: -48px;
+}
+
+@keyframes tutorial-nudge {
+  from {
+    transform: translate(0, -50%);
+  }
+  to {
+    transform: translate(8px, -50%);
+  }
+}
+
+/* アクシデントの一覧：見出しはいつも、やることは折りたたみ */
+.advice-item + .advice-item {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 176, 143, 0.35);
+}
+
+.advice-item summary {
+  cursor: pointer;
+}
+
+.advice-card {
+  max-height: 60vh;
+  overflow-y: auto;
 }

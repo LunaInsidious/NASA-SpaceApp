@@ -62,7 +62,8 @@ const LOW_BAR_RATIO = 0.25; // バーを赤くする残りの割合
 const LOW_DAYS = 7; // 生命維持の日数を赤くする
 const DOSE_WARN_RATIO = 0.5; // 被ばくが上限のこの割合を超えたら赤くする
 const KNOB_TRAVEL = 0.6; // パッドのつまみが動ける範囲（半径に対する割合）
-const ISO_DATE_LENGTH = 10; // "2024-05-14T..." の日付の部分
+const ISO_DATE_LENGTH = 10;
+const POWER_EVEN_KW = 0.05; // これより差が小さければ「ちょうど」と出す（表示だけ） // "2024-05-14T..." の日付の部分
 
 type MenuKind = (typeof MENUS)[number];
 type Dialog =
@@ -86,6 +87,35 @@ function pick<T extends string>(value: string | undefined, allowed: readonly T[]
     throw new Error(`ui の ${what} が不正: ${String(value)}`);
   }
   return found;
+}
+
+/** 地球と話せない理由。理由ごとに「やること」が違うので分けて見せる */
+function commLostReason(
+  state: SimState,
+  view: SimView,
+): 'noAntenna' | 'noPower' | 'earthDown' | 'blocked' {
+  const antennas = state.facilities.filter((f) => f.kind === 'antenna');
+  if (antennas.length === 0) {
+    return 'noAntenna';
+  }
+  const reasons = antennas.map((f) => view.facilityStatus[f.id].reason);
+  if (reasons.every((r) => r === 'noPower' || r === 'condition')) {
+    return 'noPower';
+  }
+  if (!view.comm.earthUp) {
+    return 'earthDown';
+  }
+  return 'blocked';
+}
+
+/** 電力の差し引き。たまるか、へるかを＋と−、色、矢印で見せる */
+function powerNet(netKw: number): string {
+  if (Math.abs(netKw) < POWER_EVEN_KW) {
+    return `<div class="ui-net">${t('hud.powerNet.even')}</div>`;
+  }
+  return netKw > 0
+    ? `<div class="ui-net ui-ok">${t('hud.powerNet.plus', { kw: fmt(netKw, 1) })}</div>`
+    : `<div class="ui-net ui-bad">${t('hud.powerNet.minus', { kw: fmt(-netKw, 1) })}</div>`;
 }
 
 function stars(value: number, max: number): string {
@@ -235,6 +265,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const lines = [
       `<div>${t('hud.day', { day: Math.floor(view.day) + 1 })} · ${t(state.player.indoors ? 'hud.indoors' : 'hud.outdoors')}</div>`,
       `<div class="${view.comm.linked ? 'ui-ok' : 'ui-bad'}">${t(view.comm.linked ? 'hud.commLinked' : 'hud.commLost')}</div>`,
+      ...(view.comm.linked
+        ? []
+        : [`<div class="ui-hint">${t(`commHint.${commLostReason(state, view)}`)}</div>`]),
       `<div>${t('hud.relays', { count: view.comm.relaySatellites })}</div>`,
     ];
     if (view.comm.unsentResearch > 0) {
@@ -288,9 +321,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           <span class="ui-value ${life.min < LOW_DAYS ? 'ui-bad' : ''}">${daysText(life.min)}</span>
           ${breakdown}
         </div>
-        <div class="ui-stat">
+        <div class="ui-stat ui-power">
           <span class="ui-label">${t('hud.power')}</span>
-          <div>${t('hud.powerFlow', { gen: fmt(power.generationKw, 1), use: fmt(power.consumptionKw, 1) })}</div>
+          <div><span class="ui-ok">${t('hud.powerGen', { kw: fmt(power.generationKw, 1) })}</span>　<span class="ui-bad">${t('hud.powerUse', { kw: fmt(power.consumptionKw, 1) })}</span></div>
+          ${powerNet(power.generationKw - power.consumptionKw)}
           ${battery}
         </div>
         <div class="ui-stat">
