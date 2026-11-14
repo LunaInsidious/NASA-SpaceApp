@@ -664,7 +664,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           ? `<small class="${noRoom ? 'ui-bad' : 'ui-ok'}">${noRoom ? t('launch.crewNoRoom') : t('launch.crewRoom', { count: crewRoom })}</small>`
           : '';
       return `<li>
-        <span class="ui-grow"><b>${t(`launchItem.${kind}`)}</b> <span class="ui-small">${costText}</span>${desc}${roomNote}</span>
+        <span class="ui-grow"><b>${t(`launchItem.${kind}`)}</b> <span class="ui-small ui-cost">${costText}</span>${desc}${roomNote}</span>
         <button data-action="cart" data-kind="${kind}" data-delta="-1">−</button>
         <span class="ui-qty">${cart[kind]}</span>
         <button data-action="cart" data-kind="${kind}" data-delta="1" ${noRoom ? 'disabled' : ''}>＋</button>
@@ -680,12 +680,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     return `
       <h2>${t('launch.title')}</h2>
       ${blockers.length > 0 ? `<div class="ui-blocker">${blockers.map((b) => `<div>${b}</div>`).join('')}</div>` : ''}
-      <p class="ui-small">${t('launch.intro')}</p>
       <div class="ui-meter"><div class="${over ? 'over' : ''}" style="width:${fmt(meterRatio * PERCENT)}%"></div></div>
       <div>${t('launch.meter', { used: fmt(used), capacity: fmt(capacity) })}</div>
       <ul class="ui-list">${rows}</ul>
-      <div class="ui-small">${t('launch.delivery', { days: fmt(current.launch.deliveryHours / HOURS_PER_DAY, 1) })}</div>
-      ${current.launch.canOrderNow ? `<div class="ui-small ui-ok">${t('launch.ready')}</div>` : ''}
+      <div class="ui-small">${t('launch.delivery', { days: fmt(current.launch.deliveryHours / HOURS_PER_DAY) })}</div>
       ${inFlight}
       ${reasons.map((reason) => `<div class="ui-small ui-bad">${reason}</div>`).join('')}
       <div class="ui-actions">

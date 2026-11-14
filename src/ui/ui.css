@@ -874,3 +874,9 @@
   padding: 8px 10px;
   text-align: left;
 }
+
+/* 補給の窓：1行に名前・量と場所・ひとことだけ */
+.ui-cost {
+  margin-left: 4px;
+  opacity: 0.85;
+}
