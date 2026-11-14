@@ -194,6 +194,11 @@ function powerNet(netKw: number): string {
     : `<div class="ui-net ui-bad">${t('hud.powerNet.minus', { kw: fmt(-netKw, 1) })}</div>`;
 }
 
+/** 3D で施設の上に出しているのと同じアイコン（建設の窓と置く場所を選ぶバーで、どれがどれか分かるように） */
+function facilityIconHtml(kind: FacilityKind): string {
+  return `<span class="ui-fac-icon" aria-hidden="true">${t(`facilityIcon.${kind}`)}</span>`;
+}
+
 function stars(value: number, max: number): string {
   const count = Math.min(STAR_COUNT, Math.max(0, Math.round((value / max) * STAR_COUNT)));
   return '★'.repeat(count) + '☆'.repeat(STAR_COUNT - count);
@@ -593,7 +598,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     }
     buildbarEl.hidden = false;
     buildbarEl.innerHTML = `
-      <div><b>${t('build.placing', { name: t(`facility.${kind}`) })}</b></div>
+      <div class="ui-fac-item">${facilityIconHtml(kind)}<b>${t('build.placing', { name: t(`facility.${kind}`) })}</b></div>
       ${status}
       <div class="ui-small ui-buildhint">${t(isTouch ? 'build.hint.touch' : 'build.hint.mouse')}</div>
       <div class="ui-row">
@@ -632,9 +637,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           </button>`;
         }).join('');
         return `<li class="ui-shield-card">
-          <button class="ui-item ${affordable ? '' : 'dim'}" data-action="buildSelect" data-kind="${kind}">
-            <b>${t('build.shieldWith', { material: t(`build.material.${buildOptions.shieldMaterial}`) })}</b> — ${t('build.cost', { materials: fmt(cost.materials) })}
-            <small>${t(`facilityDesc.${kind}`)}</small>
+          <button class="ui-item ui-fac-item ${affordable ? '' : 'dim'}" data-action="buildSelect" data-kind="${kind}">
+            ${facilityIconHtml(kind)}
+            <span class="ui-grow"><b>${t('build.shieldWith', { material: t(`build.material.${buildOptions.shieldMaterial}`) })}</b> — ${t('build.cost', { materials: fmt(cost.materials) })}
+            <small>${t(`facilityDesc.${kind}`)}</small></span>
           </button>
           <div class="ui-material-pick">
             <div class="ui-material-title">${t('build.materialPick')}</div>
@@ -644,9 +650,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         </li>`;
       }
       return `<li>
-        <button class="ui-item ${affordable ? '' : 'dim'}" data-action="buildSelect" data-kind="${kind}">
-          <b>${t(`facility.${kind}`)}</b> — ${t('build.cost', { materials: fmt(cost.materials) })}
-          <small>${t(`facilityDesc.${kind}`)}</small>
+        <button class="ui-item ui-fac-item ${affordable ? '' : 'dim'}" data-action="buildSelect" data-kind="${kind}">
+          ${facilityIconHtml(kind)}
+          <span class="ui-grow"><b>${t(`facility.${kind}`)}</b> — ${t('build.cost', { materials: fmt(cost.materials) })}
+          <small>${t(`facilityDesc.${kind}`)}</small></span>
         </button>
       </li>`;
     }).join('');

@@ -962,7 +962,9 @@ function updateTutorial(): void {
   }
   // 行く方向の矢印（カメラの向きに対して）と、のこりの距離
   // メニューや窓が開いている間は、矢印で文字を隠さない
-  guideArrow.hidden = target === null || indoors || ui.isMenuOpen() || tutorial.isBlocking();
+  // 置く場所を選んでいる間は、下の建設のバーと重なるので出さない
+  guideArrow.hidden =
+    target === null || indoors || buildMode !== null || ui.isMenuOpen() || tutorial.isBlocking();
   if (target !== null) {
     const bearing = Math.atan2(target.x - p.x, target.z - p.z);
     const relative = bearing - world.getViewYawRad();

@@ -1350,3 +1350,27 @@ body[data-tutorial-step="comm"] .ui-top .ui-status {
     min-height: 40px;
   }
 }
+
+/* 施設のアイコン：3D で施設の上に出しているのと同じ見た目（建設の窓と、置く場所を選ぶバー） */
+.ui-fac-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ui-fac-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #ffd27a;
+  border-radius: 50%;
+  background: rgba(14, 22, 38, 0.85);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.ui-buildbar .ui-fac-item {
+  justify-content: center;
+}
