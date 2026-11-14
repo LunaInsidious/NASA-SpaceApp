@@ -58,7 +58,8 @@
 /* 左上：資源 */
 .ui-hud {
   position: absolute;
-  top: calc(8px + env(safe-area-inset-top));
+  /* 左上の音とことばじてんのボタンの下 */
+  top: calc(52px + env(safe-area-inset-top));
   left: calc(8px + env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
@@ -1500,4 +1501,39 @@ body[data-tutorial-step="comm"] .ui-top .ui-status {
   padding-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
   text-align: left;
+}
+
+/* ---- 配置（PC）：ボンベと今日のタスクは左下。左上は音とことばじてんのボタン、その下にくんれんで見るくわしい数字 ---- */
+.ui-hud-tank {
+  position: absolute;
+  left: calc(8px + env(safe-area-inset-left));
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(300px, 46vw);
+}
+
+body.nb-open .ui-hud-tank {
+  visibility: hidden;
+}
+
+/* スマホ：左下は動かすパッドとその場の行動のボタンなので、ボンベは今までどおり左上 */
+@media (max-width: 640px) {
+  .ui-hud-tank {
+    top: calc(8px + env(safe-area-inset-top));
+    bottom: auto;
+    width: calc(100vw - 196px - env(safe-area-inset-left) - env(safe-area-inset-right));
+  }
+
+  .ui-hud {
+    top: calc(76px + env(safe-area-inset-top));
+  }
+}
+
+@media (max-width: 640px) {
+  /* スマホ（左上）ではボンベを上に、今日のタスクをその下に */
+  .ui-hud-tank .ui-tank {
+    order: -1;
+  }
 }

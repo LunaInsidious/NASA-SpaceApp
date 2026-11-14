@@ -54,7 +54,7 @@ const CONTEXT_ACTIONS: readonly ContextAction[] = [
   'coverRegolith',
   'nextDay',
 ];
-const MENUS = ['build', 'status', 'data'] as const;
+const MENUS = ['build', 'status', 'data', 'cards'] as const;
 // 休息フェーズの2D画面のタブ（docs/SPEC.md ステップ13）
 // 休息フェーズの2D画面は、タブではなく順に進むページ（何から開くかを選ばなくてよい）。セーブは順の外
 const REST_PAGES = ['review', 'crew', 'launch', 'tasks', 'plan'] as const;
@@ -247,6 +247,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   root.classList.add('ui-root');
   root.innerHTML = `
     <div class="ui-hud" data-part="hud"></div>
+    <div class="ui-hud-tank" data-part="hudTank"></div>
     <div class="ui-top">
       <div class="ui-row" data-part="topButtons"></div>
       <div class="ui-panel ui-status" data-part="status" hidden></div>
@@ -266,6 +267,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     return el;
   };
   const hudEl = part('hud');
+  // ボンベと今日のタスク（PC は左下、スマホは左上）
+  const hudTankEl = part('hudTank');
   const topButtonsEl = part('topButtons');
   const statusEl = part('status');
   const toastsEl = part('toasts');
@@ -370,6 +373,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const lang = getLang();
     topButtonsEl.innerHTML = `
       <button data-action="pause" class="${userPaused ? 'on' : ''}">${t(userPaused ? 'hud.resume' : 'hud.pause')}</button>
+      <button data-action="menu" data-menu="cards" aria-label="${tPlain('hud.cardsLabel')}">${t('hud.cards')}</button>
       <button data-action="lang" data-lang="en" class="${lang === 'en' ? 'on' : ''}">${t('hud.langEn')}</button>
       <button data-action="lang" data-lang="ja" class="${lang === 'ja' ? 'on' : ''}">${t('hud.langJa')}</button>`;
   };
@@ -525,6 +529,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   const renderHud = () => {
     if (state === null || view === null) {
       hudEl.innerHTML = '';
+      hudTankEl.innerHTML = '';
       return;
     }
     const life = view.lifeSupportDays;
@@ -535,12 +540,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         : view.tankRatio < TANK_WARN_RATIO
           ? 'warn'
           : 'ok';
-    hudEl.innerHTML = `
-      <div class="ui-panel ui-tank ui-tank-${tankLevel} ${state.player.indoors ? 'indoors' : ''}">
-        <div class="ui-tank-head"><span>🫧 <span class="ui-long">${t('hud.tankHp')}</span><span class="ui-short">${t('hud.tankShort')}</span></span><span class="ui-tank-pct">${tankPct}%</span></div>
-        <div class="ui-tank-bar"><div style="width:${tankPct}%"></div></div>
-        <div class="ui-small">${state.player.indoors ? t('hud.tankIndoors') : t('hud.timeLeft', timeLeft(view.tankRatio))}</div>
-      </div>
+    hudTankEl.innerHTML = `
       ${
         !state.player.indoors && taskList.length > 0
           ? `<div class="ui-panel ui-tasks"><div class="ui-label">${t('tasks.today')}</div>${taskList
@@ -551,7 +551,12 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
               .join('')}</div>`
           : ''
       }
-      ${detailPanelsHtml(state, view)}`;
+      <div class="ui-panel ui-tank ui-tank-${tankLevel} ${state.player.indoors ? 'indoors' : ''}">
+        <div class="ui-tank-head"><span>🫧 <span class="ui-long">${t('hud.tankHp')}</span><span class="ui-short">${t('hud.tankShort')}</span></span><span class="ui-tank-pct">${tankPct}%</span></div>
+        <div class="ui-tank-bar"><div style="width:${tankPct}%"></div></div>
+        <div class="ui-small">${state.player.indoors ? t('hud.tankIndoors') : t('hud.timeLeft', timeLeft(view.tankRatio))}</div>
+      </div>`;
+    hudEl.innerHTML = detailPanelsHtml(state, view);
     const maxDays = values.display.maxLifeSupportDays.value;
     if (
       lastLifeMin !== null &&
@@ -576,10 +581,12 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     buttonsEl.innerHTML = `
       <div class="ui-row ui-context">${contextHtml}</div>
       <div class="ui-row">
-        ${MENUS.map(
-          (menuKind) =>
-            `<button class="ui-menu-button" data-action="menu" data-menu="${menuKind}"><span class="ui-menu-icon">${t(`button.icon.${menuKind}`)}</span><span>${t(isTouch ? `button.short.${menuKind}` : `button.${menuKind}`)}</span></button>`,
-        ).join('')}
+        ${MENUS.filter((m) => m !== 'cards')
+          .map(
+            (menuKind) =>
+              `<button class="ui-menu-button" data-action="menu" data-menu="${menuKind}"><span class="ui-menu-icon">${t(`button.icon.${menuKind}`)}</span><span>${t(isTouch ? `button.short.${menuKind}` : `button.${menuKind}`)}</span></button>`,
+          )
+          .join('')}
       </div>
 `;
   };
@@ -1180,6 +1187,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         html = buildMenuHtml(state);
       } else if (menu === 'status') {
         html = inventoryHtml(state, view);
+      } else if (menu === 'cards') {
+        html = callbacks.cardsHtml();
       } else {
         html = dataMenuHtml();
       }
@@ -1350,6 +1359,14 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       case 'closeMenu':
         closeMenus();
         break;
+      case 'openTerm': {
+        const term = target.dataset.term;
+        if (term === undefined) {
+          throw new Error('ui の言葉がない');
+        }
+        callbacks.onOpenTerm(term);
+        break;
+      }
       case 'nbGo':
         // 先のページのボタンは押せないようにしているので、ここで開けないのは作りの誤り
         if (!openRestPage(pick(target.dataset.page, NOTEBOOK_PAGES, 'notebook page'))) {

@@ -8,7 +8,7 @@ import missionsJson from '../data/missions.json';
 import nasaImagesJson from '../data/nasa-images.json';
 import tasksJson from '../data/tasks.json';
 import valuesJson from '../data/values.json';
-import { createCardStore, parseCards } from './cards/index.ts';
+import { type Card, createCardStore, parseCards } from './cards/index.ts';
 import { cardsHtml } from './cards/view.ts';
 import type {
   ActiveEvent,
@@ -243,6 +243,11 @@ const ui = createUi(
       if (chosen !== undefined) {
         help.learn(taskDef(taskDefs, chosen.kind).terms, true);
       }
+    },
+    cardsHtml: () => cardsHtml(cardStore.list(), nasaImages),
+    onOpenTerm: (term) => {
+      ui.closeMenus();
+      help.openTerm(asHelpTerm(term, '豆知識カード'));
     },
     onMinigameSound: (name) => {
       fx.sound(name === 'hit' ? 'pop' : name === 'miss' ? 'land' : 'star');
@@ -544,6 +549,7 @@ function doAction(action: ContextAction): void {
       playMinigame('repair', () => {
         pending.push({ type: 'repair', facilityId: target.id });
         dayLog.push({ kind: 'repair', facility: target.kind });
+        earn('repairFacility');
         todayPlan = completeTask(todayPlan, 'repair', target.id);
         fx.sound('repair');
       });
@@ -826,7 +832,12 @@ function confirmBuild(): void {
 /** 実績の条件を満たした。初めてならトーストで知らせる */
 /** 豆知識カードの条件を満たした。初めてなら短く知らせる（中身は休息の画面で読む） */
 function collectCards(condition: AchievementCondition): void {
-  for (const card of cardStore.unlock(condition)) {
+  announceCards(cardStore.unlock(condition));
+}
+
+/** 初めて手に入れたカードを短く知らせる（中身は右上の🃏で読む） */
+function announceCards(cards: readonly Card[]): void {
+  for (const card of cards) {
     help.learn(card.terms, false);
     ui.notify(t('cards.got', { title: t(`${card.textKey}.title`) }), false);
     fx.sound('star');
@@ -1037,6 +1048,7 @@ function handleEvents(events: GameEvent[]): void {
     // 退避が必要な警報は SEP と X 級のフレアだけ。ほかは HUD の「宇宙天気の嵐」だけで知らせる（docs/SPEC.md）
     if (event.type === 'eventStarted') {
       lastEventId = event.event.donkiId;
+      earn('spaceWeather');
     }
     if (event.type === 'eventStarted' && needsShelterAlert(event.event)) {
       const donki = event.event.source === 'archived' ? findDonki(event.event.donkiId) : null;
@@ -1048,11 +1060,15 @@ function handleEvents(events: GameEvent[]): void {
     }
     if (event.type === 'commLost') {
       fx.sound('warn');
+      if (commLostReason(state, describe(state, values, env)) === 'earthDown') {
+        earn('earthSet');
+      }
     }
     if (event.type === 'commRestored') {
       fx.sound('chime');
     }
     if (event.type === 'launchArrived') {
+      earn('launchArrived');
       fx.banner(t('fx.arrived'), 'small');
       fx.sound('coin');
     }
@@ -1140,6 +1156,7 @@ function refreshView(): void {
   }
   adviceCard.show(currentAdvices);
   celebrateProgress();
+  announceCards(cardStore.unlockByState(state));
 }
 
 // ボタンにフォーカスが残ると、Space（ジャンプ）や Enter でそのボタンがまた押されるので外す

@@ -25,5 +25,197 @@
     "photo": null,
     "source": "NASA: Exploration EVA System Concept of Operations Summary for Artemis Phase 1",
     "url": "https://www.nasa.gov/wp-content/uploads/2020/01/topic_1-_eva_lunar_surface_concept_of_operations.pdf"
+  },
+  {
+    "id": "solar",
+    "condition": "facilityCount",
+    "kind": "solar",
+    "threshold": 1,
+    "textKey": "card.solar",
+    "terms": ["solar"],
+    "photo": "solarInShadow",
+    "source": "NASA: Moon's South Pole is Full of Mystery, Science, Intrigue",
+    "url": "https://www.nasa.gov/humans-in-space/moons-south-pole-is-full-of-mystery-science-intrigue/"
+  },
+  {
+    "id": "battery",
+    "condition": "facilityCount",
+    "kind": "battery",
+    "threshold": 1,
+    "textKey": "card.battery",
+    "terms": ["battery"],
+    "photo": "battery",
+    "source": "NASA: Spacewalkers Begin Work to Replace Batteries",
+    "url": "https://www.nasa.gov/blogs/spacestation/2020/06/26/spacewalkers-begin-work-to-replace-batteries/"
+  },
+  {
+    "id": "antenna",
+    "condition": "facilityCount",
+    "kind": "antenna",
+    "threshold": 1,
+    "textKey": "card.antenna",
+    "terms": ["antenna"],
+    "photo": "antenna",
+    "source": "NASA: What is the Deep Space Network?",
+    "url": "https://www.nasa.gov/directorates/somd/space-communications-navigation-program/what-is-the-deep-space-network/"
+  },
+  {
+    "id": "greenhouse",
+    "condition": "facilityCount",
+    "kind": "greenhouse",
+    "threshold": 1,
+    "textKey": "card.greenhouse",
+    "terms": ["greenhouse"],
+    "photo": "greenhouse",
+    "source": "NASA Facts: Veggie",
+    "url": "https://www.nasa.gov/wp-content/uploads/2023/03/veggie-fact-sheet-508.pdf"
+  },
+  {
+    "id": "lifeSupport",
+    "condition": "facilityCount",
+    "kind": "lifeSupport",
+    "threshold": 1,
+    "textKey": "card.lifeSupport",
+    "terms": ["lifeSupport"],
+    "photo": "lifeSupport",
+    "source": "NASA: NASA Achieves Water Recovery Milestone on International Space Station",
+    "url": "https://www.nasa.gov/missions/station/iss-research/nasa-achieves-water-recovery-milestone-on-international-space-station/"
+  },
+  {
+    "id": "iceDrill",
+    "condition": "facilityCount",
+    "kind": "iceDrill",
+    "threshold": 1,
+    "textKey": "card.iceDrill",
+    "terms": ["iceDrill", "ice"],
+    "photo": "iceDrill",
+    "source": "NASA: Polar Resources Ice Mining Experiment 1 (PRIME-1)",
+    "url": "https://www.nasa.gov/mission/polar-resources-ice-mining-experiment-1-prime-1/"
+  },
+  {
+    "id": "shield",
+    "condition": "facilityCount",
+    "kind": "shield",
+    "threshold": 1,
+    "textKey": "card.shield",
+    "terms": ["shield", "radiation"],
+    "photo": "shield",
+    "source": "NASA: Crew Checks Station Sound Levels, Tests Radiation Protection Vest",
+    "url": "https://www.nasa.gov/blogs/spacestation/2022/06/07/crew-checks-station-sound-levels-tests-radiation-protection-vest/"
+  },
+  {
+    "id": "habitat2",
+    "condition": "facilityCount",
+    "kind": "habitat",
+    "threshold": 2,
+    "textKey": "card.habitat2",
+    "terms": ["habitat"],
+    "photo": null,
+    "source": "NASA: Lunar Living: NASA's Artemis Base Camp Concept",
+    "url": "https://www.nasa.gov/blogs/missions/2020/10/28/lunar-living-nasas-artemis-base-camp-concept/"
+  },
+  {
+    "id": "ice",
+    "condition": "collectIce",
+    "textKey": "card.ice",
+    "terms": ["ice"],
+    "photo": "foundIce",
+    "source": "NASA: NASA Missions Uncover the Moon's Buried Treasures",
+    "url": "https://www.nasa.gov/news-release/nasa-missions-uncover-the-moons-buried-treasures/"
+  },
+  {
+    "id": "earthSet",
+    "condition": "earthSet",
+    "textKey": "card.earthSet",
+    "terms": ["horizon", "antenna"],
+    "photo": null,
+    "source": "NASA: Exploration and Space Communications: LCRNS",
+    "url": "https://www.nasa.gov/goddard/esc/lcrns/"
+  },
+  {
+    "id": "relay",
+    "condition": "relayAtLeast",
+    "threshold": 1,
+    "textKey": "card.relay",
+    "terms": ["relay"],
+    "photo": null,
+    "source": "NASA: NASA Delivers Navigation System for Commercial Lunar Relay",
+    "url": "https://www.nasa.gov/technology/space-comms/nasa-delivers-navigation-system-for-commercial-lunar-relay/"
+  },
+  {
+    "id": "launchArrived",
+    "condition": "launchArrived",
+    "textKey": "card.launchArrived",
+    "terms": ["launch"],
+    "photo": null,
+    "source": "NASA: Apollo 11 Mission Overview",
+    "url": "https://www.nasa.gov/missions/apollo/apollo-11/apollo-11-mission-overview/"
+  },
+  {
+    "id": "spaceWeather",
+    "condition": "spaceWeather",
+    "textKey": "card.spaceWeather",
+    "terms": ["donki", "flare"],
+    "photo": "flare",
+    "source": "NASA: Space Weather Database Of Notifications, Knowledge, Information (DONKI)",
+    "url": "https://technology.nasa.gov/patent/GSC-TOPS-223"
+  },
+  {
+    "id": "repair",
+    "condition": "repairFacility",
+    "textKey": "card.repair",
+    "terms": ["repair"],
+    "photo": null,
+    "source": "NASA: Astronauts Repair Canadarm2 Robotic Arm and Complete Spacewalk",
+    "url": "https://www.nasa.gov/blogs/spacestation/2026/06/30/astronauts-repair-canadarm2-robotic-arm-and-complete-spacewalk/"
+  },
+  {
+    "id": "crew3",
+    "condition": "crewAtLeast",
+    "threshold": 3,
+    "textKey": "card.crew3",
+    "terms": [],
+    "photo": null,
+    "source": "NASA: Our Artemis Crew",
+    "url": "https://www.nasa.gov/feature/our-artemis-crew/"
+  },
+  {
+    "id": "day15",
+    "condition": "dayAtLeast",
+    "threshold": 15,
+    "textKey": "card.day15",
+    "terms": [],
+    "photo": null,
+    "source": "NASA: Lunar Surface Technology",
+    "url": "https://www.nasa.gov/lunar-surface-technology/"
+  },
+  {
+    "id": "day30",
+    "condition": "dayAtLeast",
+    "threshold": 30,
+    "textKey": "card.day30",
+    "terms": [],
+    "photo": null,
+    "source": "NASA Science: Weather on the Moon",
+    "url": "https://science.nasa.gov/moon/weather-on-the-moon/"
+  },
+  {
+    "id": "dev50",
+    "condition": "developmentAtLeast",
+    "threshold": 50,
+    "textKey": "card.dev50",
+    "terms": ["development"],
+    "photo": null,
+    "source": "NASA Science: Moon Facts",
+    "url": "https://science.nasa.gov/moon/facts/"
+  },
+  {
+    "id": "cleared",
+    "condition": "cleared",
+    "textKey": "card.cleared",
+    "terms": ["development"],
+    "photo": null,
+    "source": "NASA: Moon to Mars | NASA's Artemis Program",
+    "url": "https://www.nasa.gov/humans-in-space/artemis/"
   }
 ]

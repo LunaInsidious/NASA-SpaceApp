@@ -90,8 +90,8 @@
 /* 音の切り替え（左下。ことばじてんのボタンの左） */
 .fx-sound-toggle {
   position: fixed;
-  left: 12px;
-  bottom: 12px;
+  left: 8px;
+  top: calc(8px + env(safe-area-inset-top));
   z-index: 1;
   width: 36px;
   height: 36px;
@@ -101,12 +101,6 @@
   font-size: 18px;
   pointer-events: auto;
   cursor: pointer;
-}
-
-@media (pointer: coarse) and (min-width: 641px) {
-  .fx-sound-toggle {
-    bottom: 160px;
-  }
 }
 
 @media (max-width: 640px) {

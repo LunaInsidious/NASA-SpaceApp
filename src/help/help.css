@@ -2,8 +2,8 @@
    タブレットは仮想パッドの上、スマホは上の小さな丸：下の @media） */
 .help-toggle {
   position: fixed;
-  left: 56px;
-  bottom: 12px;
+  left: 52px;
+  top: calc(8px + env(safe-area-inset-top));
   z-index: 1;
   padding: 6px 12px;
   border: 2px solid #9fd3ff;
@@ -97,15 +97,6 @@
 }
 
 /* スマホ：右上の状態の窓に重ならないよう、上の言語ボタンの左に小さな丸で置く */
-@media (pointer: coarse) and (min-width: 641px) {
-  .help-toggle {
-    bottom: 160px;
-  }
-
-  .help-note {
-    bottom: 208px;
-  }
-}
 
 @media (max-width: 640px) {
   .help-toggle {
@@ -153,7 +144,7 @@ body:has(.ui-modal-layer:not([hidden])) .fx-sound-toggle {
 .help-note {
   position: fixed;
   left: 12px;
-  bottom: 60px;
+  top: calc(56px + env(safe-area-inset-top));
   z-index: 1;
   max-width: min(320px, calc(100vw - 24px));
   padding: 8px 12px;

@@ -8,6 +8,10 @@ export const ACHIEVEMENT_CONDITIONS = [
   // 豆知識カードの条件（docs/SPEC.md ステップ17。実績はない）
   'coverRegolith',
   'firstRest',
+  'repairFacility',
+  'launchArrived',
+  'spaceWeather',
+  'earthSet',
 ] as const;
 export type AchievementCondition = (typeof ACHIEVEMENT_CONDITIONS)[number];
 

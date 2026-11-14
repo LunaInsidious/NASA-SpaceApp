@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import cardsJson from '../../data/cards.json';
 import nasaImagesJson from '../../data/nasa-images.json';
+import valuesJson from '../../data/values.json';
 import en from '../../i18n/en.json';
 import ja from '../../i18n/ja.json';
+import { createInitialState } from '../sim/index.ts';
 import { createCardStore, parseCards } from './index.ts';
 
 const cards = parseCards(cardsJson, Object.keys(nasaImagesJson));
@@ -33,5 +35,33 @@ describe('豆知識カード', () => {
     expect(() =>
       parseCards([{ ...cardsJson[0], photo: 'nope' }], Object.keys(nasaImagesJson)),
     ).toThrow();
+  });
+});
+
+describe('基地の様子で手に入るカード', () => {
+  it('施設の数・日数・人数・発展度などの条件を満たすと手に入る', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const store = createCardStore(cards);
+    const env = {
+      heightAt: () => 0,
+      isSunlit: () => true,
+      isEarthVisible: () => true,
+      isIceAt: () => false,
+      dustFactorAt: () => 1,
+    };
+    const state = createInitialState(valuesJson, env, [0, 0]);
+    const before = store.unlockByState(state).map((card) => card.id);
+    // 最初からある居住モジュール1つだけでは、居住モジュール2つのカードは手に入らない
+    expect(before).not.toContain('habitat2');
+    const later = {
+      ...state,
+      timeHours: 24 * 14,
+      facilities: [...state.facilities, { ...state.facilities[0], id: 'h2' }],
+    };
+    expect(store.unlockByState(later).map((card) => card.id)).toEqual(
+      expect.arrayContaining(['habitat2', 'day15']),
+    );
+    // 一度手に入れたカードは、もう一度は出ない
+    expect(store.unlockByState(later)).toEqual([]);
   });
 });
