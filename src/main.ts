@@ -244,8 +244,6 @@ const ui = createUi(
         help.learn(taskDef(taskDefs, chosen.kind).terms, true);
       }
     },
-    cardsHtml: () => cardsHtml(cardStore.list(), nasaImages),
-    onOpenTerm: (term) => help.openTerm(asHelpTerm(term, '豆知識カード')),
     onMinigameSound: (name) => {
       fx.sound(name === 'hit' ? 'pop' : name === 'miss' ? 'land' : 'star');
     },
@@ -938,6 +936,7 @@ function updateFootSounds(): void {
 /** チュートリアルを進め、行く場所に光の柱を立てる */
 function updateTutorial(): void {
   ui.setGuide(tutorial.currentInstruction());
+  help.setGuide(tutorial.currentInstruction());
   const p = world.getPlayer();
   tutorial.update({
     state,

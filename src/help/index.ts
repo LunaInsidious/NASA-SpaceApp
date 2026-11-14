@@ -1,6 +1,7 @@
 // ことばじてん：あとで見返したくなる言葉（蓄電池、太陽フレアなど）を、いつでも引けるようにする。
 // 最初は空で、チュートリアルやミッションで説明した言葉を足していく（覚えた言葉はブラウザに残す）。
 // 開いている間は main が時間を止める
+import { PROFESSOR_SVG } from '../tutorial/professor.ts';
 import { onLangChange, t, tPlain } from '../ui/i18n.ts';
 import './help.css';
 import { HELP_GROUPS, HELP_TERMS, type HelpTerm } from './terms.ts';
@@ -17,6 +18,8 @@ export interface Help {
   learn(terms: readonly HelpTerm[], announce: boolean): void;
   /** その言葉を開いた状態で、ことばじてんを出す（豆知識カードの言葉から飛ぶ）。まだ覚えていなければ足す */
   openTerm(term: HelpTerm): void;
+  /** いちばん上に出す、博士の今の「やること」（建設の窓と同じ。なければ null） */
+  setGuide(html: string | null): void;
 }
 
 function readLearned(): Set<HelpTerm> {
@@ -39,6 +42,7 @@ export function createHelp(
   let read = false;
   // 開いている言葉。言葉が足されて一覧を作り直しても、開いたままにする
   const openTerms = new Set<HelpTerm>();
+  let guide: string | null = null;
   const learned = readLearned();
 
   const toggle = document.createElement('button');
@@ -104,7 +108,19 @@ export function createHelp(
     closeTop.addEventListener('click', closeHelp);
     const title = document.createElement('h2');
     title.innerHTML = t('help.title');
-    card.append(closeTop, title);
+    card.append(closeTop);
+    if (guide !== null) {
+      const row = document.createElement('div');
+      row.className = 'ui-modal-guide help-guide';
+      const face = document.createElement('span');
+      face.className = 'ui-modal-guide-face';
+      face.innerHTML = PROFESSOR_SVG;
+      const what = document.createElement('div');
+      what.innerHTML = guide;
+      row.append(face, what);
+      card.append(row);
+    }
+    card.append(title);
     for (const group of HELP_GROUPS) {
       const terms = group.terms.filter((id) => learned.has(id));
       if (terms.length === 0) {
@@ -152,6 +168,15 @@ export function createHelp(
 
   return {
     isOpen: () => open,
+    setGuide(html) {
+      if (html === guide) {
+        return;
+      }
+      guide = html;
+      if (open) {
+        render();
+      }
+    },
     openTerm(term) {
       if (!learned.has(term)) {
         learned.add(term);

@@ -58,7 +58,8 @@ const MENUS = ['build', 'status', 'data'] as const;
 // 休息フェーズの2D画面のタブ（docs/SPEC.md ステップ13）
 // 休息フェーズの2D画面は、タブではなく順に進むページ（何から開くかを選ばなくてよい）。セーブは順の外
 const REST_PAGES = ['review', 'crew', 'launch', 'tasks', 'plan'] as const;
-const NOTEBOOK_PAGES = [...REST_PAGES, 'save', 'status', 'cards'] as const;
+// 順の外のページはない（セーブは一時停止の画面、くわしい様子は振り返り、カードはタイトル）
+const NOTEBOOK_PAGES = REST_PAGES;
 // インベントリ画面に出す物資
 const INVENTORY_STOCKS = ['oxygen', 'water', 'food', 'spareParts', 'materials'] as const;
 type RestPage = (typeof NOTEBOOK_PAGES)[number];
@@ -325,6 +326,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           <div class="ui-pause-title">${t('pause.title')}</div>
           <p>${t('pause.body')}</p>
           <button class="primary ui-pause-resume" data-action="pause">${t('pause.resume')}</button>
+          <div class="ui-pause-save">${saveMenuHtml()}</div>
         </div>`
       : '';
   };
@@ -1001,6 +1003,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   const reviewHtml = (info: RestInfo, current: SimState, currentView: SimView) => `
     <h2>${t('review.title')}</h2>
     <ul class="nb-review">${info.review.map((line) => `<li>${line}</li>`).join('')}</ul>
+    ${inventoryHtml(current, currentView)}
     ${researchHtml(current, currentView)}`;
 
   /** インベントリ画面（くわしい様子）：くわしい数字、物資の量、基地の様子（docs/SPEC.md ステップ16） */
@@ -1079,12 +1082,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         return tasksHtml(info);
       case 'plan':
         return planHtml(info);
-      case 'save':
-        return saveMenuHtml();
-      case 'status':
-        return inventoryHtml(current, currentView);
-      case 'cards':
-        return callbacks.cardsHtml();
     }
   };
 
@@ -1159,7 +1156,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       : '';
     notebookEl.innerHTML = `
       <div class="nb">
-        <div class="nb-head">${exitTop}<b class="nb-head-title"><span class="nb-head-label">${t('notebook.title', { day: Math.floor(view.day) + 1 })}</span><span class="nb-exit-short">${t('hud.day', { day: Math.floor(view.day) + 1 })}</span></b><span class="nb-head-buttons">${(['cards', 'status', 'save'] as const).map((page) => `<button data-action="nbGo" data-page="${page}" aria-label="${tPlain(`notebook.page.${page}`)}" ${locked && requiredPage !== page ? lockedAttr('task') : ''}><span>${t(`notebook.icon.${page}`)}</span><span class="nb-head-label">${t(`notebook.page.${page}`)}</span></button>`).join('')}</span></div>
+        <div class="nb-head">${exitTop}<b class="nb-head-title"><span class="nb-head-label">${t('notebook.title', { day: Math.floor(view.day) + 1 })}</span><span class="nb-exit-short">${t('hud.day', { day: Math.floor(view.day) + 1 })}</span></b></div>
         ${guideHtml}
         <nav class="nb-steps">${steps}</nav>
         <section class="nb-page">${restPageHtml(restPage, rest, state, view)}</section>
@@ -1230,7 +1227,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const menuKind = MENUS.find((m) => m === kind);
     // 中にいる間：くわしい様子は休息の画面のページで。建設は外の 3D の地面で選ぶので、外に出てから
     if (menuKind === 'status' && rest !== null) {
-      openRestPage('status');
+      openRestPage('review');
       return;
     }
     if (menuKind === 'build' && rest !== null) {
@@ -1372,14 +1369,6 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         }
         restPage = restStep;
         renderNotebook();
-        break;
-      }
-      case 'openTerm': {
-        const term = target.dataset.term;
-        if (term === undefined) {
-          throw new Error('ui の言葉がない');
-        }
-        callbacks.onOpenTerm(term);
         break;
       }
       case 'taskToggle': {
@@ -1677,9 +1666,12 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       if (rest !== null || dialogs[0]?.type === 'gameOver') {
         renderModal();
       }
+      if (userPaused) {
+        renderPauseOverlay();
+      }
     },
     isInventoryOpen() {
-      return menu === 'status' || (rest !== null && restPage === 'status');
+      return menu === 'status';
     },
     isMenuOpen() {
       return menu !== null || dialogs.length > 0 || closeMinigame !== null;

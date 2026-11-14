@@ -120,7 +120,7 @@ const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
   regolith: ['[data-action="context"][data-context="coverRegolith"]'],
   pause: ['[data-action="pause"]'],
   resume: ['.ui-pause [data-action="pause"]', '[data-action="pause"]'],
-  save: ['[data-action="save"][data-slot="0"]', '[data-action="nbGo"][data-page="save"]'],
+  save: ['[data-action="save"][data-slot="0"]', '[data-action="pause"]'],
   data: ['[data-action="menu"][data-menu="data"]'],
 };
 // 「ちゅうもん」の段は、食料の＋ → 隊員の＋ → 注文を送る、の順に1つずつ指す
@@ -182,7 +182,6 @@ const INDOOR_STEPS: readonly Step[] = [
   'arrived',
   'assignCrew',
   'chooseTask',
-  'save',
   'sleepAgain',
 ];
 const MS_PER_SECOND = 1000;
@@ -323,7 +322,7 @@ export interface Tutorial {
 }
 
 /** 休息の画面のページのうち、くんれんやミッションで操作を求めるもの */
-export type RestRequiredPage = 'crew' | 'launch' | 'tasks' | 'plan' | 'save';
+export type RestRequiredPage = 'crew' | 'launch' | 'tasks' | 'plan';
 // くんれんの段と、その操作をするページ
 const STEP_PAGES: Partial<Record<Step, RestRequiredPage>> = {
   order: 'launch',
@@ -331,7 +330,6 @@ const STEP_PAGES: Partial<Record<Step, RestRequiredPage>> = {
   waitArrival: 'plan',
   assignCrew: 'crew',
   chooseTask: 'tasks',
-  save: 'save',
   sleepAgain: 'plan',
 };
 
@@ -660,7 +658,7 @@ export function createTutorial(
       why.innerHTML = t(`tutorial.why.${s}`);
       const what = document.createElement('p');
       what.innerHTML = t(`tutorial.step.${s}.${variant}`);
-      item.append(why, what);
+      item.append(what, why);
       list.append(item);
     }
     const close = button(t('tutorial.rereadClose'), 'tutorial-big primary', () => {
@@ -704,7 +702,7 @@ export function createTutorial(
           : `tutorial.step.${step()}.${variant}`,
       );
     }
-    // 小学生が指示の意味を分かって進めるよう、「どうして？」（理由と新しい言葉の意味）を先に出す
+    // 「どうして？」は理由と新しい言葉の意味（やることの下に小さく出す）
     const whyLabel = document.createElement('div');
     whyLabel.className = 'tutorial-label';
     whyLabel.innerHTML = t('tutorial.whyLabel');
@@ -715,14 +713,15 @@ export function createTutorial(
     doLabel.className = 'tutorial-label';
     doLabel.innerHTML = t('tutorial.doLabel');
     const skip = skipButton();
+    // やることを上に大きく、どうして（理由と言葉の意味）は下に少し小さく
     const parts: HTMLElement[] = [
       professor(),
       header(t('tutorial.title'), t('tutorial.progress', { n: index + 1, total: STEPS.length })),
-      whyLabel,
-      why,
       doLabel,
       text,
       outdoorNote,
+      whyLabel,
+      why,
       skip,
     ];
     if (!TIME_STEPS.includes(step())) {
@@ -732,7 +731,7 @@ export function createTutorial(
       frozen.innerHTML = t('tutorial.timeStopped');
       parts.splice(2, 0, frozen);
     }
-    speak(`step:${index}:${flareChoice ?? ''}`, [why, text], skip);
+    speak(`step:${index}:${flareChoice ?? ''}`, [text, why], skip);
     if (ACK_STEPS.includes(step())) {
       const row = document.createElement('div');
       row.className = 'tutorial-buttons';

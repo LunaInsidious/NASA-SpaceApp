@@ -1476,3 +1476,28 @@ body[data-tutorial-step="comm"] .ui-top .ui-status {
       0 0 18px #ffd27a;
   }
 }
+
+/* 右上の一時停止は、休息の画面の上にも出す（セーブはいつでも一時停止の画面から）。一時停止の画面はその上、説明の窓はいちばん上 */
+.ui-top {
+  z-index: 1;
+}
+
+.ui-pause {
+  z-index: 2;
+}
+
+.ui-modal-layer {
+  z-index: 3;
+}
+
+.ui-pause-card {
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.ui-pause-save {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: left;
+}

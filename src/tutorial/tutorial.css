@@ -208,7 +208,7 @@ body[data-tutorial-step="dictionary"]
 body[data-tutorial-step="dictionary"] .help-card:has(details[data-term="solar"][open]) .help-close,
 body[data-tutorial-step="pause"] [data-action="pause"],
 body[data-tutorial-step="resume"] [data-action="pause"],
-body[data-tutorial-step="save"] [data-action="nbGo"][data-page="save"],
+body[data-tutorial-step="save"] [data-action="pause"],
 body[data-tutorial-step="inventory"] [data-action="menu"][data-menu="status"],
 body[data-tutorial-step="chooseTask"]
   [data-action="nbGo"][data-page="tasks"]:not([aria-disabled="true"]),
@@ -295,7 +295,8 @@ body[data-advice="broken"] [data-action="context"][data-context="repair"] {
 
 .tutorial-why {
   margin: 2px 0 4px;
-  color: #dbe6f5;
+  color: #c9d6ea;
+  font-size: 0.86em;
 }
 
 /* 最初の窓の言語の切り替え */
