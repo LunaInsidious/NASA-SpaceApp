@@ -74,6 +74,10 @@ const TOAST_MAX = 2; // 一度に並べるお知らせの数（多いと子ど�
 const HOURS_PER_DAY = 24;
 const PERCENT = 100;
 const MINUTES_PER_HOUR = 60;
+// 押せないボタンの吹き出し（見た目）
+const BUBBLE_MS = 3200;
+const BUBBLE_GAP_PX = 12;
+const BUBBLE_MARGIN_PX = 8;
 const LOW_BAR_RATIO = 0.25; // バーを赤くする残りの割合
 const LOW_DAYS = 7; // 生命維持の日数を赤くする
 const DOSE_WARN_RATIO = 0.5; // 被ばくが上限のこの割合を超えたら赤くする
@@ -1147,7 +1151,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         : '';
       forward = `<span class="nb-foot-actions">${goOut}${nextDay}</span>`;
     } else {
-      forward = `${requiredPage !== null && locked ? `<span class="ui-small ui-warn nb-reason">${t(`notebook.doFirst.${requiredPage}`)}</span>` : ''}<button class="primary nb-next" data-action="nbNext" ${locked ? lockedAttr('task') : ''}>${t('notebook.next', { page: t(`notebook.page.${REST_PAGES[Math.min(index + 1, REST_PAGES.length - 1)]}`) })}</button>`;
+      forward = `<button class="primary nb-next" data-action="nbNext" ${locked ? lockedAttr('task') : ''}>${t('notebook.next', { page: t(`notebook.page.${REST_PAGES[Math.min(index + 1, REST_PAGES.length - 1)]}`) })}</button>`;
     }
     // 出口はいつも左上に（ちょっと中に入っただけのときも、「次へ」で最後まで進まなくてよい）
     const exitTop = rest.canGoOut
@@ -1271,6 +1275,47 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     renderModal();
   };
 
+  // ---- 押せないボタンを押したとき ----
+  // 文を読まずに押した子にも届くよう、押したその場で知らせる：ボタンを震わせ、すぐ上に大きな吹き出しで理由を出し、
+  // 博士の「やること」の欄を光らせる（下のお知らせや、ほかの場所の文を探させない）
+  let lockedBubble: { el: HTMLElement; timer: number } | null = null;
+  const explainLocked = (target: HTMLElement, text: string) => {
+    if (lockedBubble !== null) {
+      window.clearTimeout(lockedBubble.timer);
+      lockedBubble.el.remove();
+    }
+    const bubble = document.createElement('div');
+    bubble.className = 'ui-locked-bubble';
+    bubble.setAttribute('role', 'alert');
+    bubble.innerHTML = text;
+    root.append(bubble);
+    const rect = target.getBoundingClientRect();
+    const box = bubble.getBoundingClientRect();
+    const left = Math.min(
+      window.innerWidth - box.width - BUBBLE_MARGIN_PX,
+      Math.max(BUBBLE_MARGIN_PX, rect.left + rect.width / 2 - box.width / 2),
+    );
+    // 上に場所があれば上に、なければ下に出す
+    const above = rect.top - box.height - BUBBLE_GAP_PX >= BUBBLE_MARGIN_PX;
+    bubble.style.left = `${left}px`;
+    bubble.style.top = `${above ? rect.top - box.height - BUBBLE_GAP_PX : rect.bottom + BUBBLE_GAP_PX}px`;
+    bubble.dataset.side = above ? 'above' : 'below';
+    bubble.style.setProperty('--tail-x', `${rect.left + rect.width / 2 - left}px`);
+    for (const el of [target, ...root.querySelectorAll<HTMLElement>('.nb .ui-modal-guide')]) {
+      const name = el === target ? 'ui-shake' : 'ui-flash';
+      el.classList.remove(name);
+      // つけ直して、アニメーションをもう一度動かす
+      requestAnimationFrame(() => el.classList.add(name));
+    }
+    lockedBubble = {
+      el: bubble,
+      timer: window.setTimeout(() => {
+        bubble.remove();
+        lockedBubble = null;
+      }, BUBBLE_MS),
+    };
+  };
+
   // ---- 入力 ----
   root.addEventListener('click', (e) => {
     if (!(e.target instanceof Element)) {
@@ -1283,11 +1328,11 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     // 押せないボタン：何もせず、押せない理由を知らせる
     if (target.getAttribute('aria-disabled') === 'true') {
       const locked = target.dataset.locked;
-      toast(
+      explainLocked(
+        target,
         locked === undefined || locked === 'ahead'
           ? t('notebook.inOrder')
           : t(`notebook.doFirst.${locked.slice('task.'.length)}`),
-        false,
       );
       return;
     }

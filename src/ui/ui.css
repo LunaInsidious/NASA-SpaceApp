@@ -1407,3 +1407,72 @@ body[data-tutorial-step="comm"] .ui-top .ui-status {
     display: inline;
   }
 }
+
+/* 押せないボタンを押したとき：すぐ上の吹き出しで理由、ボタンは震え、博士の「やること」が光る */
+.ui-locked-bubble {
+  position: fixed;
+  z-index: 10;
+  max-width: min(360px, calc(100vw - 16px));
+  padding: 12px 16px;
+  border: 3px solid #ffd27a;
+  border-radius: 14px;
+  background: #2a2110;
+  color: #fff3d6;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.5;
+  pointer-events: none;
+  animation: ui-bubble-in 0.18s ease-out;
+}
+
+.ui-locked-bubble::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--tail-x) - 10px);
+  border: 10px solid transparent;
+}
+
+.ui-locked-bubble[data-side="above"]::after {
+  top: 100%;
+  border-top-color: #ffd27a;
+}
+
+.ui-locked-bubble[data-side="below"]::after {
+  bottom: 100%;
+  border-bottom-color: #ffd27a;
+}
+
+@keyframes ui-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.95);
+  }
+}
+
+.ui-shake {
+  animation: ui-shake 0.4s;
+}
+
+@keyframes ui-shake {
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+.ui-flash {
+  animation: ui-flash 0.5s 3;
+}
+
+@keyframes ui-flash {
+  50% {
+    box-shadow:
+      0 0 0 4px #ffd27a,
+      0 0 18px #ffd27a;
+  }
+}
