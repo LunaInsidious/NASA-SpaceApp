@@ -418,6 +418,7 @@
   "fx.iceWater": "｜氷《こおり》が ｜水《みず》に なった！ ＋{kg} kg",
   "fx.achievement": "｜実績《じっせき》 ゲット！ {name}",
   "fx.arrived": "ロケット ｜到着《とうちゃく》！",
+  "mission.reopen": "ミッションを ｜開《ひら》く",
   "mission.closePanel": "この パネルを ｜閉《と》じる",
   "tutorial.rereadShort": "📖 ｜読《よ》み｜直《なお》す",
   "tutorial.reread": "📖 ｜説明《せつめい》を ｜読《よ》み｜直《なお》す",

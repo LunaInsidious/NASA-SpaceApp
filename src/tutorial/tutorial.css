@@ -788,3 +788,34 @@ body[data-tutorial-step="comm"] .ui-status::before {
     font-size: 14px;
   }
 }
+
+/* 大きな窓の博士は、丸いわくの中に入れる（うしろの 3D の明かりが透けて、帽子のように見えないように） */
+.tutorial-modal-layer .tutorial-modal-professor {
+  width: 128px;
+  height: 128px;
+  margin: -96px auto 4px;
+  overflow: hidden;
+  border: 3px solid #ffd27a;
+  border-radius: 50%;
+  background: #2a3550;
+}
+
+.tutorial-modal-layer .tutorial-modal .tutorial-modal-professor svg {
+  width: 112px;
+  height: 131px;
+  margin: 8px auto 0;
+}
+
+@media (max-width: 640px) {
+  .tutorial-modal-layer .tutorial-modal-professor {
+    width: 96px;
+    height: 96px;
+    margin-top: -72px;
+  }
+
+  .tutorial-modal-layer .tutorial-modal .tutorial-modal-professor svg {
+    width: 84px;
+    height: 98px;
+    margin-top: 6px;
+  }
+}

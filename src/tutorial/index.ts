@@ -307,6 +307,12 @@ export function createTutorial(
   reopen.type = 'button';
   reopen.className = 'tutorial-reopen';
   reopen.textContent = '📋';
+  const renderReopenLabel = () => {
+    reopen.title = tPlain('mission.reopen');
+    reopen.setAttribute('aria-label', tPlain('mission.reopen'));
+  };
+  renderReopenLabel();
+  onLangChange(renderReopenLabel);
   reopen.hidden = true;
   reopen.addEventListener('click', () => {
     panelClosed = false;

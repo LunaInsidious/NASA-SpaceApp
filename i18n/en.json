@@ -418,6 +418,7 @@
   "fx.iceWater": "Ice became water! +{kg} kg",
   "fx.achievement": "Achievement! {name}",
   "fx.arrived": "The rocket has arrived!",
+  "mission.reopen": "Open missions",
   "mission.closePanel": "Close this panel",
   "tutorial.rereadShort": "📖 Read again",
   "tutorial.reread": "📖 Read the explanations again",
