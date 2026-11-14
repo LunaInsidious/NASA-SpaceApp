@@ -123,6 +123,15 @@ describe('ふりがな', () => {
     expect(inEnglish).toEqual([]);
   });
 
+  it('写真の日本語のタイトルの漢字にも、すべてふりがなが付いている', () => {
+    const bare = Object.entries(parseNasaImages(nasaImages))
+      .filter(([, image]) =>
+        /[\u4e00-\u9fff々〆]/.test(image.titleJa.replace(/｜[^｜《》]+《[^《》]+》/g, '')),
+      )
+      .map(([key]) => key);
+    expect(bare).toEqual([]);
+  });
+
   it('ja の漢字には、すべてふりがなが付いている', () => {
     const bare = Object.entries(ja as Record<string, string>)
       .filter(([, text]) =>

@@ -1,6 +1,6 @@
 // NASA の画像・動画ライブラリ（images.nasa.gov）の本物の写真を見せる。
 // 写真は tools/fetch-nasa-images.ts で選んで public/nasa/ に置いたものだけを使い、ゲームの中から NASA には問い合わせない
-import { getLang, onLangChange, t } from './i18n.ts';
+import { getLang, onLangChange, rubyHtml, stripRuby, t } from './i18n.ts';
 import './photo.css';
 
 export interface NasaImage {
@@ -49,11 +49,11 @@ export function photoFigureHtml(image: NasaImage): string {
   // クレジットは著作権の表示なので、説明とは分けて写真の隅に小さく出す
   return `<figure class="nasa-photo">
     <div class="nasa-photo-frame">
-      <img src="/nasa/${esc(image.file)}" alt="${esc(title)}" loading="lazy">
+      <img src="/nasa/${esc(image.file)}" alt="${esc(stripRuby(title))}" loading="lazy">
       <small class="nasa-photo-credit">${t('photo.credit', { credit: esc(image.credit) })}</small>
     </div>
     <figcaption>
-      <b>${esc(title)}</b>
+      <b>${rubyHtml(esc(title))}</b>
     </figcaption>
   </figure>`;
 }
