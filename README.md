@@ -1,6 +1,8 @@
-# NASA-SpaceApp
+# Artemis Kids
 
 Space Mission Design Game https://www.spaceappschallenge.org/
+
+> This is a fan-made game inspired by NASA's Artemis program. It is not an official NASA product.
 
 A browser-based 3D game about running an outpost at the lunar south pole, built for the NASA Space Apps Challenge 2026 challenge "Build a Junior Astronaut Mission Trainer". The spec and task plan (in Japanese) are in [docs/SPEC.md](docs/SPEC.md).
 
