@@ -682,8 +682,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       ${blockers.length > 0 ? `<div class="ui-blocker">${blockers.map((b) => `<div>${b}</div>`).join('')}</div>` : ''}
       <div class="ui-meter"><div class="${over ? 'over' : ''}" style="width:${fmt(meterRatio * PERCENT)}%"></div></div>
       <div>${t('launch.meter', { used: fmt(used), capacity: fmt(capacity) })}</div>
-      <ul class="ui-list">${rows}</ul>
       <div class="ui-small">${t('launch.delivery', { days: fmt(current.launch.deliveryHours / HOURS_PER_DAY) })}</div>
+      <ul class="ui-list">${rows}</ul>
       ${inFlight}
       ${reasons.map((reason) => `<div class="ui-small ui-bad">${reason}</div>`).join('')}
       <div class="ui-actions">
@@ -1171,23 +1171,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     };
     for (const event of events) {
       switch (event.type) {
-        case 'facilityStopped': {
-          const facility = eventState.facilities.find((f) => f.id === event.facilityId);
-          if (facility === undefined) {
-            throw new Error(`止まった施設が見つからない: ${event.facilityId}`);
-          }
-          // 影に入って休むのは毎日のことなので、赤ではなく、こわくない言い方で知らせる
-          toast(
-            event.reason === 'shadow'
-              ? t('event.facilityResting', { name: t(`facility.${facility.kind}`) })
-              : t('event.facilityStopped', {
-                  name: t(`facility.${facility.kind}`),
-                  reason: t(`stopReason.${event.reason}`),
-                }),
-            event.reason !== 'shadow',
-          );
+        // 止まった施設は、困りごとカード（直るまで出る）と HUD で分かるので、そのたびのお知らせは出さない
+        case 'facilityStopped':
           break;
-        }
         case 'launchArrived':
           toast(t('event.launchArrived'), false);
           break;
