@@ -535,7 +535,7 @@ export function createTutorial(
     title.innerHTML = titleText;
     const progress = document.createElement('span');
     progress.className = 'tutorial-progress';
-    progress.textContent = progressText;
+    progress.innerHTML = progressText;
     // 説明を読み直すだけ（ゲームは進めも戻しもしない）
     const reread = button('', 'tutorial-restart', openReread);
     // スマホ幅では短い名前にして、見出しの行に収める（CSS で切り替える）

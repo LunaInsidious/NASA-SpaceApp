@@ -119,7 +119,7 @@ export function createAdviceCard(
       label.innerHTML = t('advice.label');
       const todo = document.createElement('div');
       todo.className = 'advice-todo';
-      todo.textContent =
+      todo.innerHTML =
         commReason === null
           ? t(`advice.${kind}.todo`)
           : t(`advice.${kind}.todo`, { reason: t(`commHint.${commReason}`) });
