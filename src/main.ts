@@ -42,6 +42,8 @@ const HOURS_PER_DAY = 24;
 const MAX_STEPS_PER_FRAME = 8;
 // TODO(人間に確認): 地形の seed。実データの地形（ステップ5）に変えるまでの仮
 const TERRAIN_SEED = 1;
+// 足音を鳴らす間隔（歩いた距離、m）。見た目と音だけの値
+const STEP_SOUND_METERS = 1.6;
 
 const values: Values = valuesJson;
 const timeline: DonkiTimeline = parseDonkiTimeline(donkiJson);
@@ -123,6 +125,10 @@ let lastGuideKey = '';
 let manualSaveCount = 0;
 let lastBlocking: boolean | null = null;
 let currentAdvices: Advice[] = [];
+// 足音とジャンプの音のための、前のフレームの様子
+let wasAirborne = false;
+let lastFoot = { x: state.player.x, z: state.player.z };
+let walkedSinceStep = 0;
 
 world.teleportPlayer(state.player.x, state.player.z);
 
@@ -251,6 +257,7 @@ function showFlareDrill(): void {
     },
     record,
   );
+  fx.sound('alarm');
 }
 
 const guideArrow = document.createElement('div');
@@ -337,20 +344,24 @@ function doAction(action: ContextAction): void {
   switch (action) {
     case 'enterHabitat':
       indoors = true;
+      fx.sound('door');
       deliverIce();
       break;
     case 'exitHabitat':
       indoors = false;
+      fx.sound('door');
       break;
     case 'collectIce':
       // 氷は手で運ぶ（docs/SPEC.md「水と酸素」）。居住モジュールに持ち帰ると水になる
       carriedIce = { x: p.x, z: p.z };
+      fx.sound('pickup');
       earn('collectIce');
       break;
     case 'repair': {
       const target = near.find(needsRepair);
       if (target !== undefined) {
         pending.push({ type: 'repair', facilityId: target.id });
+        fx.sound('repair');
       }
       break;
     }
@@ -358,6 +369,7 @@ function doAction(action: ContextAction): void {
       const target = near.find((f) => f.kind === 'habitat' && f.regolithCover !== true);
       if (target !== undefined) {
         pending.push({ type: 'coverWithRegolith', facilityId: target.id });
+        fx.sound('dig');
       }
       break;
     }
@@ -374,6 +386,7 @@ function shelter(): void {
   const nearest = habitats.reduce((a, b) => (distanceToPlayer(a) <= distanceToPlayer(b) ? a : b));
   world.teleportPlayer(nearest.x, nearest.z);
   indoors = true;
+  fx.sound('door');
   deliverIce();
   applyPlayerMode();
 }
@@ -506,6 +519,27 @@ function guideTarget(): { x: number; z: number } | null {
   return null;
 }
 
+/** 跳んだ・着地した・歩いた音 */
+function updateFootSounds(): void {
+  const p = world.getPlayer();
+  const airborne = p.y > env.heightAt(p.x, p.z) + values.tutorial.airborneMeters.value;
+  if (airborne !== wasAirborne) {
+    fx.sound(airborne ? 'jump' : 'land');
+    wasAirborne = airborne;
+  }
+  const moved = Math.hypot(p.x - lastFoot.x, p.z - lastFoot.z);
+  lastFoot = { x: p.x, z: p.z };
+  if (airborne || indoors) {
+    walkedSinceStep = 0;
+    return;
+  }
+  walkedSinceStep += moved;
+  if (walkedSinceStep >= STEP_SOUND_METERS) {
+    walkedSinceStep = 0;
+    fx.sound('step');
+  }
+}
+
 /** チュートリアルを進め、行く場所に光の柱を立てる */
 function updateTutorial(): void {
   const p = world.getPlayer();
@@ -568,10 +602,20 @@ function handleEvents(events: GameEvent[]): void {
     if (event.type === 'eventStarted' && needsShelterAlert(event.event)) {
       const donki = event.event.source === 'archived' ? findDonki(event.event.donkiId) : null;
       ui.showFlareAlert(event.event, donki);
+      fx.sound('alarm');
+    }
+    if (event.type === 'commLost') {
+      fx.sound('warn');
+    }
+    if (event.type === 'commRestored') {
+      fx.sound('chime');
     }
     if (event.type === 'launchArrived') {
       fx.banner(t('fx.arrived'), 'small');
       fx.sound('coin');
+    }
+    if (event.type === 'playerDowned' || event.type === 'gameOver') {
+      fx.sound('down');
     }
     if (event.type === 'playerDowned') {
       // sim が着陸船の近くの居住モジュールに戻している
@@ -606,8 +650,13 @@ function tick(dtHours: number): void {
     ...pending.splice(0),
   ];
   const dayBefore = Math.floor(state.timeHours / HOURS_PER_DAY);
+  const launchesBefore = state.launches.length;
   const result = step(state, dtHours, env, commands, values, timeline, Math.random);
   state = result.state;
+  // 注文が通ってロケットが飛び立った
+  if (state.launches.length > launchesBefore) {
+    fx.sound('launch');
+  }
   handleEvents(result.emitted);
   // ゲーム内の1日ごとに自動セーブ（ゲームオーバーの状態は残さない）
   if (Math.floor(state.timeHours / HOURS_PER_DAY) !== dayBefore && state.phase !== 'gameOver') {
@@ -626,6 +675,7 @@ function refreshView(): void {
   }
   world.syncFacilities(state.facilities, working);
   // チュートリアル中や大きな窓を出している間は、命に関わるボンベの警告だけにする
+  const adviceBefore = new Set(currentAdvices.map((a) => a.kind));
   currentAdvices = pickAdvices(
     state,
     view,
@@ -633,6 +683,10 @@ function refreshView(): void {
     values,
     tutorial.isTutorial() || tutorial.isBlocking(),
   );
+  // 新しい困りごとが出たら知らせる
+  if (currentAdvices.some((a) => !adviceBefore.has(a.kind))) {
+    fx.sound('warn');
+  }
   adviceCard.show(currentAdvices);
   celebrateProgress();
 }
@@ -713,6 +767,7 @@ engine.runRenderLoop(() => {
   world.setPadInput(ui.getPadInput());
   updateBuildPreview();
   updateTutorial();
+  updateFootSounds();
   const actions = contextActions();
   const actionsKey = actions.join(',');
   if (actionsKey !== lastActionsKey) {

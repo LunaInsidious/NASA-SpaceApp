@@ -18,4 +18,4 @@ NASA の画像・動画ライブラリ（https://images.nasa.gov）から取っ�
 
 ## 音
 
-効果音は WebAudio でその場で作る（`src/ui/fx.ts`）。外部の音の素材は使っていない。
+効果音と BGM は WebAudio でその場で作る（効果音は `src/ui/fx.ts`、BGM は `src/ui/music.ts`。BGM の曲はこのリポジトリのオリジナル）。外部の音の素材は使っていない。
