@@ -625,3 +625,70 @@ body[data-tutorial-step="comm"] .ui-status::before {
     font-size: 14px;
   }
 }
+
+/* ルナはかせの「どうして こうなったか」「つぎは こうしよう」（倒れたとき・ゲームオーバー） */
+.death-professor {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.death-face {
+  flex: 0 0 64px;
+}
+
+.death-face svg {
+  display: block;
+  width: 64px;
+  height: 75px;
+}
+
+.death-bubble {
+  flex: 1;
+  padding: 8px 12px;
+  border: 2px solid #ffd27a;
+  border-radius: 12px;
+  background: rgba(255, 210, 122, 0.08);
+}
+
+.death-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffd27a;
+}
+
+.death-advice {
+  text-align: left;
+}
+
+.death-advice p {
+  margin: 2px 0 6px;
+}
+
+.death-label {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #9fd3ff;
+}
+
+.death-advice ol {
+  margin: 2px 0 0;
+  padding-left: 1.4em;
+}
+
+.death-advice li + li {
+  margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .death-face {
+    flex-basis: 44px;
+  }
+
+  .death-face svg {
+    width: 44px;
+    height: 52px;
+  }
+}

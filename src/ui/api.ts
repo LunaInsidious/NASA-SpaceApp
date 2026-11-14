@@ -10,6 +10,7 @@ import type {
 } from '../contracts/index.ts';
 import type { SaveSummary } from '../save/api.ts';
 import type { BuildOptions, Placement, SimView } from '../sim/api.ts';
+import type { DeathAdvice } from '../tutorial/death.ts';
 import type { PadInput } from '../world/api.ts';
 import type { NasaImages } from './photo.ts';
 
@@ -45,8 +46,11 @@ export interface UiCallbacks {
 export interface Ui {
   /** 時間が進むたびに呼ぶ */
   update(state: SimState, view: SimView): void;
-  /** step が出した GameEvent を見せる（トースト、警報、倒れたときの説明、クリア、ゲームオーバー） */
-  showEvents(events: GameEvent[], state: SimState): void;
+  /**
+   * step が出した GameEvent を見せる（トースト、警報、倒れたときの説明、クリア、ゲームオーバー）。
+   * 倒れた・ゲームオーバーのときは、death にルナはかせのアドバイス（原因とつぎにやること）を渡す
+   */
+  showEvents(events: GameEvent[], state: SimState, death: DeathAdvice | null): void;
   /** 太陽フレアの警報。退避するか作業を続けるかを選ばせる。出典（過去の実際のイベントと日付）を必ず見せる */
   showFlareAlert(event: ActiveEvent, donki: DonkiEvent | null): void;
   getPadInput(): PadInput;

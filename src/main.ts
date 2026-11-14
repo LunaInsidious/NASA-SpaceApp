@@ -29,6 +29,7 @@ import type { BuildOptions, Placement } from './sim/api.ts';
 import { checkPlacement, createInitialState, describe, step } from './sim/index.ts';
 import { createTitle } from './title/index.ts';
 import { type Advice, createAdviceCard, pickAdvices } from './tutorial/advice.ts';
+import { type DeathAdvice, type DeathKind, diagnoseDeath } from './tutorial/death.ts';
 import { createTutorial, parseMissions } from './tutorial/index.ts';
 import type { ContextAction } from './ui/api.ts';
 import { createFx } from './ui/fx.ts';
@@ -611,7 +612,39 @@ function findDonki(donkiId: string): DonkiEvent {
   return found;
 }
 
+/**
+ * 倒れた・ゲームオーバーのときの、ルナはかせのアドバイス。
+ * 宇宙飛行士を居住モジュールに戻す前（倒れた場所にいるうち）に、そのときの基地の様子から原因を調べる
+ */
+function deathAdviceFor(events: GameEvent[]): DeathAdvice | null {
+  let kind: DeathKind | null = null;
+  for (const event of events) {
+    if (event.type === 'gameOver') {
+      kind = event.reason;
+      break;
+    }
+    if (event.type === 'playerDowned') {
+      kind = event.reason;
+    }
+  }
+  if (kind === null) {
+    return null;
+  }
+  const p = world.getPlayer();
+  const habitats = state.facilities.filter((f) => f.kind === 'habitat');
+  if (habitats.length === 0) {
+    throw new Error('居住モジュールが1つもない（最初に1つあり、こわせない）');
+  }
+  return diagnoseDeath(kind, {
+    state,
+    view: describe(state, values, env),
+    metersFromHabitat: Math.min(...habitats.map((h) => Math.hypot(h.x - p.x, h.z - p.z))),
+    speed,
+  });
+}
+
 function handleEvents(events: GameEvent[]): void {
+  const death = deathAdviceFor(events);
   for (const event of events) {
     // 退避が必要な警報は SEP と X 級のフレアだけ。ほかは HUD の「宇宙天気の嵐」だけで知らせる（docs/SPEC.md）
     if (event.type === 'eventStarted' && needsShelterAlert(event.event)) {
@@ -645,13 +678,20 @@ function handleEvents(events: GameEvent[]): void {
   const gameOver = events.find((e) => e.type === 'gameOver');
   if (gameOver !== undefined && tutorial.isTutorial()) {
     // チュートリアル中は、セーブから再開させず、最初からやり直す（途中からだと今はできない指示が出る）
-    tutorial.failTutorial(t('gameOver.reason', { resource: t(`resource.${gameOver.reason}`) }));
+    if (death === null) {
+      throw new Error('ゲームオーバーなのに、ルナはかせのアドバイスがない');
+    }
+    tutorial.failTutorial(
+      t('gameOver.reason', { resource: t(`resource.${gameOver.reason}`) }),
+      death,
+    );
     ui.showEvents(
       events.filter((e) => e.type !== 'gameOver'),
       state,
+      death,
     );
   } else {
-    ui.showEvents(events, state);
+    ui.showEvents(events, state, death);
   }
   if (events.some((e) => e.type === 'cleared') && !downedThisRun) {
     earn('clearWithoutDowned');

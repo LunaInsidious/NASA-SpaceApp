@@ -4,6 +4,8 @@
 // 押すボタンは光らせ（tutorial.css）、行く場所には world の光の柱を立てる（guide()）
 import type { FacilityKind, SimState, Values } from '../contracts/index.ts';
 import { onLangChange, setLang, t } from '../ui/i18n.ts';
+import type { DeathAdvice } from './death.ts';
+import { deathAdviceHtml } from './deathView.ts';
 import { PROFESSOR_SVG, type Typing, typeText } from './professor.ts';
 import './tutorial.css';
 
@@ -122,8 +124,8 @@ export interface Tutorial {
   isBlocking(): boolean;
   /** 飛ばせないチュートリアルの最中か（アクシデントのカードはボンベだけにする） */
   isTutorial(): boolean;
-  /** チュートリアル中にゲームオーバーになった。理由を見せ、新しいゲームで1段目からやり直す */
-  failTutorial(reason: string): void;
+  /** チュートリアル中にゲームオーバーになった。理由とルナはかせのアドバイスを見せ、新しいゲームで1段目からやり直す */
+  failTutorial(reason: string, advice: DeathAdvice): void;
   /** 太陽フレアの訓練の警報を出す段に来たら、1回だけ true を返す */
   takeFlareDrillRequest(): boolean;
   /** 太陽フレアの警報で選んだこと */
@@ -307,6 +309,13 @@ export function createTutorial(
         t('tutorial.failed.body', { reason: failedReason }),
         [button(t('tutorial.failed.retry'), 'tutorial-big primary', () => resetTo('tutorial'))],
       );
+      if (failedAdvice === null) {
+        throw new Error('くんれんの失敗に、ルナはかせのアドバイスがない');
+      }
+      // 博士の顔は窓の上に出ているので、原因とアドバイスだけを本文のあとに足す
+      modal
+        .querySelector('.tutorial-modal p')
+        ?.insertAdjacentHTML('afterend', deathAdviceHtml(failedAdvice));
       return;
     }
     if (mode === 'confirmRestart') {
@@ -398,6 +407,7 @@ export function createTutorial(
   }
 
   let failedReason = '';
+  let failedAdvice: DeathAdvice | null = null;
 
   let rereading = false;
 
@@ -690,9 +700,10 @@ export function createTutorial(
     isTutorial() {
       return mode === 'tutorial';
     },
-    failTutorial(reason) {
+    failTutorial(reason, advice) {
       // チュートリアルの途中のゲームオーバー：セーブからではなく、新しいゲームで1段目からやり直す
       failedReason = reason;
+      failedAdvice = advice;
       mode = 'failed';
       render();
     },

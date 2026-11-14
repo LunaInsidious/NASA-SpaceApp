@@ -14,6 +14,8 @@ import type {
 import type { SaveSummary } from '../save/api.ts';
 import type { BuildOptions, Placement, SimView } from '../sim/api.ts';
 import { buildCost, commLostReason, launchItemCost, outdoorDoseMsvPerHour } from '../sim/index.ts';
+import type { DeathAdvice } from '../tutorial/death.ts';
+import { professorDeathAdviceHtml } from '../tutorial/deathView.ts';
 import type { PadInput } from '../world/api.ts';
 import type { ContextAction, Ui, UiCallbacks } from './api.ts';
 import { getLang, onLangChange, setLang, t } from './i18n.ts';
@@ -73,9 +75,9 @@ const GAIN_MS = 1600; // これより差が小さければ「ちょうど」と�
 type MenuKind = (typeof MENUS)[number];
 type Dialog =
   | { type: 'flare'; event: ActiveEvent; donki: DonkiEvent | null }
-  | { type: 'downed'; reason: 'tankEmpty' | 'radiation' }
+  | { type: 'downed'; advice: DeathAdvice }
   | { type: 'cleared'; total: number }
-  | { type: 'gameOver'; reason: ResourceKey };
+  | { type: 'gameOver'; reason: ResourceKey; advice: DeathAdvice };
 
 function esc(text: string): string {
   return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -700,7 +702,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       case 'downed':
         return `
           <h2>${t('downed.title')}</h2>
-          <p>${t(`downed.${dialog.reason}`)}</p>
+          ${professorDeathAdviceHtml(dialog.advice)}
           <p>${t('downed.wake')}</p>
           <div class="ui-actions"><button data-action="dialogOk" class="primary">${t('button.ok')}</button></div>`;
       case 'cleared':
@@ -713,6 +715,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         return `
           <h2>${t('gameOver.title')}</h2>
           <p>${t('gameOver.reason', { resource: t(`resource.${dialog.reason}`) })}</p>
+          ${professorDeathAdviceHtml(dialog.advice)}
           ${saves.length > 0 ? `<p>${t('gameOver.resumeFrom')}</p>${saveListHtml()}` : ''}
           <div class="ui-actions"><button data-action="restart" class="primary">${t('gameOver.restart')}</button></div>`;
     }
@@ -1065,7 +1068,13 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
 
   onLangChange(renderAll);
 
-  const showEvents = (events: GameEvent[], eventState: SimState) => {
+  const showEvents = (events: GameEvent[], eventState: SimState, death: DeathAdvice | null) => {
+    const adviceFor = (what: string): DeathAdvice => {
+      if (death === null) {
+        throw new Error(`ui: ${what} なのに、ルナはかせのアドバイスがない`);
+      }
+      return death;
+    };
     for (const event of events) {
       switch (event.type) {
         case 'facilityStopped': {
@@ -1092,13 +1101,17 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           toast(t('event.commRestored'), false);
           break;
         case 'playerDowned':
-          pushDialog({ type: 'downed', reason: event.reason });
+          pushDialog({ type: 'downed', advice: adviceFor('倒れた') });
           break;
         case 'cleared':
           pushDialog({ type: 'cleared', total: eventState.development.total });
           break;
         case 'gameOver':
-          pushDialog({ type: 'gameOver', reason: event.reason });
+          pushDialog({
+            type: 'gameOver',
+            reason: event.reason,
+            advice: adviceFor('ゲームオーバー'),
+          });
           break;
         case 'achievement':
           toast(t('event.achievement', { name: t(`achievement.${event.id}`) }), false);
