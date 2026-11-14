@@ -59,6 +59,7 @@ const SHIELD_MATERIALS = ['regolith', 'water'] as const;
 // 表示だけに使う値（ゲームの数値ではない）
 const STAR_COUNT = 5;
 const TOAST_MS = 4500;
+const TOAST_MAX = 2; // 一度に並べるお知らせの数（多いと子どもがこわがるので少なく）
 const HOURS_PER_DAY = 24;
 const PERCENT = 100;
 const LOW_BAR_RATIO = 0.25; // バーを赤くする残りの割合
@@ -119,13 +120,8 @@ const SOURCE_KEYS = {
   ],
   development: ['development.clearThreshold', 'development.scalePerCrew'],
   comm: ['comm.earthPeriodDays', 'moon.commDelaySec'],
-  flare: [
-    'events.flareMultiplierM',
-    'events.flareMultiplierX',
-    'events.sepMultiplier',
-    'events.flareDurationHours',
-    'moon.radiationMsvPerDay',
-  ],
+  // X級フレアの倍率と、ふだん浴びる放射線は「遮蔽と放射線」に出しているので、ここには重ねない
+  flare: ['events.flareMultiplierM', 'events.sepMultiplier', 'events.flareDurationHours'],
 } as const;
 type SourceSection = keyof typeof SOURCE_KEYS;
 const SOURCE_SECTIONS = Object.keys(SOURCE_KEYS) as SourceSection[];
@@ -149,6 +145,14 @@ function valueAt(values: Values, path: string): ValueEntryLike {
   return node as ValueEntryLike;
 }
 
+/** 数と単位を、子どもに読める形で（ratio は % にする）。単位の言葉は i18n の unit.* */
+function valueText(entry: ValueEntryLike): string {
+  if (entry.unit === 'ratio') {
+    return `${fmt(entry.value * PERCENT)}%`;
+  }
+  return t(`unit.${entry.unit}`, { value: String(entry.value) });
+}
+
 /** 数値と、その出典（リンクつき）の一覧。出典が決まっていなければそう書く */
 function sourceListHtml(values: Values, section: SourceSection): string {
   const rows = SOURCE_KEYS[section].map((path) => {
@@ -161,7 +165,7 @@ function sourceListHtml(values: Values, section: SourceSection): string {
           : entry.url !== undefined
             ? `<a href="${esc(entry.url)}" target="_blank" rel="noopener noreferrer">${esc(entry.source)}</a>`
             : esc(entry.source);
-    return `<li><b>${t(`valueName.${path}`)}</b>：${esc(String(entry.value))} ${esc(entry.unit)}<br><span class="ui-small">${t('source.label')} ${source}</span></li>`;
+    return `<li><b>${t(`valueName.${path}`)}</b>：${valueText(entry)}<br><span class="ui-small">${t('source.label')} ${source}</span></li>`;
   });
   return `<ul class="ui-src-list">${rows.join('')}</ul>`;
 }
@@ -305,6 +309,13 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   };
 
   const toast = (text: string, bad: boolean) => {
+    // 同じお知らせが出ているあいだは重ねない。並ぶのは TOAST_MAX まで（古いものから消す）
+    if ([...toastsEl.children].some((child) => child.innerHTML === text)) {
+      return;
+    }
+    while (toastsEl.children.length >= TOAST_MAX) {
+      toastsEl.firstElementChild?.remove();
+    }
     const el = document.createElement('div');
     el.className = bad ? 'ui-toast bad' : 'ui-toast';
     el.innerHTML = text;
@@ -1153,12 +1164,15 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           if (facility === undefined) {
             throw new Error(`止まった施設が見つからない: ${event.facilityId}`);
           }
+          // 影に入って休むのは毎日のことなので、赤ではなく、こわくない言い方で知らせる
           toast(
-            t('event.facilityStopped', {
-              name: t(`facility.${facility.kind}`),
-              reason: t(`stopReason.${event.reason}`),
-            }),
-            true,
+            event.reason === 'shadow'
+              ? t('event.facilityResting', { name: t(`facility.${facility.kind}`) })
+              : t('event.facilityStopped', {
+                  name: t(`facility.${facility.kind}`),
+                  reason: t(`stopReason.${event.reason}`),
+                }),
+            event.reason !== 'shadow',
           );
           break;
         }

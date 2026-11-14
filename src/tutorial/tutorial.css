@@ -780,3 +780,11 @@ body[data-tutorial-step="comm"] .ui-status::before {
   font-size: 12px;
   color: #9fd3ff;
 }
+
+/* 困りごとカード：ゲームの画面をふさぎすぎないよう、PC でも高さを抑える */
+@media (min-width: 641px) {
+  .advice-card {
+    max-height: 45vh;
+    font-size: 14px;
+  }
+}

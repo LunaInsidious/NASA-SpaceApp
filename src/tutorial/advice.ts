@@ -149,7 +149,8 @@ export function createAdviceCard(
       const after = advices.map((a) => a.kind);
       const narrow = window.matchMedia(NARROW_QUERY).matches;
       for (const kind of after) {
-        if (!before.includes(kind) && !narrow) open.add(kind);
+        // 開いておくのは、いちばん急ぐ1つだけ（全部開くと画面の多くをふさぐ）
+        if (!before.includes(kind) && !narrow && kind === after[0]) open.add(kind);
       }
       for (const kind of before) {
         if (!after.includes(kind)) open.delete(kind);
