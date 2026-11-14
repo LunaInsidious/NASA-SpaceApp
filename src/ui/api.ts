@@ -77,6 +77,8 @@ export interface UiCallbacks {
   /** 音の切り替え（メニューの窓で選ぶ） */
   soundMode(): SoundMode;
   setSoundMode(mode: SoundMode): void;
+  /** 集めたカードの数（右上のカードのボタンに出す） */
+  cardsCount(): { owned: number; total: number };
   /** 豆知識カードの一覧（HTML。メニューの窓に出す） */
   cardsHtml(): string;
   /** 豆知識カードの言葉から、ことばじてんを開く */
@@ -102,6 +104,8 @@ export interface Ui {
    * 倒れた・ゲームオーバーのときは、death にルナはかせのアドバイス（原因とつぎにやること）を渡す
    */
   showEvents(events: GameEvent[], state: SimState, death: DeathAdvice | null): void;
+  /** カードの数が変わった（新しく手に入れたら isNew。ボタンを光らせる） */
+  cardsChanged(isNew: boolean): void;
   /** 「翌日へ」のあとの朝の窓 */
   showMorning(summary: MorningSummary): void;
   /** 太陽フレアの警報。退避するか作業を続けるかを選ばせる。出典（過去の実際のイベントと日付）を必ず見せる */

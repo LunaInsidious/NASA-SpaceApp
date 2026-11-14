@@ -6,7 +6,8 @@ import type { Card } from './index.ts';
 /** 集めた枚数と、カードの一覧。まだのカードは手に入れ方だけ見せる。言葉のボタンは data-term でことばじてんを開く */
 export function cardsHtml(entries: { card: Card; owned: boolean }[], images: NasaImages): string {
   const count = entries.filter((entry) => entry.owned).length;
-  const items = entries
+  // 集めたカードを先に（新しく手に入れたカードをすぐ読めるように）。まだのカードはそのあと
+  const items = [...entries.filter((e) => e.owned), ...entries.filter((e) => !e.owned)]
     .map(({ card, owned }) => {
       if (!owned) {
         return `<li class="card locked"><b>${t('cards.locked')}</b><p class="ui-small">${t(`${card.textKey}.hint`)}</p></li>`;

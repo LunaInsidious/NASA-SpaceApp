@@ -247,6 +247,10 @@ const ui = createUi(
     onOpenDictionary: () => help.open(),
     soundMode: () => fx.soundMode(),
     setSoundMode: (mode) => fx.setSoundMode(mode),
+    cardsCount: () => {
+      const list = cardStore.list();
+      return { owned: list.filter((entry) => entry.owned).length, total: list.length };
+    },
     cardsHtml: () => cardsHtml(cardStore.list(), nasaImages),
     onOpenTerm: (term) => help.openTerm(asHelpTerm(term, '豆知識カード')),
     onMinigameSound: (name) => {
@@ -841,6 +845,9 @@ function announceCards(cards: readonly Card[]): void {
     help.learn(card.terms, false);
     ui.notify(t('cards.got', { title: t(`${card.textKey}.title`) }), false);
     fx.sound('star');
+  }
+  if (cards.length > 0) {
+    ui.cardsChanged(true);
   }
 }
 

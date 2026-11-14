@@ -1621,3 +1621,15 @@ body.nb-open .ui-hud-tank {
   gap: 8px;
   margin-top: 12px;
 }
+
+/* 右上のカードのボタン：新しいカードを手に入れたら、開くまで光る */
+.ui-root button.ui-cards-new {
+  border-color: #ffd27a;
+  animation: ui-cards-glow 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes ui-cards-glow {
+  to {
+    box-shadow: 0 0 12px 3px rgba(255, 210, 122, 0.8);
+  }
+}

@@ -330,6 +330,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   /** 一時停止のボタンで止めている間は、画面全体を暗くして大きく知らせる（メニューや窓で止まっているときは出さない） */
   // メニューの窓の中：いつもの選ぶところか、豆知識カードを読んでいるところか
   let pauseView: 'main' | 'cards' = 'main';
+  // 新しいカードを手に入れたら、カードのボタンを光らせる（開くまで）
+  let cardsPulse = false;
   const pauseMainHtml = () => {
     const mode = callbacks.soundMode();
     const sound = SOUND_MODES.map(
@@ -401,6 +403,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const lang = getLang();
     topButtonsEl.innerHTML = `
       <button data-action="pause" class="${userPaused ? 'on' : ''}">${t(userPaused ? 'hud.resume' : 'hud.pause')}</button>
+      <button class="ui-cards-button ${cardsPulse ? 'ui-cards-new' : ''}" data-action="openCards" aria-label="${tPlain('hud.cardsLabel')}">${t('hud.cardsIcon')} <span class="ui-long">${t('hud.cardsName')}</span> ${t('hud.cardsCount', callbacks.cardsCount())}</button>
       <button data-action="lang" data-lang="en" class="${lang === 'en' ? 'on' : ''}">${t('hud.langEn')}</button>
       <button data-action="lang" data-lang="ja" class="${lang === 'ja' ? 'on' : ''}">${t('hud.langJa')}</button>`;
   };
@@ -1434,6 +1437,16 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       return;
     }
     switch (target.dataset.action) {
+      case 'openCards':
+        // カードはすぐ読めるように：メニューの窓（時間が止まる）をカードの画面で開く
+        userPaused = true;
+        pauseView = 'cards';
+        cardsPulse = false;
+        renderPauseOverlay();
+        renderTopButtons();
+        updatePause();
+        renderStatus();
+        break;
       case 'openDictionary':
         callbacks.onOpenDictionary();
         break;
@@ -1742,6 +1755,12 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       }
     },
     showEvents,
+    cardsChanged(isNew) {
+      if (isNew) {
+        cardsPulse = true;
+      }
+      renderTopButtons();
+    },
     showMorning(summary) {
       pushDialog({ type: 'morning', summary });
     },

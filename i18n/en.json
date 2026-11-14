@@ -632,7 +632,7 @@
   "cards.title": "Fact cards",
   "cards.count": "{count} / {total} collected",
   "cards.locked": "???",
-  "cards.got": "🃏 You got a card: \"{title}\" (read it under \"Fact cards\" in the Menu)",
+  "cards.got": "🃏 You got a card: \"{title}\" (read it with 🃏 at the top right)",
   "card.regolith.title": "Why is Moon dust (regolith) a problem?",
   "card.regolith.body": "Moon dust is very fine and sticks to spacesuits. When scientists studied the Apollo 12 spacesuits, they found the grains had split and frayed the threads of the fabric. That is why astronauts need ways to keep dust out when they come back inside.",
   "card.regolith.hint": "How to get it: cover a habitat with regolith",
@@ -757,5 +757,9 @@
   "menu.dictionary": "📖 Word guide",
   "menu.cards": "🃏 Fact cards",
   "menu.sound": "🔊 Sound",
-  "menu.back": "← Back to menu"
+  "menu.back": "← Back to menu",
+  "hud.cardsLabel": "Fact cards",
+  "hud.cardsIcon": "🃏",
+  "hud.cardsName": "Cards",
+  "hud.cardsCount": "{owned}/{total}"
 }
