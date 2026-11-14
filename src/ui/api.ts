@@ -118,7 +118,7 @@ export interface Ui {
    * 建設・くわしい様子（インベントリ画面、I キー）・データは 3D の窓を開く。隊員・ほきゅう・セーブは休息の画面のタブ（中にいればそのタブにし、外ならひとこと出す）。
    * キーボードの近道（B：建設、L：ほきゅう、C：隊員）と困りごとカードから呼ぶ
    */
-  openMenu(menu: 'build' | 'status' | 'launch' | 'crew' | 'data'): void;
+  openMenu(menu: 'build' | 'status' | 'launch' | 'crew'): void;
   /** 休息フェーズの2D画面を出す（中にいる間）。null で閉じる */
   setRest(info: RestInfo | null): void;
   /** 外で今日こなすタスクの一覧（ボンベの下に出す）。中では出さない */

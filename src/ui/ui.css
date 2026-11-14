@@ -574,10 +574,6 @@
     font-size: 12px;
   }
 
-  .ui-top .ui-row button[data-action="lang"].on {
-    display: none;
-  }
-
   .ui-status {
     padding: 4px 8px;
   }
@@ -1632,4 +1628,23 @@ body.nb-open .ui-hud-tank {
   to {
     box-shadow: 0 0 12px 3px rgba(255, 210, 122, 0.8);
   }
+}
+
+/* メニューの中の項目：名前の下に小さく数（カードは 5/22）。新しいカードは NEW */
+.ui-root .ui-menu-grid button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.ui-menu-grid small {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.ui-new {
+  color: #ffd27a;
+  font-weight: 800;
 }

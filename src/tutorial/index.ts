@@ -128,8 +128,12 @@ const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
   regolith: ['[data-action="context"][data-context="coverRegolith"]'],
   pause: ['[data-action="pause"]'],
   resume: ['.ui-pause [data-action="pause"]', '[data-action="pause"]'],
-  save: ['[data-action="save"][data-slot="0"]', '[data-action="pause"]'],
-  data: ['[data-action="menu"][data-menu="data"]'],
+  save: [
+    '[data-action="save"][data-slot="0"]',
+    '[data-action="pauseView"][data-view="save"]',
+    '[data-action="pause"]',
+  ],
+  data: ['[data-action="pauseView"][data-view="data"]', '[data-action="pause"]'],
 };
 // 「ちゅうもん」の段は、食料の＋ → 隊員の＋ → 注文を送る、の順に1つずつ指す
 const ORDER_POINTS = [
@@ -479,9 +483,9 @@ export function createTutorial(
     }
   }
 
-  // データ出典の窓を開いたか（ui の「データ」ボタン）
+  // データ出典を開いたか（メニューの中の「データ」）
   document.addEventListener('click', (e) => {
-    if (e.target instanceof Element && e.target.closest('[data-menu="data"]') !== null) {
+    if (e.target instanceof Element && e.target.closest('[data-view="data"]') !== null) {
       dataOpened = true;
     }
   });

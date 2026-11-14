@@ -55,7 +55,10 @@ const CONTEXT_ACTIONS: readonly ContextAction[] = [
   'coverRegolith',
   'nextDay',
 ];
-const MENUS = ['build', 'status', 'data'] as const;
+const MENUS = ['build', 'status'] as const;
+// メニュー（一時停止）の窓の中の画面
+const PAUSE_VIEWS = ['main', 'cards', 'save', 'data'] as const;
+type PauseView = (typeof PAUSE_VIEWS)[number];
 // 休息フェーズの2D画面のタブ（docs/SPEC.md ステップ13）
 // 休息フェーズの2D画面は、タブではなく順に進むページ（何から開くかを選ばなくてよい）。セーブは順の外
 const REST_PAGES = ['review', 'crew', 'launch', 'tasks', 'plan'] as const;
@@ -329,7 +332,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   const pauseEl = part('pauseOverlay');
   /** 一時停止のボタンで止めている間は、画面全体を暗くして大きく知らせる（メニューや窓で止まっているときは出さない） */
   // メニューの窓の中：いつもの選ぶところか、豆知識カードを読んでいるところか
-  let pauseView: 'main' | 'cards' = 'main';
+  let pauseView: PauseView = 'main';
   // 新しいカードを手に入れたら、カードのボタンを光らせる（開くまで）
   let cardsPulse = false;
   const pauseMainHtml = () => {
@@ -338,19 +341,34 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       (m) =>
         `<button class="${m === mode ? 'on' : ''}" data-action="soundMode" data-mode="${m}">${t(`sound.${m}`)}</button>`,
     ).join('');
+    const lang = getLang();
+    const langs = (['en', 'ja'] as const)
+      .map(
+        (l) =>
+          `<button class="${l === lang ? 'on' : ''}" data-action="lang" data-lang="${l}">${t(l === 'en' ? 'hud.langEn' : 'hud.langJa')}</button>`,
+      )
+      .join('');
+    const count = callbacks.cardsCount();
     return `
       <div class="ui-menu-grid">
         <button data-action="openDictionary">${t('menu.dictionary')}</button>
-        <button data-action="pauseView" data-view="cards">${t('menu.cards')}</button>
+        <button data-action="pauseView" data-view="cards" class="${cardsPulse ? 'ui-cards-new' : ''}">${t('menu.cards')}<small>${t('hud.cardsCount', count)}${cardsPulse ? ` <b class="ui-new">${t('menu.new')}</b>` : ''}</small></button>
+        <button data-action="pauseView" data-view="save">${t('menu.save')}</button>
+        <button data-action="pauseView" data-view="data">${t('menu.data')}</button>
       </div>
       <div class="ui-menu-sound"><span>${t('menu.sound')}</span><span class="ui-row">${sound}</span></div>
-      <div class="ui-pause-save">${saveMenuHtml()}</div>`;
+      <div class="ui-menu-sound"><span>${t('menu.language')}</span><span class="ui-row">${langs}</span></div>`;
   };
-  const pauseCardsHtml = () => `
+  // メニューの中で開いた先（カード・セーブ・データ）。「← メニューに戻る」で選ぶところへ
+  const pauseSubHtml = (view: Exclude<PauseView, 'main'>) => {
+    const body =
+      view === 'cards' ? callbacks.cardsHtml() : view === 'save' ? saveMenuHtml() : dataMenuHtml();
+    return `
     <div class="ui-pause-save">
       <button data-action="pauseView" data-view="main">${t('menu.back')}</button>
-      ${callbacks.cardsHtml()}
+      ${body}
     </div>`;
+  };
 
   const renderPauseOverlay = () => {
     pauseEl.hidden = !userPaused;
@@ -359,7 +377,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           <div class="ui-pause-title">${t('pause.title')}</div>
           <p>${t('pause.body')}</p>
           <button class="primary ui-pause-resume" data-action="pause">${t('pause.resume')}</button>
-          ${pauseView === 'cards' ? pauseCardsHtml() : pauseMainHtml()}
+          ${pauseView === 'main' ? pauseMainHtml() : pauseSubHtml(pauseView)}
         </div>`
       : '';
   };
@@ -398,14 +416,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       quantity: cart[kind],
     }));
 
-  // ---- 右上：一時停止・言語 ----
+  // ---- 右上：メニューのボタンだけ（カード・セーブ・データ・ことばじてん・音・言語はこの中） ----
   const renderTopButtons = () => {
-    const lang = getLang();
     topButtonsEl.innerHTML = `
-      <button data-action="pause" class="${userPaused ? 'on' : ''}">${t(userPaused ? 'hud.resume' : 'hud.pause')}</button>
-      <button class="ui-cards-button ${cardsPulse ? 'ui-cards-new' : ''}" data-action="openCards" aria-label="${tPlain('hud.cardsLabel')}">${t('hud.cardsIcon')} <span class="ui-long">${t('hud.cardsName')}</span> ${t('hud.cardsCount', callbacks.cardsCount())}</button>
-      <button data-action="lang" data-lang="en" class="${lang === 'en' ? 'on' : ''}">${t('hud.langEn')}</button>
-      <button data-action="lang" data-lang="ja" class="${lang === 'ja' ? 'on' : ''}">${t('hud.langJa')}</button>`;
+      <button data-action="pause" class="${userPaused ? 'on' : ''} ${cardsPulse && !userPaused ? 'ui-cards-new' : ''}">${t(userPaused ? 'hud.resume' : 'hud.pause')}</button>`;
   };
 
   // ---- 右上：日数・屋内外・通信 ----
@@ -1281,10 +1295,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       let html: string;
       if (menu === 'build') {
         html = buildMenuHtml(state);
-      } else if (menu === 'status') {
-        html = inventoryHtml(state, view);
       } else {
-        html = dataMenuHtml();
+        html = inventoryHtml(state, view);
       }
       modalEl.hidden = false;
       // 閉じるボタンは下にもあるが、見つけやすいよう右上にも出す
@@ -1437,21 +1449,15 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       return;
     }
     switch (target.dataset.action) {
-      case 'openCards':
-        // カードはすぐ読めるように：メニューの窓（時間が止まる）をカードの画面で開く
-        userPaused = true;
-        pauseView = 'cards';
-        cardsPulse = false;
-        renderPauseOverlay();
-        renderTopButtons();
-        updatePause();
-        renderStatus();
-        break;
       case 'openDictionary':
         callbacks.onOpenDictionary();
         break;
       case 'pauseView':
-        pauseView = pick(target.dataset.view, ['main', 'cards'] as const, 'menu view');
+        pauseView = pick(target.dataset.view, PAUSE_VIEWS, 'menu view');
+        if (pauseView === 'cards') {
+          cardsPulse = false;
+          renderTopButtons();
+        }
         renderPauseOverlay();
         break;
       case 'soundMode':
@@ -1796,8 +1802,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     },
     setDonkiEvents(events) {
       donkiEvents = [...events];
-      if (menu === 'data') {
-        renderModal();
+      if (userPaused && pauseView === 'data') {
+        renderPauseOverlay();
       }
     },
     setSaves(next) {
