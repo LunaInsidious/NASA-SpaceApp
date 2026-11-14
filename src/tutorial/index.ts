@@ -66,7 +66,12 @@ const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
     '[data-action="menu"][data-menu="build"]',
   ],
   placeSolar: ['[data-action="buildConfirm"]'],
-  dictionary: ['.help-card details[data-term="solar"] summary', '.help-toggle'],
+  // 太陽電池を開いて読んだら、閉じるボタン（上の ✕）を指す
+  dictionary: [
+    '.help-card details[data-term="solar"]:not([open]) summary',
+    '.help-card:has(details[data-term="solar"][open]) .help-close-x',
+    '.help-toggle',
+  ],
   battery: [
     '[data-action="buildConfirm"]',
     '[data-action="buildSelect"][data-kind="battery"]',
