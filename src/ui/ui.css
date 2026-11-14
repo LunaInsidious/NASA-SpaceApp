@@ -1559,15 +1559,6 @@ body.nb-open .ui-hud-tank {
   border-radius: 8px;
 }
 
-.ui-gauge-value {
-  flex: none;
-  min-width: 3.2em;
-  font-size: 13px;
-  font-weight: 700;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
 /* スマホ：ゲージは小さめにして、上のほうにおさめる */
 @media (max-width: 640px) {
   .ui-gauges {
@@ -1599,9 +1590,12 @@ body.nb-open .ui-hud-tank {
   .ui-gauge-tank .ui-gauge-bar {
     height: 12px;
   }
+}
 
-  .ui-gauge-value {
-    min-width: 2.8em;
-    font-size: 12px;
-  }
+/* ボンベのアイコンは「O₂」の文字（ひと目で酸素と分かるように） */
+.ui-gauge-tank .ui-gauge-icon {
+  color: #9fe3ff;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: -0.5px;
 }

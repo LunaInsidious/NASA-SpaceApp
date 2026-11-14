@@ -738,7 +738,7 @@
   "card.cleared.hint": "｜手《て》に ｜入《い》れ｜方《かた》：｜基地《きち》を ｜完成《かんせい》 させる",
   "hud.cards": "🃏",
   "hud.cardsLabel": "｜豆知識《まめちしき》カード",
-  "gauge.icon.tank": "🫧",
+  "gauge.icon.tank": "O₂",
   "gauge.icon.life": "❤️",
   "gauge.icon.power": "⚡",
   "gauge.icon.dose": "☢️",
@@ -749,5 +749,6 @@
   "gauge.inside": "｜中《なか》",
   "gauge.time": "{hours}:{minutes}",
   "gauge.days": "{days}｜日《にち》",
-  "gauge.steady": "∞"
+  "gauge.steady": "∞",
+  "gauge.title": "{name}（{value}）"
 }

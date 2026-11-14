@@ -421,7 +421,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   let lastLifeMin: number | null = null;
   /** 生き延びられる日数がふえた瞬間に、数字を弾ませ「＋N日」を飛ばして、きらきらを散らす */
   const celebrateLifeGain = (gainDays: number) => {
-    const value = hudTankEl.querySelector<HTMLElement>('.ui-gauge-life .ui-gauge-value');
+    const value = hudTankEl.querySelector<HTMLElement>('.ui-gauge-life .ui-gauge-bar');
     if (value === null) {
       return;
     }
@@ -532,16 +532,16 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   };
 
   /**
-   * いつも見せるゲージ（アイコンと横のバー）：ボンベ・生命維持・電力・被ばく。数字は横に小さく。
+   * いつも見せるゲージ（アイコンと横のバー）：ボンベ・生命維持・電力・被ばく。数字は出さない。
    * 色は ok（緑）・warn（黄）・danger（赤）。アイコンにマウスを重ねると意味を出す
    */
   const gaugesHtml = (current: SimState, currentView: SimView, tankLevel: GaugeLevel) => {
     const gauge = (key: GaugeKey, ratio: number, value: string, level: GaugeLevel) => {
       const pct = Math.round(Math.min(1, Math.max(0, ratio)) * PERCENT);
-      return `<div class="ui-gauge ui-gauge-${key} ui-gauge-${level}" title="${tPlain(`gauge.${key}`)}">
+      // 数字は出さず、ゲージだけ。数字はアイコンにマウスを重ねたときの説明に入れる
+      return `<div class="ui-gauge ui-gauge-${key} ui-gauge-${level}" title="${tPlain('gauge.title', { name: tPlain(`gauge.${key}`), value })}">
         <span class="ui-gauge-icon" aria-hidden="true">${t(`gauge.icon.${key}`)}</span>
         <span class="ui-gauge-bar" role="meter" aria-label="${tPlain(`gauge.${key}`)}" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><span style="width:${pct}%"></span></span>
-        <span class="ui-gauge-value">${value}</span>
       </div>`;
     };
     // ボンベ：中では満タンに戻る。外では、あと何時間何分いられるか
@@ -550,8 +550,11 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       'tank',
       currentView.tankRatio,
       current.player.indoors
-        ? t('gauge.inside')
-        : t('gauge.time', { hours: left.hours, minutes: String(left.minutes).padStart(2, '0') }),
+        ? tPlain('gauge.inside')
+        : tPlain('gauge.time', {
+            hours: left.hours,
+            minutes: String(left.minutes).padStart(2, '0'),
+          }),
       current.player.indoors ? 'ok' : tankLevel,
     );
     // 生命維持：酸素・水・食料のうち、いちばん早くなくなるものが、あと何日もつか
@@ -560,7 +563,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const life = gauge(
       'life',
       steady ? 1 : days / values.display.lifeGaugeFullDays.value,
-      steady ? t('gauge.steady') : t('gauge.days', { days: fmt(days) }),
+      steady ? tPlain('gauge.steady') : tPlain('gauge.days', { days: fmt(days) }),
       days < LOW_DAYS ? 'danger' : days < LIFE_WARN_DAYS ? 'warn' : 'ok',
     );
     // 電力：蓄電池があればたまり具合。なければ、作る電気が使う電気にどれだけ足りているか
