@@ -74,8 +74,14 @@ body {
   }
 }
 
-/* ふりがな（文言の「｜漢字《かんじ》」から作る <ruby>） */
+/* ふりがな（文言の「｜漢字《かんじ》」から作る <ruby>）。
+   ふりがなのほうが長いとき、漢字を1文字ずつ離さず（「研 究」にならない）、まとめて真ん中に置く */
+ruby {
+  ruby-align: center;
+}
+
 rt {
+  ruby-align: center;
   font-size: 0.5em;
   font-weight: 400;
   opacity: 0.9;

@@ -1117,7 +1117,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const index = REST_PAGES.indexOf(restStep);
     const steps = REST_PAGES.map(
       (page, i) =>
-        `<button class="nb-step ${page === restPage ? 'on' : i <= index ? 'past' : ''}" data-action="nbGo" data-page="${page}" ${i > index ? 'disabled' : ''}><span class="nb-step-no">${i + 1}</span>${t(`notebook.page.${page}`)}</button>`,
+        `<button class="nb-step ${page === restPage ? 'on' : i <= index ? 'past' : ''}" data-action="nbGo" data-page="${page}" ${i > index ? 'disabled' : ''}><span class="nb-step-no">${i + 1}</span><span>${t(`notebook.page.${page}`)}</span></button>`,
     ).join('');
     const guideHtml =
       guide === null
