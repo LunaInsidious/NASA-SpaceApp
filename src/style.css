@@ -33,3 +33,34 @@ body {
 .carry-badge[hidden] {
   display: none;
 }
+
+/* チュートリアルで行く方向の矢印 */
+.guide-arrow {
+  position: absolute;
+  left: 50%;
+  top: 190px;
+  transform: translateX(-50%);
+  text-align: center;
+  color: #ffd27a;
+  font:
+    700 16px / 1.2 system-ui,
+    sans-serif;
+  text-shadow: 0 1px 3px #000;
+  pointer-events: none;
+}
+
+.guide-arrow[hidden] {
+  display: none;
+}
+
+.guide-arrow-icon {
+  font-size: 44px;
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .guide-arrow {
+    top: auto;
+    bottom: 230px;
+  }
+}

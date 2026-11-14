@@ -150,6 +150,16 @@ const ui = createUi(
 ui.setSaves(saves.list());
 ui.setDonkiEvents(timeline);
 
+const guideArrow = document.createElement('div');
+guideArrow.className = 'guide-arrow';
+guideArrow.hidden = true;
+const guideArrowIcon = document.createElement('div');
+guideArrowIcon.className = 'guide-arrow-icon';
+guideArrowIcon.textContent = '⬆';
+const guideArrowText = document.createElement('div');
+guideArrow.append(guideArrowIcon, guideArrowText);
+uiRoot.append(guideArrow);
+
 const carryBadge = document.createElement('div');
 carryBadge.className = 'carry-badge';
 carryBadge.hidden = true;
@@ -386,6 +396,16 @@ function updateTutorial(): void {
   if (key !== lastGuideKey) {
     lastGuideKey = key;
     world.setGuideMarker(target === null ? null : { x: target.x, z: target.z });
+  }
+  // 行く方向の矢印（カメラの向きに対して）と、のこりの距離
+  guideArrow.hidden = target === null;
+  if (target !== null) {
+    const bearing = Math.atan2(target.x - p.x, target.z - p.z);
+    const relative = bearing - world.getViewYawRad();
+    guideArrowIcon.style.transform = `rotate(${relative}rad)`;
+    guideArrowText.textContent = t('guide.distance', {
+      meters: Math.round(Math.hypot(target.x - p.x, target.z - p.z)),
+    });
   }
 }
 

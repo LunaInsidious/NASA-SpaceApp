@@ -34,6 +34,8 @@ export interface World {
   getPlayer(): PlayerPose;
   teleportPlayer(x: number, z: number): void;
   setPlayerVisible(visible: boolean): void;
+  /** カメラが見ている水平の向き（+z から +x へ回る角度） */
+  getViewYawRad(): number;
   /** チュートリアルで行く場所に光の柱を立てる。null で消す */
   setGuideMarker(target: { x: number; z: number } | null): void;
 }

@@ -210,5 +210,6 @@
   "tutorial.step.goHome.keys": "Carry the ice back to the glowing pillar at your habitat. Press E to go inside, and the ice turns into water.",
   "tutorial.step.goHome.touch": "Carry the ice back to the glowing pillar at your habitat. Tap Go inside, and the ice turns into water.",
   "tutorial.step.done.keys": "Training complete! When a solar flare warning comes, go inside a building. Your goal: raise Development to 60!",
-  "tutorial.step.done.touch": "Training complete! When a solar flare warning comes, go inside a building. Your goal: raise Development to 60!"
+  "tutorial.step.done.touch": "Training complete! When a solar flare warning comes, go inside a building. Your goal: raise Development to 60!",
+  "guide.distance": "{meters} m to go"
 }

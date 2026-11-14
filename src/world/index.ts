@@ -588,6 +588,10 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
     setPlayerVisible(visible) {
       astronaut.root.setEnabled(visible);
     },
+    getViewYawRad() {
+      const d = camera.target.subtract(camera.position);
+      return Math.atan2(d.x, d.z);
+    },
     setGuideMarker(target) {
       guide.setEnabled(target !== null);
       if (target !== null) {
