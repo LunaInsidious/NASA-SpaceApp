@@ -234,4 +234,31 @@ describe('sim', () => {
     expect(view.crew.count).toBe(1);
     expect(Object.keys(view.facilityStatus)).toHaveLength(2);
   });
+
+  it('外でボンベから吸う酸素は中と同じ量で、生命維持の日数は出入りで変わらない', () => {
+    const env = fakeEnv();
+    const initial = createInitialState(values, env, [0, 0]);
+    const outside: SimState = { ...initial, player: { ...initial.player, indoors: false } };
+    const inside: SimState = { ...initial, player: { ...initial.player, indoors: true } };
+    expect(describeState(outside, values, env).lifeSupportDays.oxygen).toBeCloseTo(
+      describeState(inside, values, env).lifeSupportDays.oxygen,
+    );
+    // 半分になったボンベを中で満たすと、半日ぶんではなく「ボンベの時間の半分」に吸う量を在庫から引く
+    const halfTank: SimState = { ...inside, player: { ...inside.player, tankOxygen: 0.5 } };
+    const result = step(
+      halfTank,
+      HOURS,
+      env,
+      [{ type: 'setPlayer', x: 0, z: 0, indoors: true }],
+      values,
+      [],
+      rng,
+    );
+    const breathedFromTank =
+      values.crew.oxygenKgPerDay.value * (values.player.tankDurationHours.value / 24) * 0.5;
+    const crewBreathing = values.crew.oxygenKgPerDay.value * (HOURS / 24);
+    expect(halfTank.stocks.oxygen - result.state.stocks.oxygen).toBeCloseTo(
+      breathedFromTank + crewBreathing,
+    );
+  });
 });

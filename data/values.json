@@ -178,11 +178,6 @@
       "unit": "h",
       "source": "TBD"
     },
-    "tankRefillOxygenKg": {
-      "value": 1.0,
-      "unit": "kg",
-      "source": "TBD"
-    },
     "iceKgPerTrip": {
       "value": 30,
       "unit": "kg",

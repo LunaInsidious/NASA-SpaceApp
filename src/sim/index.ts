@@ -648,7 +648,10 @@ export const step: Step = (prev, dtHours, env, commands, values, events, rng) =>
   // ボンベと、倒れたとき
   let downed: 'tankEmpty' | 'radiation' | null = null;
   if (state.player.indoors) {
-    const refill = (1 - state.player.tankOxygen) * values.player.tankRefillOxygenKg.value;
+    // ボンベが空から満タンになる量 ＝ ボンベがもつ時間に、1人が吸う酸素
+    const fullTankKg =
+      values.crew.oxygenKgPerDay.value * (values.player.tankDurationHours.value / HOURS_PER_DAY);
+    const refill = (1 - state.player.tankOxygen) * fullTankKg;
     state.stocks.oxygen -= refill;
     record.consumed.oxygen += refill;
     state.player.tankOxygen = 1;

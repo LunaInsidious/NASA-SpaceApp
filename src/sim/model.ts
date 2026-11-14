@@ -3,8 +3,6 @@ import type { Env, Facility, FacilityKind, SimState, Values } from '../contracts
 
 export type StopReason = 'shadow' | 'condition' | 'noPower' | 'noEarth' | null;
 
-const HOURS_PER_DAY = 24;
-
 export interface FacilityRun {
   working: boolean;
   reason: StopReason;
@@ -136,13 +134,10 @@ export function evaluate(state: SimState, values: Values, env: Env, dtHours: num
   }
 
   const crew = crewCount(state);
-  // 屋外の宇宙飛行士はボンベで吸う。ボンベを満たす分は、屋内に戻ったときに基地の在庫から引く
+  // 屋外の宇宙飛行士はボンベで吸う。吸う量は屋内と同じで、その分は屋内に戻ってボンベを満たすときに基地の在庫から引く
   const playerOutdoors = !state.player.indoors;
   const crewOxygen = (crew - (playerOutdoors ? 1 : 0)) * values.crew.oxygenKgPerDay.value;
-  const tankOxygen = playerOutdoors
-    ? (HOURS_PER_DAY / values.player.tankDurationHours.value) *
-      values.player.tankRefillOxygenKg.value
-    : 0;
+  const tankOxygen = playerOutdoors ? values.crew.oxygenKgPerDay.value : 0;
   // 生命維持装置が動いていれば、隊員の使った水の一部を再生して使う
   const recycling = state.facilities.some(
     (f) => f.kind === 'lifeSupport' && status[f.id]?.working === true,
