@@ -752,7 +752,7 @@
   "tutorial.why.buildAntenna": "An antenna (a pole with a dish) talks to Earth. You need it to order supplies and to receive danger alerts. It cannot talk to Earth from places where Earth is out of sight.",
   "mission.antenna": "Build an antenna to talk to Earth. Without one, you cannot order supplies.",
   "menu.dictionary": "📖 Word guide",
-  "menu.cards": "🃏 Fact cards",
+  "menu.cards": "🃏 Facts",
   "menu.sound": "🔊 Sound",
   "menu.back": "← Back to menu",
   "hud.cardsCount": "{owned}/{total}",

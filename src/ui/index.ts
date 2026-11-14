@@ -351,10 +351,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const count = callbacks.cardsCount();
     return `
       <div class="ui-menu-grid">
-        <button data-action="openDictionary">${t('menu.dictionary')}</button>
-        <button data-action="pauseView" data-view="cards" class="${cardsPulse ? 'ui-cards-new' : ''}">${t('menu.cards')}<small>${t('hud.cardsCount', count)}${cardsPulse ? ` <b class="ui-new">${t('menu.new')}</b>` : ''}</small></button>
-        <button data-action="pauseView" data-view="save">${t('menu.save')}</button>
-        <button data-action="pauseView" data-view="data">${t('menu.data')}</button>
+        <button data-action="openDictionary"><span>${t('menu.dictionary')}</span></button>
+        <button data-action="pauseView" data-view="cards" class="${cardsPulse ? 'ui-cards-new' : ''}"><span>${t('menu.cards')}</span><small>${t('hud.cardsCount', count)}${cardsPulse ? ` <b class="ui-new">${t('menu.new')}</b>` : ''}</small></button>
+        <button data-action="pauseView" data-view="save"><span>${t('menu.save')}</span></button>
+        <button data-action="pauseView" data-view="data"><span>${t('menu.data')}</span></button>
       </div>
       <div class="ui-menu-sound"><span>${t('menu.sound')}</span><span class="ui-row">${sound}</span></div>
       <div class="ui-menu-sound"><span>${t('menu.language')}</span><span class="ui-row">${langs}</span></div>`;
