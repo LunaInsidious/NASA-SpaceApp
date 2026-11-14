@@ -24,6 +24,8 @@ export interface SimView {
     capacity: number; // 1回の打ち上げのコストの上限
     canOrderNow: boolean; // 今注文できるか（打ち上げの時期で、通信が通じている）
     hoursUntilNext: number; // 次に注文できるまで（ゲーム内の時間）
+    tasksDone: number; // 前の注文からこなしたタスク（地球への報告）
+    tasksNeeded: number; // 注文に要るタスクの回数
     deliveryHours: number; // 注文から届くまで
     inFlight: { id: string; hoursUntilArrival: number; totalCost: number }[];
   };

@@ -750,5 +750,8 @@
   "gauge.time": "{hours}:{minutes}",
   "gauge.days": "{days}｜日《にち》",
   "gauge.steady": "∞",
-  "gauge.title": "{name}（{value}）"
+  "gauge.title": "{name}（{value}）",
+  "launch.reports": "📋 ｜地球《ちきゅう》への ｜報告《ほうこく》：{done} / {need}（タスクを こなすと ｜増《ふ》える）",
+  "launch.needTasks": "｜次《つぎ》の ｜注文《ちゅうもん》には、｜地球《ちきゅう》への ｜報告《ほうこく》が いるよ → ｜外《そと》で タスク（｜氷《こおり》を ｜運《はこ》ぶ・｜点検《てんけん》・レゴリスを ｜盛《も》る）を あと {count}つ こなそう。",
+  "tasks.reportNote": "こなした タスクは ｜地球《ちきゅう》への ｜報告《ほうこく》に なるよ。{need}つ たまると、｜地球《ちきゅう》が ｜次《つぎ》の ロケットを ｜用意《ようい》して くれるよ。"
 }

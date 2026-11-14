@@ -107,6 +107,7 @@ export interface SimState {
   activeEvents: ActiveEvent[];
   launches: Launch[]; // 注文済みで、まだ届いていない打ち上げ
   nextLaunchAtHours: number; // 次に注文できる打ち上げ
+  tasksSinceLaunch: number; // 前の注文からこなしたタスク（氷を運ぶ・点検・レゴリス）。地球への報告で、注文に values.launch.tasksPerLaunch 回要る
   relaySatellites: number; // 0〜2
   commLinked: boolean; // 今、地球と通じているか
   unsentResearch: number; // 通信が途切れて送れていない研究

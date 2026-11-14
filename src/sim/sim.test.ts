@@ -379,4 +379,31 @@ describe('sim', () => {
     ).state;
     expect(ordered.nextLaunchAtHours).toBe(values.launch.intervalDays.value * 24);
   });
+
+  it('次の注文には、前の注文からタスク（氷を運ぶ・点検・レゴリス）を決まった回数こなす必要がある（最初の注文はいらない）', () => {
+    const env = fakeEnv({ isIceAt: () => true });
+    const need = values.launch.tasksPerLaunch.value;
+    const initial = { ...createInitialState(values, env, [0, 0]), commLinked: true };
+    const order: SimCommand = { type: 'orderLaunch', items: [{ kind: 'food', quantity: 50 }] };
+    const first = step(initial, 0, env, [order], values, [], rng).state;
+    expect(first.launches).toHaveLength(1);
+    expect(first.tasksSinceLaunch).toBe(0);
+    // 間隔の日数がたっても、報告が足りなければ頼めない
+    const later = { ...first, launches: [], timeHours: first.nextLaunchAtHours };
+    expect(step(later, 0, env, [order], values, [], rng).state.launches).toHaveLength(0);
+    // 氷を持ち帰る（タスク）を決まった回数こなすと、頼める
+    const ice: SimCommand = { type: 'collectIce', x: 0, z: 0 };
+    const reported = step(
+      later,
+      0,
+      env,
+      Array.from({ length: need }, () => ice),
+      values,
+      [],
+      rng,
+    ).state;
+    expect(reported.tasksSinceLaunch).toBe(need);
+    expect(describeState(reported, values, env).launch.canOrderNow).toBe(true);
+    expect(step(reported, 0, env, [order], values, [], rng).state.launches).toHaveLength(1);
+  });
 });

@@ -763,6 +763,11 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       // できなかった理由から、やることまでを1本のつながりで見せる
       blockers.push(t(`launch.noLinkChain.${commLostReason(state, current)}`));
     }
+    if (current.launch.tasksDone < current.launch.tasksNeeded) {
+      blockers.push(
+        t('launch.needTasks', { count: current.launch.tasksNeeded - current.launch.tasksDone }),
+      );
+    }
     if (current.launch.hoursUntilNext > 0) {
       blockers.push(
         t('launch.notYet', { days: fmt(current.launch.hoursUntilNext / HOURS_PER_DAY, 1) }),
@@ -844,6 +849,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <div class="ui-meter"><div class="${over ? 'over' : ''}" style="width:${fmt(meterRatio * PERCENT)}%"></div></div>
       <div>${t('launch.meter', { used: fmt(used), capacity: fmt(capacity) })}</div>
       <div class="ui-small">${t('launch.delivery', { days: fmt(current.launch.deliveryHours / HOURS_PER_DAY) })}</div>
+      <div class="ui-small ${current.launch.tasksDone >= current.launch.tasksNeeded ? 'ui-ok' : ''}">${t('launch.reports', { done: Math.min(current.launch.tasksDone, current.launch.tasksNeeded), need: current.launch.tasksNeeded })}</div>
       <ul class="ui-list">${rows}</ul>
       ${inFlight}
       ${reasons.map((reason) => `<div class="ui-small ui-bad">${reason}</div>`).join('')}
@@ -1122,6 +1128,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     return `
       <h2>${t('tasks.title')}</h2>
       <p>${t('tasks.lead', { hours: fmt(values.eva.maxHours.value) })}</p>
+      <p class="ui-small">${t('tasks.reportNote', { need: values.launch.tasksPerLaunch.value })}</p>
       ${rows === '' ? `<p class="ui-small">${t('tasks.none')}</p>` : `<ul class="ui-list">${rows}</ul>`}`;
   };
 

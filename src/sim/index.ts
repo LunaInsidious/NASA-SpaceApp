@@ -109,9 +109,12 @@ function developmentOf(
   );
 }
 
-function canOrderNow(state: SimState): boolean {
+function canOrderNow(state: SimState, values: Values): boolean {
   return (
-    state.phase !== 'gameOver' && state.commLinked && state.timeHours >= state.nextLaunchAtHours
+    state.phase !== 'gameOver' &&
+    state.commLinked &&
+    state.timeHours >= state.nextLaunchAtHours &&
+    state.tasksSinceLaunch >= values.launch.tasksPerLaunch.value
   );
 }
 
@@ -178,6 +181,7 @@ export function createInitialState(
     activeEvents: [],
     launches: [],
     nextLaunchAtHours: 0,
+    tasksSinceLaunch: values.launch.tasksPerLaunch.value,
     relaySatellites: 0,
     commLinked: false,
     unsentResearch: 0,
@@ -304,7 +308,7 @@ function countItems(items: LaunchItem[], kind: LaunchItemKind): number {
 }
 
 function orderLaunch(state: SimState, items: LaunchItem[], values: Values): void {
-  if (!canOrderNow(state) || items.length === 0) return;
+  if (!canOrderNow(state, values) || items.length === 0) return;
   if (items.some((i) => !Number.isInteger(i.quantity) || i.quantity <= 0)) return;
   if (items.some((i) => i.kind === 'facilityKit' && i.facilityKind === undefined)) return;
   const totalCost = items.reduce((sum, i) => sum + launchItemCost(i, values), 0);
@@ -331,6 +335,8 @@ function orderLaunch(state: SimState, items: LaunchItem[], values: Values): void
   // 次に頼めるのは、間隔の日数がたった日の朝から（「翌日へ」で朝にしたのに「あと0.1日」で頼めない、とならないように）
   const ready = state.timeHours + values.launch.intervalDays.value * HOURS_PER_DAY;
   state.nextLaunchAtHours = Math.floor(ready / HOURS_PER_DAY + EPSILON) * HOURS_PER_DAY;
+  // 地球への報告は、次の注文のために数え直す
+  state.tasksSinceLaunch = 0;
 }
 
 function deliver(state: SimState, items: LaunchItem[], values: Values): void {
@@ -432,6 +438,7 @@ function applyCommand(
       state.stocks.spareParts -= parts;
       facility.condition = 1;
       addPlayerOutdoorDose(state, values.player.repairDoseHours.value, values);
+      state.tasksSinceLaunch += 1;
       return;
     }
     case 'coverWithRegolith': {
@@ -441,6 +448,7 @@ function applyCommand(
       }
       habitat.regolithCover = true;
       addPlayerOutdoorDose(state, values.player.regolithCoverDoseHours.value, values);
+      state.tasksSinceLaunch += 1;
       return;
     }
     case 'assignCrew': {
@@ -458,6 +466,7 @@ function applyCommand(
       const kg = values.player.iceKgPerTrip.value;
       state.stocks.water += kg;
       today.produced.water += kg;
+      state.tasksSinceLaunch += 1;
       return;
     }
   }
@@ -826,7 +835,9 @@ export function describe(state: SimState, values: Values, env: Env): SimView {
     },
     launch: {
       capacity: values.launch.capacityKg.value,
-      canOrderNow: canOrderNow(state),
+      canOrderNow: canOrderNow(state, values),
+      tasksDone: state.tasksSinceLaunch,
+      tasksNeeded: values.launch.tasksPerLaunch.value,
       hoursUntilNext: Math.max(0, state.nextLaunchAtHours - state.timeHours),
       deliveryHours: values.launch.deliveryDays.value * HOURS_PER_DAY,
       inFlight: state.launches.map((l) => ({

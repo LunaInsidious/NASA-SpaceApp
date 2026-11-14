@@ -750,5 +750,8 @@
   "gauge.time": "{hours}:{minutes}",
   "gauge.days": "{days} d",
   "gauge.steady": "∞",
-  "gauge.title": "{name} ({value})"
+  "gauge.title": "{name} ({value})",
+  "launch.reports": "📋 Reports to Earth: {done} / {need} (do tasks to add more)",
+  "launch.needTasks": "Earth needs your reports before the next order → do {count} more task(s) outside (carry ice, repair, pile regolith).",
+  "tasks.reportNote": "Each task you finish becomes a report to Earth. With {need} reports, Earth gets the next rocket ready."
 }

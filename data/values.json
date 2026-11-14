@@ -791,6 +791,11 @@
       "value": 50,
       "unit": "kg",
       "source": "TBD"
+    },
+    "tasksPerLaunch": {
+      "value": 3,
+      "unit": "count",
+      "source": "TBD"
     }
   },
   "events": {
