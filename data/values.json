@@ -537,6 +537,11 @@
         "value": 0.001,
         "unit": "1/day",
         "source": "TBD"
+      },
+      "waterReserveDays": {
+        "value": 7,
+        "unit": "day",
+        "source": "TBD"
       }
     }
   },

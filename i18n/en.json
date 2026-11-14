@@ -195,5 +195,6 @@
   "achievement.solarInShadow": "Solar panel in the shadow",
   "achievement.shelteredFromFlare": "Took shelter from a solar flare",
   "achievement.foundIce": "Found ice",
-  "achievement.clearedWithoutDowned": "Base complete without passing out"
+  "achievement.clearedWithoutDowned": "Base complete without passing out",
+  "carry.ice": "Carrying ice — bring it into a habitat to turn it into water"
 }

@@ -249,10 +249,14 @@ export function checkPlacement(
   if (state.stocks.materials < cost.materials) {
     return { allowed: false, works: false, reason: 'notEnoughMaterials' };
   }
+  const waterReserve =
+    state.crew.length *
+    values.crew.waterKgPerDay.value *
+    values.facilities.shield.waterReserveDays.value;
   if (
     kind === 'shield' &&
     options.shieldMaterial === 'water' &&
-    state.stocks.water < values.facilities.shield.waterKg.value
+    state.stocks.water - values.facilities.shield.waterKg.value < waterReserve
   ) {
     return { allowed: false, works: false, reason: 'notEnoughMaterials' };
   }
@@ -274,7 +278,10 @@ export function checkPlacement(
 }
 
 function addPlayerOutdoorDose(state: SimState, hours: number, values: Values): void {
-  playerOf(state).doseMsv += (values.moon.radiationMsvPerDay.value / HOURS_PER_DAY) * hours;
+  playerOf(state).doseMsv +=
+    (values.moon.radiationMsvPerDay.value / HOURS_PER_DAY) *
+    activeMultiplier(state.activeEvents, values) *
+    hours;
 }
 
 function countItems(items: LaunchItem[], kind: LaunchItemKind): number {
@@ -429,7 +436,8 @@ function applyCommand(
       orderLaunch(state, command.items, values);
       return;
     case 'collectIce': {
-      if (state.player.indoors || !env.isIceAt(command.x, command.z)) return;
+      // (x, z) で取った氷を、居住モジュールに持ち帰って届けた（main が持ち帰ったときに送る）
+      if (!env.isIceAt(command.x, command.z)) return;
       const kg = values.player.iceKgPerTrip.value;
       state.stocks.water += kg;
       today.produced.water += kg;
@@ -538,14 +546,6 @@ export const step: Step = (prev, dtHours, env, commands, values, events, rng) =>
   const evaluation = evaluate(state, values, env, dtHours);
   for (const facility of state.facilities) {
     facility.sunlit = evaluation.sunlit[facility.id];
-    const was = before[facility.id];
-    const now = evaluation.status[facility.id];
-    if (was?.working === true && !now.working) {
-      const reason = now.reason;
-      if (reason === 'shadow' || reason === 'condition' || reason === 'noPower') {
-        emitted.push({ type: 'facilityStopped', facilityId: facility.id, reason });
-      }
-    }
   }
 
   // 電力と蓄電池
@@ -585,6 +585,19 @@ export const step: Step = (prev, dtHours, env, commands, values, events, rng) =>
     );
   }
   maintain(state, values, dayFraction);
+
+  // 止まった瞬間を知らせる。この刻みの劣化と蓄電池の減りを入れたあとで比べる
+  const after = evaluate(state, values, env, dtHours).status;
+  for (const facility of state.facilities) {
+    const was = before[facility.id];
+    const now = after[facility.id];
+    if (was?.working === true && !now.working) {
+      const reason = now.reason;
+      if (reason === 'shadow' || reason === 'condition' || reason === 'noPower') {
+        emitted.push({ type: 'facilityStopped', facilityId: facility.id, reason });
+      }
+    }
+  }
 
   // 通信
   const comm = evaluateComm(state, evaluation, values, env);

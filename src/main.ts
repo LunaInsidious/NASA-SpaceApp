@@ -91,6 +91,8 @@ let lastPlacement: Placement | null = null;
 let accumulatedHours = 0;
 let lastActionsKey: string | null = null;
 let collectedIce = false;
+// 氷を取った場所。居住モジュールに持ち帰るまで運んでいる
+let carriedIce: { x: number; z: number } | null = null;
 // この回で倒れたか（実績「一度も倒れずに基地を完成」用。セーブから再開したときは分からないので数えない）
 let downedThisRun = false;
 const achievementStore = createAchievementStore(parseAchievements(achievementsJson));
@@ -144,6 +146,16 @@ const ui = createUi(
 ui.setSaves(saves.list());
 ui.setDonkiEvents(timeline);
 
+const carryBadge = document.createElement('div');
+carryBadge.className = 'carry-badge';
+carryBadge.hidden = true;
+uiRoot.append(carryBadge);
+const renderCarryBadge = () => {
+  carryBadge.textContent = t('carry.ice');
+};
+renderCarryBadge();
+onLangChange(renderCarryBadge);
+
 /** セーブからの再開や、新しく始めるとき */
 function startFrom(next: SimState): void {
   state = next;
@@ -151,6 +163,7 @@ function startFrom(next: SimState): void {
   accumulatedHours = 0;
   collectedIce = false;
   downedThisRun = false;
+  carriedIce = null;
   cancelBuild();
   indoors = state.player.indoors;
   world.teleportPlayer(state.player.x, state.player.z);
@@ -159,6 +172,7 @@ function startFrom(next: SimState): void {
 }
 
 function applyPlayerMode(): void {
+  carryBadge.hidden = carriedIce === null;
   world.setPlayerVisible(!indoors);
   world.setMovementEnabled(!menuPaused && !indoors);
   tutorial.update({ state, indoors, collectedIce });
@@ -183,7 +197,7 @@ function contextActions(): ContextAction[] {
   const p = world.getPlayer();
   const near = nearbyFacilities();
   const actions: ContextAction[] = [];
-  if (env.isIceAt(p.x, p.z)) {
+  if (env.isIceAt(p.x, p.z) && carriedIce === null) {
     actions.push('collectIce');
   }
   if (near.some(needsRepair)) {
@@ -205,13 +219,14 @@ function doAction(action: ContextAction): void {
   switch (action) {
     case 'enterHabitat':
       indoors = true;
+      deliverIce();
       break;
     case 'exitHabitat':
       indoors = false;
       break;
     case 'collectIce':
-      pending.push({ type: 'collectIce', x: p.x, z: p.z });
-      collectedIce = true;
+      // 氷は手で運ぶ（docs/SPEC.md「水と酸素」）。居住モジュールに持ち帰ると水になる
+      carriedIce = { x: p.x, z: p.z };
       earn('collectIce');
       break;
     case 'repair': {
@@ -241,7 +256,17 @@ function shelter(): void {
   const nearest = habitats.reduce((a, b) => (distanceToPlayer(a) <= distanceToPlayer(b) ? a : b));
   world.teleportPlayer(nearest.x, nearest.z);
   indoors = true;
+  deliverIce();
   applyPlayerMode();
+}
+
+/** 運んできた氷を居住モジュールに届ける */
+function deliverIce(): void {
+  if (carriedIce !== null) {
+    pending.push({ type: 'collectIce', ...carriedIce });
+    carriedIce = null;
+    collectedIce = true;
+  }
 }
 
 function currentPlacement(): { x: number; z: number; placement: Placement } | null {
@@ -341,6 +366,8 @@ function handleEvents(events: GameEvent[]): void {
       world.teleportPlayer(state.player.x, state.player.z);
       indoors = state.player.indoors;
       downedThisRun = true;
+      // 倒れると、運んでいた氷はなくなる
+      carriedIce = null;
       applyPlayerMode();
     }
   }
