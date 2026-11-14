@@ -55,6 +55,23 @@ export function createHelp(
   let noteTimer: number | null = null;
   root.append(toggle, note, layer);
 
+  function closeHelp(): void {
+    open = false;
+    render();
+  }
+
+  // 窓の外（暗いところ）をクリック、または Esc でも閉じる
+  layer.addEventListener('click', (e) => {
+    if (e.target === layer) {
+      closeHelp();
+    }
+  });
+  window.addEventListener('keydown', (e) => {
+    if (open && e.key === 'Escape') {
+      closeHelp();
+    }
+  });
+
   function render(): void {
     // スマホでは「?」だけを見せる（CSS で名前を隠す）。名前は読み上げとホバーに残す
     const icon = document.createElement('span');
@@ -109,10 +126,7 @@ export function createHelp(
     close.type = 'button';
     close.className = 'help-close';
     close.textContent = t('help.close');
-    close.addEventListener('click', () => {
-      open = false;
-      render();
-    });
+    close.addEventListener('click', closeHelp);
     card.append(close);
     layer.replaceChildren(card);
   }

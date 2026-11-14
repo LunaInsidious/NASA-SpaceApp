@@ -711,3 +711,50 @@ body[data-tutorial-step="comm"] .ui-status::before {
 .tutorial-short {
   display: none;
 }
+
+/* いま押すボタンを指す矢印（位置は tutorial/index.ts が毎フレーム合わせる） */
+.tutorial-pointer {
+  position: fixed;
+  z-index: 8;
+  width: 44px;
+  height: 44px;
+  font-size: 40px;
+  line-height: 44px;
+  text-align: center;
+  color: #ffd27a;
+  text-shadow:
+    0 0 6px #000,
+    0 0 12px rgba(255, 210, 122, 0.8);
+  pointer-events: none;
+  animation: tutorial-pointer-down 0.6s ease-in-out infinite alternate;
+}
+
+.tutorial-pointer[data-side="below"] {
+  animation-name: tutorial-pointer-up;
+}
+
+.tutorial-pointer[data-side="left"] {
+  animation-name: tutorial-pointer-right;
+}
+
+.tutorial-pointer[hidden] {
+  display: none;
+}
+
+@keyframes tutorial-pointer-down {
+  to {
+    transform: translateY(8px);
+  }
+}
+
+@keyframes tutorial-pointer-up {
+  to {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes tutorial-pointer-right {
+  to {
+    transform: translateX(8px);
+  }
+}

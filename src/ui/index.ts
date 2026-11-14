@@ -227,6 +227,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     <div class="ui-buildbar ui-panel" data-part="buildbar" hidden></div>
     <div class="ui-buttons" data-part="buttons"></div>
     <div class="ui-pad" data-part="pad" hidden><div class="ui-pad-knob" data-part="knob"></div></div>
+    <div class="ui-pause" data-part="pauseOverlay" hidden></div>
     <div class="ui-modal-layer" data-part="modal" hidden></div>`;
   const part = (name: string): HTMLElement => {
     const el = root.querySelector<HTMLElement>(`[data-part="${name}"]`);
@@ -244,6 +245,12 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   const padEl = part('pad');
   const knobEl = part('knob');
   const modalEl = part('modal');
+  // メニューは、窓の外（暗いところ）をクリックしても閉じる。警報やゲームオーバーの窓は選んでもらうので閉じない
+  modalEl.addEventListener('click', (e) => {
+    if (e.target === modalEl && menu !== null && dialogs.length === 0) {
+      closeMenus();
+    }
+  });
   padEl.hidden = !isTouch;
 
   let state: SimState | null = null;
@@ -274,6 +281,19 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   let jumpHeld = false;
   let jumpLatched = false;
   let padPointer: number | null = null;
+
+  const pauseEl = part('pauseOverlay');
+  /** 一時停止のボタンで止めている間は、画面全体を暗くして大きく知らせる（メニューや窓で止まっているときは出さない） */
+  const renderPauseOverlay = () => {
+    pauseEl.hidden = !userPaused;
+    pauseEl.innerHTML = userPaused
+      ? `<div class="ui-pause-card">
+          <div class="ui-pause-title">${t('pause.title')}</div>
+          <p>${t('pause.body')}</p>
+          <button class="primary ui-pause-resume" data-action="pause">${t('pause.resume')}</button>
+        </div>`
+      : '';
+  };
 
   const updatePause = () => {
     const paused = userPaused || menu !== null || dialogs.length > 0;
@@ -816,7 +836,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         html = dataMenuHtml();
       }
       modalEl.hidden = false;
-      modalEl.innerHTML = `<div class="ui-modal">${html}</div>`;
+      // 閉じるボタンは下にもあるが、見つけやすいよう右上にも出す
+      modalEl.innerHTML = `<div class="ui-modal"><button class="ui-modal-x" data-action="closeMenu" aria-label="${t('button.close')}">${t('button.closeIcon')}</button>${html}</div>`;
       return;
     }
     modalEl.hidden = true;
@@ -868,6 +889,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
 
   const renderAll = () => {
     renderTopButtons();
+    renderPauseOverlay();
     renderStatus();
     renderHud();
     renderButtons();
@@ -892,6 +914,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         break;
       case 'pause':
         userPaused = !userPaused;
+        renderPauseOverlay();
         renderTopButtons();
         updatePause();
         renderStatus();

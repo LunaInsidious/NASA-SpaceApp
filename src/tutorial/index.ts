@@ -54,6 +54,80 @@ const STEP_TERMS: Partial<Record<Step, readonly HelpTerm[]>> = {
   regolith: ['regolith'],
   data: ['donki'],
 };
+// その段で押すボタン。前から順に、画面に見えている最初のものを矢印で指す（メニューの中のボタンを先に書く）
+const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
+  move: ['.ui-pad'],
+  jump: ['[data-action="jump"]'],
+  buildSolar: [
+    '[data-action="buildSelect"][data-kind="solar"]',
+    '[data-action="menu"][data-menu="build"]',
+  ],
+  placeSolar: ['[data-action="buildConfirm"]'],
+  dictionary: ['.help-card details[data-term="solar"] summary', '.help-toggle'],
+  battery: [
+    '[data-action="buildConfirm"]',
+    '[data-action="buildSelect"][data-kind="battery"]',
+    '[data-action="menu"][data-menu="build"]',
+  ],
+  goInsideWait: ['[data-action="context"][data-context="enterHabitat"]'],
+  fastForward: ['[data-action="speed"][data-speed="4"]'],
+  normalSpeed: ['[data-action="speed"][data-speed="1"]'],
+  assignCrew: [
+    '[data-action="assign"][data-task="farming"]',
+    '[data-action="menu"][data-menu="crew"]',
+  ],
+  takeIce: ['[data-action="context"][data-context="collectIce"]'],
+  goHome: ['[data-action="context"][data-context="enterHabitat"]'],
+  flareDrill: ['[data-action="flare"][data-choice="shelter"]'],
+  goOutside: ['[data-action="context"][data-context="exitHabitat"]'],
+  regolith: ['[data-action="context"][data-context="coverRegolith"]'],
+  pause: ['[data-action="pause"]'],
+  resume: ['.ui-pause [data-action="pause"]', '[data-action="pause"]'],
+  save: ['[data-action="save"][data-slot="0"]', '[data-action="menu"][data-menu="save"]'],
+  data: ['[data-action="menu"][data-menu="data"]'],
+};
+// 「ちゅうもん」の段は、食料の＋ → 隊員の＋ → 注文を送る、の順に1つずつ指す
+const ORDER_POINTS = [
+  '[data-action="cart"][data-kind="food"][data-delta="1"]',
+  '[data-action="cart"][data-kind="crew"][data-delta="1"]',
+] as const;
+// 矢印とボタンのあいだ（px）。上に場所がなければ下に出す
+const POINTER_GAP_PX = 6;
+const POINTER_SIZE_PX = 44;
+
+/** 画面に見えている要素か（隠れた窓の中のものは指さない） */
+function visibleElement(selector: string): HTMLElement | null {
+  const el = document.querySelector<HTMLElement>(selector);
+  if (el === null || el.getClientRects().length === 0) {
+    return null;
+  }
+  const rect = el.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0 ? el : null;
+}
+
+/** その段で、いま押すボタン */
+function pointTarget(step: Step): HTMLElement | null {
+  if (step === 'order') {
+    for (const selector of ORDER_POINTS) {
+      const plus = visibleElement(selector);
+      if (plus !== null && plus.previousElementSibling?.textContent?.trim() === '0') {
+        return plus;
+      }
+    }
+    return (
+      visibleElement('[data-action="order"]') ??
+      visibleElement('[data-action="menu"][data-menu="launch"]')
+    );
+  }
+  for (const selector of STEP_POINTS[step] ?? []) {
+    const el = visibleElement(selector);
+    if (el !== null) {
+      return el;
+    }
+  }
+  return null;
+}
+
 // 読んで「わかった」を押すと進む段
 const ACK_STEPS: readonly Step[] = ['power', 'comm', 'lifeLine'];
 const STORAGE_KEY = 'lunar-outpost-tutorial';
@@ -249,6 +323,34 @@ export function createTutorial(
   const modal = document.createElement('div');
   modal.className = 'tutorial-modal-layer';
   root.append(panel, modal);
+  // いま押すボタンを指す矢印（ボタンの上に出し、上に場所がなければ下に出す）
+  const pointer = document.createElement('div');
+  pointer.className = 'tutorial-pointer';
+  pointer.hidden = true;
+  root.append(pointer);
+
+  function placePointer(): void {
+    const target = mode === 'tutorial' && !rereading ? pointTarget(step()) : null;
+    if (target === null) {
+      pointer.hidden = true;
+      return;
+    }
+    const rect = target.getBoundingClientRect();
+    const room = POINTER_SIZE_PX + POINTER_GAP_PX;
+    // 上に場所があれば上から、なければ左から、それもなければ下から指す
+    const side = rect.top >= room ? 'above' : rect.left >= room ? 'left' : 'below';
+    pointer.hidden = false;
+    pointer.dataset.side = side;
+    pointer.textContent = side === 'above' ? '⬇' : side === 'left' ? '➡' : '⬆';
+    if (side === 'left') {
+      pointer.style.left = `${rect.left - room}px`;
+      pointer.style.top = `${rect.top + rect.height / 2 - POINTER_SIZE_PX / 2}px`;
+    } else {
+      pointer.style.left = `${rect.left + rect.width / 2 - POINTER_SIZE_PX / 2}px`;
+      pointer.style.top =
+        side === 'below' ? `${rect.bottom + POINTER_GAP_PX}px` : `${rect.top - room}px`;
+    }
+  }
 
   // データ出典の窓を開いたか（ui の「データ」ボタン）
   document.addEventListener('click', (e) => {
@@ -675,6 +777,7 @@ export function createTutorial(
 
   function update(progress: TutorialProgress): void {
     lastProgress = progress;
+    placePointer();
     if (mode === 'tutorial') {
       // 氷を運ぶ途中で倒れて氷をなくしたら、氷を取りに行く段に戻る
       if (
