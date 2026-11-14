@@ -17,6 +17,7 @@ import { buildCost, launchItemCost } from '../sim/index.ts';
 import type { PadInput } from '../world/api.ts';
 import type { ContextAction, Ui, UiCallbacks } from './api.ts';
 import { getLang, onLangChange, setLang, t } from './i18n.ts';
+import { type NasaImages, photoFigureHtml } from './photo.ts';
 import './ui.css';
 
 const FACILITY_KINDS: readonly FacilityKind[] = [
@@ -659,6 +660,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   };
 
   // ---- 説明の窓 ----
+  // 太陽フレアの警報に出す NASA の写真（main が setNasaImages で渡す）
+  let nasaImages: NasaImages = {};
   const flareHtml = (event: ActiveEvent, donki: DonkiEvent | null) => {
     let source: string;
     if (event.source === 'archived') {
@@ -673,6 +676,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     return `
       <h2>${t(`flare.title.${event.kind}`)}</h2>
       <p>${t(`flare.explain.${event.kind}`)}</p>
+      ${nasaImages.flare === undefined ? '' : photoFigureHtml(nasaImages.flare)}
       <p><b>${t('flare.class', { value: esc(event.classOrIntensity) })}</b> ${sourceButton('flare')}</p>
       <p class="ui-small">${source}<small>${t('flare.donkiId', { id: esc(event.donkiId) })}</small></p>
       <p>${t('flare.hint')}</p>
@@ -1171,6 +1175,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     },
     openMenu,
     closeMenus,
+    setNasaImages(images) {
+      nasaImages = images;
+    },
     setDonkiEvents(events) {
       donkiEvents = [...events];
       if (menu === 'data') {

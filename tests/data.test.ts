@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import achievements from '../data/achievements.json';
 import missions from '../data/missions.json';
+import nasaImages from '../data/nasa-images.json';
 import values from '../data/values.json';
 import en from '../i18n/en.json';
 import ja from '../i18n/ja.json';
 import type { ValueEntry } from '../src/contracts/index.ts';
 import { parseAchievements } from '../src/save/achievements.ts';
 import { parseMissions } from '../src/tutorial/index.ts';
+import { parseNasaImages } from '../src/ui/photo.ts';
 
 function isValueEntry(node: object): node is ValueEntry {
   const { value, unit, source, url, ...rest } = node as Record<string, unknown>;
@@ -78,6 +80,16 @@ describe('data/missions.json', () => {
         .filter(([, messages]) => !(textKey in messages))
         .map(([lang]) => `${lang}: ${textKey}`),
     );
+    expect(missing).toEqual([]);
+  });
+});
+
+describe('data/nasa-images.json', () => {
+  it('形が正しく、写真のファイルが public/nasa/ にある', () => {
+    const present = Object.keys(import.meta.glob('../public/nasa/*'));
+    const missing = Object.values(parseNasaImages(nasaImages))
+      .map((image) => image.file)
+      .filter((file) => !present.includes(`../public/nasa/${file}`));
     expect(missing).toEqual([]);
   });
 });

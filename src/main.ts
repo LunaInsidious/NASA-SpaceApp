@@ -4,6 +4,7 @@ import { Scene } from '@babylonjs/core/scene';
 import achievementsJson from '../data/achievements.json';
 import donkiJson from '../data/donki-events.json';
 import missionsJson from '../data/missions.json';
+import nasaImagesJson from '../data/nasa-images.json';
 import valuesJson from '../data/values.json';
 import type {
   ActiveEvent,
@@ -17,6 +18,7 @@ import type {
   Values,
 } from './contracts/index.ts';
 import { createProceduralEnv } from './env/index.ts';
+import { createHelp } from './help/index.ts';
 import {
   type AchievementCondition,
   createAchievementStore,
@@ -31,6 +33,7 @@ import type { ContextAction } from './ui/api.ts';
 import { createFx } from './ui/fx.ts';
 import { onLangChange, t } from './ui/i18n.ts';
 import { createUi } from './ui/index.ts';
+import { createPhotoCard, parseNasaImages } from './ui/photo.ts';
 import { createWorld } from './world/index.ts';
 import './style.css';
 
@@ -105,6 +108,7 @@ const achievementStore = createAchievementStore(parseAchievements(achievementsJs
 const pending: SimCommand[] = [];
 const isTouch = window.matchMedia('(pointer: coarse)').matches;
 const fx = createFx(document.body);
+const help = createHelp(document.body);
 const tutorial = createTutorial(
   document.body,
   isTouch,
@@ -172,6 +176,9 @@ const ui = createUi(
 );
 ui.setSaves(saves.list());
 ui.setDonkiEvents(timeline);
+const nasaImages = parseNasaImages(nasaImagesJson);
+ui.setNasaImages(nasaImages);
+const photoCard = createPhotoCard(document.body, nasaImages);
 const adviceCard = createAdviceCard(document.body, (menu) => ui.openMenu(menu));
 
 /** チュートリアルとミッションの「できた！」 */
@@ -198,6 +205,7 @@ function celebrateProgress(): void {
         fx.banner(t('fx.built', { name: t(`facility.${f.kind}`) }), 'small');
         fx.confetti('burst');
         fx.sound('pop');
+        photoCard.show(f.kind);
       }
     }
   }
@@ -280,7 +288,7 @@ function startFrom(next: SimState): void {
 function applyPlayerMode(): void {
   carryBadge.hidden = carriedIce === null;
   world.setPlayerVisible(!indoors);
-  world.setMovementEnabled(!menuPaused && !tutorial.isBlocking() && !indoors);
+  world.setMovementEnabled(!menuPaused && !tutorial.isBlocking() && !help.isOpen() && !indoors);
 }
 
 function distanceToPlayer(f: Facility): number {
@@ -428,6 +436,7 @@ function earn(condition: AchievementCondition): void {
     fx.banner(t('fx.achievement', { name: t(`achievement.${id}`) }), 'big');
     fx.confetti('burst');
     fx.sound('fanfare');
+    photoCard.show(id);
   }
 }
 
@@ -674,7 +683,7 @@ refreshView();
 engine.runRenderLoop(() => {
   const dtSec = engine.getDeltaTime() / 1000;
   // チュートリアルの大きな窓を出している間は、時間も移動も止める
-  const blocking = tutorial.isBlocking();
+  const blocking = tutorial.isBlocking() || help.isOpen();
   if (blocking !== lastBlocking) {
     lastBlocking = blocking;
     applyPlayerMode();

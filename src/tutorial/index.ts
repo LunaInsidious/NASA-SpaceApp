@@ -4,6 +4,7 @@
 // 押すボタンは光らせ（tutorial.css）、行く場所には world の光の柱を立てる（guide()）
 import type { FacilityKind, SimState, Values } from '../contracts/index.ts';
 import { onLangChange, setLang, t } from '../ui/i18n.ts';
+import { PROFESSOR_SVG, type Typing, typeText } from './professor.ts';
 import './tutorial.css';
 
 const STEPS = [
@@ -34,6 +35,8 @@ type Step = (typeof STEPS)[number];
 // 読んで「わかった」を押すと進む段
 const ACK_STEPS: readonly Step[] = ['power', 'comm'];
 const STORAGE_KEY = 'lunar-outpost-tutorial';
+// 大きな窓が出たときに、博士の口が動く長さ（見た目だけ）
+const MODAL_SPEAK_MS = 1500;
 
 export const MISSION_CONDITIONS = [
   'hasFacility',
@@ -173,6 +176,15 @@ export function createTutorial(
 
   const panel = document.createElement('div');
   panel.className = 'tutorial';
+  // 吹き出しをクリック・タップすると、出している途中の文をすぐ全部出す
+  panel.addEventListener('click', (e) => {
+    if (!(e.target instanceof Element) || e.target.closest('button') === null) {
+      typing?.finish();
+    }
+  });
+  let typing: Typing | null = null;
+  // いま出している（出し終えた）文の段。同じ段を描き直すときは、1文字ずつ出し直さない
+  let typedKey = '';
   // ミッションのパネルを閉じたあと、また開くための小さなボタン（記号だけ）
   let panelClosed = false;
   const reopen = document.createElement('button');
@@ -228,7 +240,13 @@ export function createTutorial(
       button('English', 'tutorial-lang', () => setLang('en')),
       button('日本語', 'tutorial-lang', () => setLang('ja')),
     );
-    card.append(langRow, title, body, row);
+    const big = document.createElement('div');
+    big.className = 'tutorial-modal-professor';
+    big.innerHTML = PROFESSOR_SVG;
+    card.append(big, langRow, title, body, row);
+    // 窓が出たときに、博士が少しのあいだ話す
+    card.classList.add('speaking');
+    window.setTimeout(() => card.classList.remove('speaking'), MODAL_SPEAK_MS);
     modal.replaceChildren(card);
     modal.hidden = false;
   }
@@ -292,6 +310,38 @@ export function createTutorial(
     panel.hidden = panelClosed;
     reopen.hidden = !panelClosed;
     renderMission();
+  }
+
+  /** 吹き出しの左にいる博士（スマホでは小さな顔だけ） */
+  function professor(): HTMLElement {
+    const el = document.createElement('div');
+    el.className = 'tutorial-professor';
+    el.innerHTML = PROFESSOR_SVG;
+    const name = document.createElement('div');
+    name.className = 'tutorial-professor-name';
+    name.textContent = t('tutorial.professorName');
+    el.append(name);
+    return el;
+  }
+
+  /** 段が変わったときだけ、博士が話すように文を1文字ずつ出す */
+  function speak(key: string, elements: HTMLElement[], skip: HTMLButtonElement): void {
+    if (key === typedKey) {
+      skip.hidden = true;
+      return;
+    }
+    typing?.finish();
+    typedKey = key;
+    panel.classList.add('speaking');
+    typing = typeText(elements, () => {
+      panel.classList.remove('speaking');
+      skip.hidden = true;
+    });
+  }
+
+  function skipButton(): HTMLButtonElement {
+    const skip = button(t('tutorial.skipTyping'), 'tutorial-skip', () => typing?.finish());
+    return skip;
   }
 
   function header(titleText: string, progressText: string): HTMLElement {
@@ -396,13 +446,17 @@ export function createTutorial(
     const doLabel = document.createElement('div');
     doLabel.className = 'tutorial-label';
     doLabel.textContent = t('tutorial.doLabel');
+    const skip = skipButton();
     const parts: HTMLElement[] = [
+      professor(),
       header(t('tutorial.title'), t('tutorial.progress', { n: index + 1, total: STEPS.length })),
       whyLabel,
       why,
       doLabel,
       text,
+      skip,
     ];
+    speak(`step:${index}:${flareChoice ?? ''}`, [why, text], skip);
     if (ACK_STEPS.includes(step())) {
       const row = document.createElement('div');
       row.className = 'tutorial-buttons';
@@ -418,7 +472,9 @@ export function createTutorial(
     const text = document.createElement('p');
     text.className = 'tutorial-text';
     text.textContent = mission === undefined ? t('mission.allDone') : t(mission.textKey);
+    const skip = skipButton();
     const parts: HTMLElement[] = [
+      professor(),
       header(
         t('mission.title'),
         t('tutorial.progress', {
@@ -427,7 +483,9 @@ export function createTutorial(
         }),
       ),
       text,
+      skip,
     ];
+    speak(`mission:${missionIndex}`, [text], skip);
     // 全部おわったら、パネルを閉じられるようにする（閉じても 📋 からまた開ける）
     if (mission === undefined) {
       const row = document.createElement('div');

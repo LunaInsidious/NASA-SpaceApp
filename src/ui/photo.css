@@ -1,0 +1,88 @@
+/* NASA の本物の写真（建てたとき・実績を取ったとき） */
+.nasa-photo-card {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 2;
+  width: min(300px, calc(100vw - 24px));
+  padding: 10px;
+  border: 2px solid #ffd27a;
+  border-radius: 12px;
+  background: rgba(10, 14, 24, 0.94);
+  color: #f4f7fc;
+  font:
+    13px / 1.4 system-ui,
+    -apple-system,
+    "Hiragino Sans",
+    "Noto Sans JP",
+    sans-serif;
+  pointer-events: auto;
+  animation: nasa-photo-in 0.4s ease-out;
+}
+
+.nasa-photo-card[hidden] {
+  display: none;
+}
+
+.nasa-photo-head {
+  margin-bottom: 6px;
+  font-weight: 700;
+  color: #ffd27a;
+}
+
+.nasa-photo-card button {
+  margin-top: 6px;
+  font: inherit;
+  padding: 2px 12px;
+  border-radius: 8px;
+}
+
+.nasa-photo {
+  margin: 0;
+}
+
+.nasa-photo img {
+  display: block;
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.nasa-photo figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.nasa-photo-example {
+  color: #ffd27a;
+  font-size: 12px;
+}
+
+@keyframes nasa-photo-in {
+  from {
+    transform: translateY(20px) scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* スマホでは左下の仮想パッドと重ならないよう、上の方に出す */
+@media (pointer: coarse) {
+  .nasa-photo-card {
+    bottom: auto;
+    top: 130px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+  }
+
+  .nasa-photo img {
+    max-height: 120px;
+  }
+}

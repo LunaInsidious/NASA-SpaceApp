@@ -11,6 +11,7 @@ import type {
 import type { SaveSummary } from '../save/api.ts';
 import type { BuildOptions, Placement, SimView } from '../sim/api.ts';
 import type { PadInput } from '../world/api.ts';
+import type { NasaImages } from './photo.ts';
 
 /** その場でできること。E キー（スマホではボタン）で先頭のものを行う */
 export type ContextAction =
@@ -56,6 +57,8 @@ export interface Ui {
   setSaves(saves: SaveSummary[]): void;
   /** データ出典の窓に出す、ゲームで使う DONKI の記録（data/donki-events.json）。起動時に main が1回呼ぶ */
   setDonkiEvents(events: DonkiEvent[]): void;
+  /** NASA の本物の写真（data/nasa-images.json）。太陽フレアの警報に出す。起動時に main が1回呼ぶ */
+  setNasaImages(images: NasaImages): void;
   closeMenus(): void;
   isMenuOpen(): boolean;
 }
