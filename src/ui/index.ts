@@ -628,13 +628,18 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     }
     const canOrder = current.launch.canOrderNow && !over && items.length > 0;
     const rows = LAUNCH_ITEM_KINDS.map((kind) => {
-      const unitCost = launchItemCost({ kind, quantity: 1 }, values);
+      // ＋を1回押したときに増える数と、それがロケットの場所をどれだけ使うか
+      const step = BULK_LAUNCH_ITEMS.includes(kind) ? values.launch.bulkOrderStep.value : 1;
+      const stepCost = launchItemCost({ kind, quantity: step }, values);
+      const costText = BULK_LAUNCH_ITEMS.includes(kind)
+        ? t('launch.stepCostKg', { step: fmt(step), cost: fmt(stepCost) })
+        : t('launch.stepCostOne', { cost: fmt(stepCost) });
       const desc =
         kind === 'materials' || kind === 'crew' || kind === 'relaySatellite'
           ? `<small>${t(`launchItemDesc.${kind}`)}</small>`
           : '';
       return `<li>
-        <span class="ui-grow"><b>${t(`launchItem.${kind}`)}</b> <span class="ui-small">${t('launch.unitCost', { cost: fmt(unitCost) })}</span>${desc}</span>
+        <span class="ui-grow"><b>${t(`launchItem.${kind}`)}</b> <span class="ui-small">${costText}</span>${desc}</span>
         <button data-action="cart" data-kind="${kind}" data-delta="-1">−</button>
         <span class="ui-qty">${cart[kind]}</span>
         <button data-action="cart" data-kind="${kind}" data-delta="1">＋</button>
