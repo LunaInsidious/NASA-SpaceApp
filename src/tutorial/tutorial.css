@@ -779,3 +779,10 @@ body[data-tutorial-step="comm"] .ui-status::before {
 .tutorial-note[hidden] {
   display: none;
 }
+
+/* くんれんで時間を止めている段のしるし */
+.tutorial-frozen {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #9fd3ff;
+}

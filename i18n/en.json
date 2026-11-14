@@ -261,6 +261,7 @@
   "tutorial.step.dictionary.touch": "Tap the glowing ❓ (Word guide) at the top right to open it, then tap 'Solar Panel' to read about it. When you are done, tap 'Back to the game'.",
   "tutorial.step.battery.keys": "Next, build a Battery the same way. It saves electricity for when the panels are in the shadow.",
   "tutorial.step.battery.touch": "Next, build a Battery the same way. It saves electricity for when the panels are in the shadow.",
+  "tutorial.timeStopped": "⏸ Time is stopped during training (take your time reading)",
   "tutorial.goOutsideFirst": "You are inside the habitat now. First press the glowing 'Go outside' button.",
   "tutorial.step.commLost": "Look at the top right. It says 'No contact with Earth' right now. {reason} When you can talk to Earth, orders and storm warnings get through.",
   "tutorial.step.comm.keys": "Look at the top right: 'Talking to Earth'. The antenna can talk to Earth only while Earth is above the horizon. You need it to order things and to get storm warnings.",

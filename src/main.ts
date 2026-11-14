@@ -811,7 +811,14 @@ engine.runRenderLoop(() => {
     lastBlocking = blocking;
     applyPlayerMode();
   }
-  if (!menuPaused && !blocking && state.phase !== 'gameOver') {
+  if (!menuPaused && !blocking && state.phase !== 'gameOver' && !tutorial.timeRuns()) {
+    // くんれんで時間を止めている段：時間は進めず、建てる・出入りなどの操作だけを sim に反映する
+    accumulatedHours = 0;
+    if (pending.length > 0 || indoors !== state.player.indoors) {
+      tick(0);
+      refreshView();
+    }
+  } else if (!menuPaused && !blocking && state.phase !== 'gameOver') {
     const stepHours = values.time.stepHours.value;
     accumulatedHours += dtSec * speed * (HOURS_PER_DAY / values.time.secondsPerEarthDay.value);
     let steps = 0;

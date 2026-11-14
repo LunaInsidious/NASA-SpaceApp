@@ -129,6 +129,18 @@ function pointTarget(step: Step): HTMLElement | null {
   return null;
 }
 
+// くんれん中に時間が進む段（はやおくり・ロケット待ち・こおり運び・一時停止）。ほかの段は時間を止めて、読んでいる間に物資やボンベが減らないようにする
+const TIME_STEPS: readonly Step[] = [
+  'fastForward',
+  'waitArrival',
+  'normalSpeed',
+  'toIce',
+  'takeIce',
+  'goHome',
+  'pause',
+  'resume',
+];
+
 // 外でやる段。中にいるときは「外に出る」を指して、ひとこと出す
 const OUTDOOR_STEPS: readonly Step[] = ['move', 'look', 'jump', 'toIce', 'takeIce', 'regolith'];
 const MS_PER_SECOND = 1000;
@@ -240,6 +252,8 @@ export interface Tutorial {
   answerFlare(choice: 'shelter' | 'continue'): void;
   /** 「ゲームを さいしょから やりなおす」（セーブの窓のボタン）。本当にやり直すかを確かめる窓を出す */
   confirmRestart(): void;
+  /** いまゲームの時間を進めてよいか（くんれん中は、時間が要る段だけ進める） */
+  timeRuns(): boolean;
   /** タイトルの「はじめから」：新しいゲームにして「あそんだことがある？」から */
   startNew(): void;
   /** タイトルの「つづきから」：くんれんを終えていればミッション、まだなら「あそんだことがある？」から */
@@ -637,6 +651,13 @@ export function createTutorial(
       outdoorNote,
       skip,
     ];
+    if (!TIME_STEPS.includes(step())) {
+      // 時間を止めていることを、見出しのすぐ下に小さく出す
+      const frozen = document.createElement('div');
+      frozen.className = 'tutorial-frozen';
+      frozen.textContent = t('tutorial.timeStopped');
+      parts.splice(2, 0, frozen);
+    }
     speak(`step:${index}:${flareChoice ?? ''}`, [why, text], skip);
     if (ACK_STEPS.includes(step())) {
       const row = document.createElement('div');
@@ -704,18 +725,14 @@ export function createTutorial(
   function stepDone(s: Step, p: TutorialProgress): boolean {
     const has = (kind: FacilityKind) => p.state.facilities.some((f) => f.kind === kind);
     switch (s) {
-      case 'move': {
-        if (stepOrigin === null) {
-          stepOrigin = { x: p.playerX, z: p.playerZ };
-        }
+      case 'move':
         return (
+          stepOrigin !== null &&
           Math.hypot(p.playerX - stepOrigin.x, p.playerZ - stepOrigin.z) >=
-          values.tutorial.moveMeters.value
+            values.tutorial.moveMeters.value
         );
-      }
       case 'look': {
         if (stepYaw === null) {
-          stepYaw = p.viewYawRad;
           return false;
         }
         const turned = Math.abs(
@@ -806,6 +823,9 @@ export function createTutorial(
         index = STEPS.indexOf('toIce');
         render();
       }
+      // 段を出したときの場所と向き（読み終わる前に歩いたり見回したりしても数える）
+      stepOrigin ??= { x: progress.playerX, z: progress.playerZ };
+      stepYaw ??= progress.viewYawRad;
       // 1回に1段だけ。文を出し終えて、少し時間がたってから進む（すでにできていた段も、読む前に飛ばさない）
       const readEnough =
         typing?.isTyping() !== true &&
@@ -838,6 +858,9 @@ export function createTutorial(
   return {
     update,
     confirmRestart,
+    timeRuns() {
+      return mode !== 'tutorial' || TIME_STEPS.includes(step());
+    },
     startNew() {
       resetTo('ask');
     },
