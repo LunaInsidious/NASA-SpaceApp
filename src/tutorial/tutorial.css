@@ -79,14 +79,15 @@ body[data-tutorial-step="move"] .ui-pad {
 }
 
 @media (max-width: 640px) {
+  /* 左上の HUD の下に、横いっぱいに出す */
   .tutorial {
-    top: 150px;
-    left: auto;
+    top: 345px;
+    left: 8px;
     right: 8px;
     transform: none;
-    width: min(230px, calc(100vw - 16px));
+    width: auto;
     padding: 8px 10px;
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .tutorial button {
