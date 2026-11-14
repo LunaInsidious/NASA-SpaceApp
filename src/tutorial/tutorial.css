@@ -215,8 +215,18 @@ body[data-advice="broken"] [data-action="context"][data-context="repair"] {
   animation: tutorial-pulse 1.2s infinite;
 }
 
-@media (max-width: 640px) {
-  /* 左上の HUD が縦に長いので、下のボタンの列のすぐ上に、横いっぱいに出す */
+/* 少し狭い画面：左の HUD と右の状態の窓のあいだに出す */
+@media (min-width: 900px) and (max-width: 1199px) {
+  .tutorial {
+    left: 330px;
+    right: 270px;
+    transform: none;
+    width: auto;
+  }
+}
+
+/* もっと狭い画面：上にすき間がないので、下のボタンの列のすぐ上に、横いっぱいに出す */
+@media (max-width: 899px) {
   .tutorial {
     top: auto;
     bottom: 160px;
@@ -226,6 +236,11 @@ body[data-advice="broken"] [data-action="context"][data-context="repair"] {
     width: auto;
     max-height: 40vh;
     overflow-y: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .tutorial {
     padding: 8px 10px;
     font-size: 13px;
     line-height: 1.45;
@@ -531,8 +546,15 @@ body[data-tutorial-step="comm"] .ui-status::before {
   display: none;
 }
 
-/* スマホ：博士は吹き出しの左上の小さな顔だけ。しっぽは出さない */
-@media (max-width: 640px) {
+/* 広い画面：博士と吹き出しをひとかたまりで真ん中に置く（博士が左の HUD に重ならない） */
+@media (min-width: 1200px) {
+  .tutorial {
+    transform: translateX(calc(-50% + 64px));
+  }
+}
+
+/* スマホと狭い画面：博士は吹き出しの左上の小さな顔だけ。しっぽは出さない */
+@media (max-width: 1199px) {
   .tutorial-professor {
     left: 6px;
     top: 4px;
@@ -562,7 +584,10 @@ body[data-tutorial-step="comm"] .ui-status::before {
   .tutorial::after {
     display: none;
   }
+}
 
+/* スマホ：大きな窓の博士も小さくする */
+@media (max-width: 640px) {
   .tutorial-modal-professor {
     width: 90px;
     margin-top: -64px;

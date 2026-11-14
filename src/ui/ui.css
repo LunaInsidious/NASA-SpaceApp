@@ -381,6 +381,11 @@
 }
 
 @media (max-width: 640px) {
+  /* スマホ幅：発展度は合計だけにして、下の案内の吹き出しに重ならないようにする */
+  .ui-development .ui-small {
+    display: none;
+  }
+
   /* スマホ幅：建設のバーは、下のボタン列と仮想パッドより上に出す */
   .ui-buildbar {
     left: 8px;

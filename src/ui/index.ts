@@ -452,7 +452,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           <div>${t('hud.protection', { pct: fmt(shielding.indoorProtection * PERCENT) })}</div>
         </div>
       </div>
-      <div class="ui-panel">
+      <div class="ui-panel ui-development">
         <div class="ui-stat">
           <span class="ui-label">${t('development.total')}</span> ${sourceButton('development')}
           <span class="ui-value">${fmt(development.total)}</span>
