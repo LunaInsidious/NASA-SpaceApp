@@ -1,4 +1,4 @@
-/* ことばじてんのボタン（右下、音の切り替えの左） */
+/* ことばじてんのボタン（右下、音の切り替えの左。スマホは下の @media） */
 .help-toggle {
   position: fixed;
   right: 56px;
@@ -91,11 +91,30 @@
   cursor: pointer;
 }
 
+.help-toggle-label {
+  margin-left: 4px;
+}
+
+/* スマホ：右上の状態の窓に重ならないよう、上の言語ボタンの左に小さな丸で置く */
 @media (pointer: coarse) {
   .help-toggle {
-    right: auto;
-    left: calc(50% + 48px);
+    right: 104px;
     bottom: auto;
-    top: 96px;
+    top: 44px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 18px;
   }
+
+  .help-toggle-label {
+    display: none;
+  }
+}
+
+/* 窓を開いている間は、ことばじてんと音のボタンを隠す（スマホで窓に重なるため） */
+body:has(.ui-modal-layer:not([hidden])) .help-toggle,
+body:has(.ui-modal-layer:not([hidden])) .fx-sound-toggle {
+  visibility: hidden;
 }

@@ -34,7 +34,15 @@ export function createHelp(root: HTMLElement): Help {
   root.append(toggle, layer);
 
   function render(): void {
-    toggle.textContent = t('help.button');
+    // スマホでは「?」だけを見せる（CSS で名前を隠す）。名前は読み上げとホバーに残す
+    const icon = document.createElement('span');
+    icon.textContent = t('help.icon');
+    const label = document.createElement('span');
+    label.className = 'help-toggle-label';
+    label.textContent = t('help.label');
+    toggle.replaceChildren(icon, label);
+    toggle.title = t('help.label');
+    toggle.setAttribute('aria-label', t('help.label'));
     layer.hidden = !open;
     if (!open) {
       return;

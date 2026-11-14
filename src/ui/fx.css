@@ -106,8 +106,7 @@
 @media (pointer: coarse) {
   .fx-sound-toggle {
     bottom: auto;
-    top: 96px;
-    right: auto;
-    left: 50%;
+    top: 44px;
+    right: 146px;
   }
 }
