@@ -6,8 +6,51 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- 地形のデータは、プログラムを読んでいる間に先に読み始める（src/main.ts が使う。名前は tools/make-terrain.ts が書くもの） -->
+    <link rel="preload" href="/terrain/site01/site.json" as="fetch" crossorigin />
+    <link rel="preload" href="/terrain/site01/height.bin" as="fetch" crossorigin />
+    <link rel="preload" href="/terrain/site01/outer.bin" as="fetch" crossorigin />
+    <!-- 読み込みの間の画面。文言は i18n を読む前なので出さない。src/main.ts が最初の画面を描いたら消す -->
+    <style>
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(ellipse at 50% 35%, #142240, #04060e 70%);
+        transition: opacity 0.4s ease-out;
+      }
+      #splash.done {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #splash svg {
+        width: 72px;
+        height: 72px;
+        animation: splash-glow 1.6s ease-in-out infinite alternate;
+      }
+      @keyframes splash-glow {
+        from {
+          opacity: 0.35;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="splash">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <mask id="splash-moon">
+          <rect width="64" height="64" fill="#fff" />
+          <circle cx="44" cy="24" r="20" fill="#000" />
+        </mask>
+        <circle cx="32" cy="32" r="24" fill="#e8e4d8" mask="url(#splash-moon)" />
+      </svg>
+    </div>
     <canvas id="renderCanvas"></canvas>
     <div id="ui"></div>
     <script type="module" src="/src/main.ts"></script>

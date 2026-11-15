@@ -136,19 +136,19 @@ async function fetchOk(url: string): Promise<Response> {
   return response;
 }
 const site = parseSite(await (await fetchOk(`${SITE_DIR}site.json`)).json());
-const env = createTerrainEnv(
-  terrainFromSite(site, await (await fetchOk(`${SITE_DIR}${site.heightFile}`)).arrayBuffer()),
-  values,
+// 歩く範囲と、まわりの見えるだけの地形は、同時に読む
+const [heightData, outerData] = await Promise.all(
+  [site.heightFile, site.outerHeightFile].map(async (file) =>
+    (await fetchOk(`${SITE_DIR}${file}`)).arrayBuffer(),
+  ),
 );
+const env = createTerrainEnv(terrainFromSite(site, heightData), values);
 /** 画面に出す距離は実寸に換算する（地形は縦横とも 1/scale に縮めてある。docs/SPEC.md「着陸地点」） */
 function realMeters(gameMeters: number): number {
   return gameMeters * site.scale;
 }
 // 歩く範囲のまわりの、見えるだけの地形
-const outer = outerFromSite(
-  site,
-  await (await fetchOk(`${SITE_DIR}${site.outerHeightFile}`)).arrayBuffer(),
-);
+const outer = outerFromSite(site, outerData);
 const world = createWorld(scene, env, values, outer);
 // 建設モードの間、PC で地面をクリックしたらそこに置く（confirmBuild は下で定義。呼ばれるのは起動のあと）
 world.onGroundClick(() => confirmBuild());
@@ -1511,6 +1511,12 @@ engine.runRenderLoop(() => {
   world.setSkyFocus(tutorial.showsEarth() ? Math.atan2(earth.x, earth.z) : null);
   world.frame(dtSec);
   scene.render();
+});
+// 読み込みの間の画面（index.html）は、最初の1枚を描いたら消す
+const splash = requireElement('splash', HTMLDivElement);
+scene.onAfterRenderObservable.addOnce(() => {
+  splash.classList.add('done');
+  splash.addEventListener('transitionend', () => splash.remove(), { once: true });
 });
 
 window.addEventListener('resize', () => engine.resize());
