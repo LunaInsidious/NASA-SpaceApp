@@ -73,6 +73,8 @@ const SITE_DIR = `${import.meta.env.BASE_URL}terrain/site01/`;
 // 足音を鳴らす間隔（歩いた距離、m）。見た目と音だけの値
 const STEP_SOUND_METERS = 1.6;
 const MINUTES_PER_HOUR = 60;
+// 着陸のほこりで傷んだと知らせる傷みの大きさ（1% 以上。知らせるかどうかだけの、見せ方の値）
+const LANDING_DUST_NOTICE = 0.01;
 // 朝の窓に出す物資（増減があったものだけ）
 const MORNING_STOCKS = ['oxygen', 'water', 'food', 'spareParts', 'materials'] as const;
 // 休むときに1つずつ順に見せる、休む理由（文言は rest.reason.<キー>、数は values.json）
@@ -931,6 +933,7 @@ function sleepUntilMorning(): void {
         delta: state.stocks[kind] - before.stocks[kind],
       })).filter((change) => Math.abs(change.delta) >= MORNING_MIN_DELTA),
       arrived: result.emitted.filter((e) => e.type === 'launchArrived').length,
+      dusted: result.emitted.some((e) => e.type === 'launchArrived') ? landingDustedCount() : 0,
       spaceWeather: result.emitted.flatMap((e) => (e.type === 'eventStarted' ? [e.event] : [])),
       newlyShaded: [...shadedAfter].filter((id) => !shadedBefore.has(id)).length,
       newlyLit: [...shadedBefore].filter(
@@ -946,6 +949,7 @@ function sleepUntilMorning(): void {
     // 何も起きなかった朝は窓を出さずに、すぐ外へ出られるようにする（物資の増減は夜の通信で分かる）
     const happened =
       summary.arrived > 0 ||
+      summary.dusted > 0 ||
       summary.spaceWeather.length > 0 ||
       summary.newlyShaded > 0 ||
       summary.newlyLit > 0;
@@ -957,6 +961,15 @@ function sleepUntilMorning(): void {
     }
   }
   refreshView();
+}
+
+/** ロケットが着いたときに、巻き上げたほこりで傷んだ施設の数（着陸船の近くで、傷みが目に見えるほどのもの。sim の landingDust と同じ広がり） */
+function landingDustedCount(): number {
+  const peak = values.terrain.landerDustPeak.value;
+  const damage = values.facilities.landingDustDamage.value;
+  return state.facilities.filter(
+    (f) => ((env.dustFactorAt(f.x, f.z) - 1) / peak) * damage >= LANDING_DUST_NOTICE,
+  ).length;
 }
 
 /** 外にいられる残りの時間が決めた時間を切ったら、知らせる（1時間と30分） */
@@ -1275,6 +1288,10 @@ function handleEvents(events: GameEvent[]): void {
       earn('launchArrived');
       fx.banner(t('fx.arrived'), 'small');
       fx.sound('coin');
+      const dusted = landingDustedCount();
+      if (dusted > 0) {
+        ui.notify(t('landingDust.notify', { count: dusted }), true);
+      }
     }
     if (event.type === 'playerDowned' || event.type === 'gameOver') {
       fx.sound('down');

@@ -946,5 +946,7 @@
   "tutorial.step.earth.keys": "Can you see the blue planet in the sky? When you see it, press \"Got it!\".",
   "tutorial.step.earth.touch": "Can you see the blue planet in the sky? When you see it, press \"Got it!\".",
   "tutorial.why.earth": "Earth is about 384,000 km away. From the south pole, Earth appears just above the horizon.",
-  "tutorial.story.earth": "Look, that is Earth, where your family and friends live. Let’s build a base here so everyone can come to the Moon someday."
+  "tutorial.story.earth": "Look, that is Earth, where your family and friends live. Let’s build a base here so everyone can come to the Moon someday.",
+  "landingDust.notify": "The rocket landed and kicked up dust: {count} facilities near the lander got damaged. Build farther from the lander, or add dust covers.",
+  "landingDust.morning": "Dust kicked up by the rocket damaged {count} facilities near the lander."
 }

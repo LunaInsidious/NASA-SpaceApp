@@ -318,6 +318,23 @@ function orderLaunch(state: SimState, items: LaunchItem[], values: Values): void
   state.tasksSinceLaunch = 0;
 }
 
+/**
+ * ロケットが着陸船のそばに降りると、巻き上げたほこりで近くの施設が一気に傷む。
+ * 着陸船のところで landingDustDamage、離れるほど少ない（ほこりの広がりは env.dustFactorAt と同じ）。ほこりよけで減る
+ */
+function landingDust(state: SimState, values: Values, env: Env): void {
+  const peak = values.terrain.landerDustPeak.value;
+  for (const facility of state.facilities) {
+    // 着陸船の位置で 1、離れるほど 0 に近づく
+    const nearness = (env.dustFactorAt(facility.x, facility.z) - 1) / peak;
+    const cover = facility.dustCover ? values.facilities.dustCover.degradationMultiplier.value : 1;
+    facility.condition = Math.max(
+      0,
+      facility.condition - values.facilities.landingDustDamage.value * nearness * cover,
+    );
+  }
+}
+
 function deliver(state: SimState, items: LaunchItem[], values: Values): void {
   for (const item of items) {
     switch (item.kind) {
@@ -630,6 +647,7 @@ export const step: Step = (prev, dtHours, env, commands, values, events, rng) =>
   state.launches = state.launches.filter((l) => l.arrivesAtHours > t1);
   for (const launch of arrived) {
     deliver(state, launch.items, values);
+    landingDust(state, values, env);
     emitted.push({ type: 'launchArrived', launchId: launch.id });
   }
 

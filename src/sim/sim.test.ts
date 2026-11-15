@@ -196,15 +196,15 @@ describe('sim', () => {
     }
   });
 
-  it('線量の倍率は等級で決まり、X は M より強い', () => {
+  it('フレアそのものは被ばくを増やさず、粒子の嵐（SEP）は大きく増やす', () => {
     const env = fakeEnv();
     const initial = createInitialState(values, env, [0, 0]);
-    const doseDuring = (classOrIntensity: string) => {
+    const doseDuring = (classOrIntensity: string, kind: 'solarFlare' | 'sep' = 'solarFlare') => {
       const during: SimState = {
         ...initial,
         activeEvents: [
           {
-            kind: 'solarFlare',
+            kind,
             source: 'archived',
             donkiId: 'd',
             classOrIntensity,
@@ -223,7 +223,18 @@ describe('sim', () => {
       );
       return result.state.crew[0].doseMsv;
     };
-    expect(doseDuring('X8.7')).toBeGreaterThan(doseDuring('M5.9'));
+    const quiet = step(
+      initial,
+      HOURS,
+      env,
+      [{ type: 'setPlayer', x: 0, z: 0, indoors: false }],
+      values,
+      [],
+      rng,
+    ).state.crew[0].doseMsv;
+    expect(doseDuring('X8.7')).toBeCloseTo(quiet);
+    expect(doseDuring('M5.9')).toBeCloseTo(quiet);
+    expect(doseDuring('GOES >10 MeV', 'sep')).toBeGreaterThan(quiet * 10);
     // 警報の窓に出す見込みの量は、実際に外で浴びる量と同じ計算
     const x87 = {
       kind: 'solarFlare',
@@ -429,5 +440,35 @@ describe('sim', () => {
     // 選んだ施設を隊員が先に直したとき（main が reportTask を送る）も、1回に数える
     const report: SimCommand = { type: 'reportTask' };
     expect(step(later, 0, env, [report], values, [], rng).state.tasksSinceLaunch).toBe(1);
+  });
+});
+
+describe('着陸のほこり', () => {
+  it('ロケットが着くと、着陸船のそばの施設ほど傷む。遠い施設とほこりよけを付けた施設は傷みが少ない', () => {
+    const peak = values.terrain.landerDustPeak.value;
+    // x が 0 なら着陸船のそば、100 なら遠い
+    const env = fakeEnv({ dustFactorAt: (x) => (x === 0 ? 1 + peak : 1) });
+    const initial = createInitialState(values, env, [0, 0]);
+    const near = { ...facility('near', 'solar', 0), condition: 1, dustCover: false };
+    const covered = { ...facility('covered', 'solar', 0), condition: 1, dustCover: true };
+    const far = { ...facility('far', 'solar', 100), condition: 1, dustCover: false };
+    const state = {
+      ...initial,
+      facilities: [near, covered, far],
+      launches: [
+        {
+          id: 'l1',
+          items: [{ kind: 'food' as const, quantity: 50 }],
+          totalCost: 50,
+          arrivesAtHours: 0,
+        },
+      ],
+    };
+    const after = step(state, values.time.stepHours.value, env, [], values, [], rng).state;
+    const condition = (id: string) => after.facilities.find((f) => f.id === id)?.condition ?? -1;
+    const damage = values.facilities.landingDustDamage.value;
+    expect(condition('near')).toBeLessThan(1 - damage * 0.99);
+    expect(condition('covered')).toBeGreaterThan(condition('near'));
+    expect(condition('far')).toBeGreaterThan(1 - damage * 0.01);
   });
 });
