@@ -456,10 +456,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         <button data-action="pauseView" data-view="cards" class="${cardsPulse ? 'ui-cards-new' : ''}"><span>${t('menu.cards')}</span><small>${t('hud.cardsCount', count)}${cardsPulse ? ` <b class="ui-new">${t('menu.new')}</b>` : ''}</small></button>
         <button data-action="pauseView" data-view="save"><span>${t('menu.save')}</span></button>
         <button data-action="pauseView" data-view="data"><span>${t('menu.data')}</span></button>
+        <button class="ui-menu-title" data-action="backToTitle"><span>${t('save.backToTitle')}</span></button>
       </div>
       <div class="ui-menu-sound"><span>${t('menu.sound')}</span><span class="ui-row">${sound}</span></div>
-      <div class="ui-menu-sound"><span>${t('menu.language')}</span><span class="ui-row">${langs}</span></div>
-      <div class="ui-restart-row"><button data-action="backToTitle">${t('save.backToTitle')}</button></div>`;
+      <div class="ui-menu-sound"><span>${t('menu.language')}</span><span class="ui-row">${langs}</span></div>`;
   };
   // メニューの中で開いた先（カード・セーブ・データ）。「← メニューに戻る」で選ぶところへ
   const pauseSubHtml = (view: Exclude<PauseView, 'main'>) => {

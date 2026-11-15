@@ -2445,3 +2445,8 @@ body.nb-open .advice-card {
 .route-idle {
   animation: cr-blink 2s ease-in-out infinite;
 }
+
+/* メニューの「タイトルに戻る」：ほかの項目と同じ大きさで、横いっぱいに（見つけやすく） */
+.ui-root .ui-menu-grid button.ui-menu-title {
+  grid-column: 1 / -1;
+}
