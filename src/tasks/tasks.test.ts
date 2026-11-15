@@ -3,7 +3,7 @@ import tasksJson from '../../data/tasks.json';
 import valuesJson from '../../data/values.json';
 import type { Env, Values } from '../contracts/index.ts';
 import { createInitialState } from '../sim/index.ts';
-import { completeTask, nextTask, parseTasks, taskCandidates } from './index.ts';
+import { completeTask, nextTask, parseTasks, settleTasks, taskCandidates } from './index.ts';
 import {
   dragFits,
   timingInZone,
@@ -65,6 +65,36 @@ describe('タスク', () => {
     expect(nextTask(all)).toBeNull();
     // 選んでいないタスクをこなしても、何も変わらない
     expect(completeTask(plan, 'regolith', 'x')).toEqual(plan);
+  });
+
+  it('施設がもう直っている・盛ってあるタスクには印がつく（同じ施設を2回やらなくてよい）', () => {
+    const initial = createInitialState(values, env, [0, 0]);
+    const habitat = initial.facilities.find((f) => f.kind === 'habitat');
+    if (habitat === undefined) throw new Error('居住モジュールがない');
+    const plan = [
+      { id: 'ice', kind: 'ice', facilityId: null, x: 0, z: 0, done: false },
+      { id: 'repair', kind: 'repair', facilityId: habitat.id, x: 0, z: 0, done: false },
+      { id: 'regolith', kind: 'regolith', facilityId: habitat.id, x: 0, z: 0, done: false },
+      { id: 'gone', kind: 'repair', facilityId: 'gone', x: 0, z: 0, done: false },
+    ] as const;
+    const worn = {
+      ...initial,
+      facilities: initial.facilities.map((f) =>
+        f.id === habitat.id ? { ...f, condition: 0, regolithCover: false } : f,
+      ),
+    };
+    // 傷んでいて、まだ盛っていない：なくなった施設のタスクだけに印
+    expect(settleTasks(plan, worn, values).map((t) => t.done)).toEqual([false, false, false, true]);
+    const fixed = {
+      ...initial,
+      facilities: initial.facilities.map((f) =>
+        f.id === habitat.id ? { ...f, condition: 1, regolithCover: true } : f,
+      ),
+    };
+    expect(settleTasks(plan, fixed, values).map((t) => t.done)).toEqual([false, true, true, true]);
+    // 変わるものがなければ、同じ配列を返す
+    const done = settleTasks(plan, fixed, values);
+    expect(settleTasks(done, fixed, values)).toBe(done);
   });
 });
 
