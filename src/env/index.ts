@@ -1,143 +1,56 @@
-// 自動生成の地形の Env。座標は x が東、z が北（地球のある月の表側の向き）、y が上。単位は m
+// 実データの地形の Env。座標は x が東（南極の極投影の X）、z が地球のある月の表側の向き（Y）、y が上。
+// 単位はゲームの m（実寸を site.json の scale で縦横とも同じ割合で縮めたもの）
 import type { Values } from '../contracts/index.ts';
 import type { TerrainEnv } from './api.ts';
-import {
-  ANTENNA_HEIGHT_M,
-  CRATER_COUNT,
-  CRATER_DEPTH_MAX_M,
-  CRATER_DEPTH_MIN_M,
-  CRATER_RADIUS_MAX_M,
-  CRATER_RADIUS_MIN_M,
-  CRATER_RIM_HEIGHT_M,
-  CRATER_RIM_WIDTH_M,
-  CRATER_RING_MAX_M,
-  CRATER_RING_MIN_M,
-  DUST_PEAK,
-  DUST_RADIUS_M,
-  HILL_HEIGHT_M,
-  HILL_OFFSET_M,
-  HILL_RADIUS_M,
-  ICE_RADIUS_RATIO,
-  LANDER_POSITION,
-  NOISE_AMPLITUDE_M,
-  NOISE_CELL_M,
-  PLATEAU_DOME_SLOPE,
-  PLATEAU_EDGE_HEIGHT_M,
-  PLATEAU_INNER_RADIUS_M,
-  PLATEAU_OUTER_RADIUS_M,
-  PLATEAU_TOP_HEIGHT_M,
-  POLAR_LATITUDE_DEG,
-  TERRAIN_RESOLUTION,
-} from './tuning.ts';
+import type { Site } from './site.ts';
+import { ANTENNA_HEIGHT_M, DUST_PEAK, DUST_RADIUS_M, POLAR_LATITUDE_DEG } from './tuning.ts';
 
 type Vec3 = { x: number; y: number; z: number };
 
 const DEG = Math.PI / 180;
 
-/** seed から決まる 0〜1 の乱数（mulberry32） */
-function createRandom(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let r = Math.imul(a ^ (a >>> 15), 1 | a);
-    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
-    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
-  };
+/** 地形の形（高さの格子）と、着陸船・氷の場所 */
+export interface TerrainData {
+  sizeMeters: number;
+  resolution: number;
+  heights: Float32Array;
+  latitudeDeg: number;
+  landerPosition: [number, number];
+  iceSpots: { x: number; z: number; radius: number }[];
 }
 
-function smoothstep(edge0: number, edge1: number, x: number): number {
-  const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
-  return t * t * (3 - 2 * t);
-}
-
-/** 格子の値をなめらかにつないだノイズ（-1〜1） */
-function createValueNoise(
-  random: () => number,
-  cellMeters: number,
-): (x: number, z: number) => number {
-  const size = 64;
-  const table = Array.from({ length: size * size }, () => random() * 2 - 1);
-  const at = (ix: number, iz: number) =>
-    table[(((iz % size) + size) % size) * size + (((ix % size) + size) % size)];
-  return (x, z) => {
-    const fx = x / cellMeters;
-    const fz = z / cellMeters;
-    const ix = Math.floor(fx);
-    const iz = Math.floor(fz);
-    const tx = smoothstep(0, 1, fx - ix);
-    const tz = smoothstep(0, 1, fz - iz);
-    const a = at(ix, iz) + (at(ix + 1, iz) - at(ix, iz)) * tx;
-    const b = at(ix, iz + 1) + (at(ix + 1, iz + 1) - at(ix, iz + 1)) * tx;
-    return a + (b - a) * tz;
-  };
-}
-
-interface Crater {
-  x: number;
-  z: number;
-  radius: number;
-  depth: number;
-}
-
-function placeCraters(random: () => number): Crater[] {
-  const craters: Crater[] = [];
-  const startAngle = random() * Math.PI * 2;
-  for (let i = 0; i < CRATER_COUNT; i++) {
-    // 等間隔の向きに少し揺らぎを入れて、クレーター同士が重なりすぎないようにする
-    const angle = startAngle + (i / CRATER_COUNT) * Math.PI * 2 + (random() - 0.5) * 0.6;
-    const ring = CRATER_RING_MIN_M + random() * (CRATER_RING_MAX_M - CRATER_RING_MIN_M);
-    craters.push({
-      x: LANDER_POSITION[0] + Math.sin(angle) * ring,
-      z: LANDER_POSITION[1] + Math.cos(angle) * ring,
-      radius: CRATER_RADIUS_MIN_M + random() * (CRATER_RADIUS_MAX_M - CRATER_RADIUS_MIN_M),
-      depth: CRATER_DEPTH_MIN_M + random() * (CRATER_DEPTH_MAX_M - CRATER_DEPTH_MIN_M),
-    });
+/** site.json と高さのファイル（Float32 のリトルエンディアン）から、地形の形を作る。形が合わなければ止める */
+export function terrainFromSite(site: Site, heightFile: ArrayBufferLike): TerrainData {
+  const expected = site.resolution * site.resolution * Float32Array.BYTES_PER_ELEMENT;
+  if (heightFile.byteLength !== expected) {
+    throw new Error(
+      `地形の高さのファイルの大きさが違う（${heightFile.byteLength} バイト、${expected} バイトのはず）`,
+    );
   }
-  return craters;
+  return {
+    sizeMeters: site.sizeMeters,
+    resolution: site.resolution,
+    heights: new Float32Array(heightFile),
+    latitudeDeg: site.latitudeDeg,
+    landerPosition: site.landerPosition,
+    iceSpots: site.iceSpots,
+  };
 }
 
-export function createProceduralEnv(values: Values, seed: number): TerrainEnv {
-  const sizeMeters = values.terrain.sizeMeters.value;
-  const latitudeDeg = values.terrain.latitudeDeg.value;
+export function createTerrainEnv(data: TerrainData, values: Values): TerrainEnv {
+  const { sizeMeters, resolution, heights, latitudeDeg, landerPosition, iceSpots } = data;
+  if (heights.length !== resolution * resolution) {
+    throw new Error('地形の高さの数が resolution × resolution ではない');
+  }
   const sunElevationDeg = values.moon.sunElevationDeg.value;
   const earthElevationDeg = values.moon.earthElevationDeg.value;
 
-  const resolution = TERRAIN_RESOLUTION;
   const half = sizeMeters / 2;
   const cell = sizeMeters / (resolution - 1);
-  const random = createRandom(seed);
-  const noise = createValueNoise(random, NOISE_CELL_M);
-  const craters = placeCraters(random);
-  const [landerX, landerZ] = LANDER_POSITION;
-
-  const shapeAt = (x: number, z: number): number => {
-    const r = Math.hypot(x - landerX, z - landerZ);
-    const plateau = 1 - smoothstep(PLATEAU_INNER_RADIUS_M, PLATEAU_OUTER_RADIUS_M, r);
-    let h =
-      PLATEAU_EDGE_HEIGHT_M +
-      (PLATEAU_TOP_HEIGHT_M - PLATEAU_EDGE_HEIGHT_M) * plateau -
-      PLATEAU_DOME_SLOPE * r * plateau;
-    const hillDist2 = (x - landerX - HILL_OFFSET_M[0]) ** 2 + (z - landerZ - HILL_OFFSET_M[1]) ** 2;
-    h += HILL_HEIGHT_M * Math.exp(-hillDist2 / (HILL_RADIUS_M * HILL_RADIUS_M));
-    for (const c of craters) {
-      const d = Math.hypot(x - c.x, z - c.z);
-      if (d < c.radius) {
-        const t = d / c.radius;
-        h -= c.depth * (1 - t * t);
-      }
-      h += CRATER_RIM_HEIGHT_M * Math.exp(-(((d - c.radius) / CRATER_RIM_WIDTH_M) ** 2));
-    }
-    return h + noise(x, z) * NOISE_AMPLITUDE_M;
-  };
-
-  const heights = new Float32Array(resolution * resolution);
-  let maxHeight = 0;
-  for (let iz = 0; iz < resolution; iz++) {
-    for (let ix = 0; ix < resolution; ix++) {
-      const h = shapeAt(-half + ix * cell, -half + iz * cell);
-      heights[iz * resolution + ix] = h;
-      maxHeight = Math.max(maxHeight, h);
-    }
+  const [landerX, landerZ] = landerPosition;
+  let maxHeight = Number.NEGATIVE_INFINITY;
+  for (const h of heights) {
+    maxHeight = Math.max(maxHeight, h);
   }
 
   const heightAt = (x: number, z: number): number => {
@@ -156,7 +69,7 @@ export function createProceduralEnv(values: Values, seed: number): TerrainEnv {
 
   const isInside = (x: number, z: number) => x >= -half && x <= half && z >= -half && z <= half;
 
-  /** (x, y, z) から dir の向きへ進み、地形に遮られるか。地図の外は高さ0とみなす */
+  /** (x, y, z) から dir の向きへ進み、地形に遮られるか。地図の外は遮らないとみなす */
   const isOccluded = (x: number, y: number, z: number, dir: Vec3): boolean => {
     if (dir.y <= 0) return true; // 地平線より下
     const horizontal = Math.hypot(dir.x, dir.z);
@@ -175,7 +88,7 @@ export function createProceduralEnv(values: Values, seed: number): TerrainEnv {
   };
 
   const latitudeRad = latitudeDeg * DEG;
-  /** 方位 az（北 = +z から東 = +x へ回る角度）と高度 el から単位ベクトルを作る */
+  /** 方位 az（+z から +x へ回る角度）と高度 el から単位ベクトルを作る */
   const fromAzimuthElevation = (az: number, el: number): Vec3 => ({
     x: Math.cos(el) * Math.sin(az),
     y: Math.sin(el),
@@ -201,8 +114,6 @@ export function createProceduralEnv(values: Values, seed: number): TerrainEnv {
 
   const earth = fromAzimuthElevation(0, earthElevationDeg * DEG);
   const earthDirection = (): Vec3 => ({ ...earth });
-
-  const iceSpots = craters.map((c) => ({ x: c.x, z: c.z, radius: c.radius * ICE_RADIUS_RATIO }));
 
   return {
     sizeMeters,

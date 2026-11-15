@@ -26,6 +26,16 @@ export type ContextAction =
   | 'nextDay';
 
 /** 「翌日へ」で進めた間に起きたこと。翌朝の活動フェーズに入る前に1枚の窓で見せる */
+/** 地形の元のデータ（データ出典の窓に出す） */
+export interface TerrainSource {
+  name: string;
+  source: string;
+  url: string;
+  citation: string;
+  scale: number;
+  cropMeters: number;
+}
+
 export interface MorningSummary {
   /** 新しい日（着陸の日を 0 とする） */
   day: number;
@@ -152,6 +162,8 @@ export interface Ui {
   setSaves(saves: SaveSummary[]): void;
   /** データ出典の窓に出す、ゲームで使う DONKI の記録（data/donki-events.json）。起動時に main が1回呼ぶ */
   setDonkiEvents(events: DonkiEvent[]): void;
+  /** データ出典の窓に出す、地形の元のデータ（public/terrain/<地点>/site.json）。起動時に main が1回呼ぶ */
+  setTerrainSource(source: TerrainSource): void;
   /** NASA の本物の写真（data/nasa-images.json）。太陽フレアの警報に出す。起動時に main が1回呼ぶ */
   setNasaImages(images: NasaImages): void;
   closeMenus(): void;

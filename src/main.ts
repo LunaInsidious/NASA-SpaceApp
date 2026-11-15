@@ -23,7 +23,8 @@ import type {
   SimState,
   Values,
 } from './contracts/index.ts';
-import { createProceduralEnv } from './env/index.ts';
+import { createTerrainEnv, terrainFromSite } from './env/index.ts';
+import { parseSite } from './env/site.ts';
 import { createHelp } from './help/index.ts';
 import { asHelpTerm } from './help/terms.ts';
 import {
@@ -67,8 +68,8 @@ import './style.css';
 const HOURS_PER_DAY = 24;
 // 重い端末で1フレームに step を呼びすぎないための上限
 const MAX_STEPS_PER_FRAME = 8;
-// TODO(人間に確認): 地形の seed。実データの地形（ステップ5）に変えるまでの仮
-const TERRAIN_SEED = 1;
+// 着陸地点の地形（tools/make-terrain.ts で NASA PGDA の GeoTIFF から作ったもの）
+const SITE_DIR = `${import.meta.env.BASE_URL}terrain/site01/`;
 // 足音を鳴らす間隔（歩いた距離、m）。見た目と音だけの値
 const STEP_SOUND_METERS = 1.6;
 const MINUTES_PER_HOUR = 60;
@@ -121,7 +122,23 @@ onLangChange(() => {
 
 const engine = new Engine(canvas, true);
 const scene = new Scene(engine);
-const env = createProceduralEnv(values, TERRAIN_SEED);
+/** 地形のファイルを読む。読めなければ止める（ほかの地形で代わりに遊ばせない） */
+async function fetchOk(url: string): Promise<Response> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`地形のファイルが読めない: ${url}（${response.status}）`);
+  }
+  return response;
+}
+const site = parseSite(await (await fetchOk(`${SITE_DIR}site.json`)).json());
+const env = createTerrainEnv(
+  terrainFromSite(site, await (await fetchOk(`${SITE_DIR}${site.heightFile}`)).arrayBuffer()),
+  values,
+);
+/** 画面に出す距離は実寸に換算する（地形は縦横とも 1/scale に縮めてある。docs/SPEC.md「着陸地点」） */
+function realMeters(gameMeters: number): number {
+  return gameMeters * site.scale;
+}
 const world = createWorld(scene, env, values);
 // 建設モードの間、PC で地面をクリックしたらそこに置く（confirmBuild は下で定義。呼ばれるのは起動のあと）
 world.onGroundClick(() => confirmBuild());
@@ -306,6 +323,7 @@ const ui = createUi(
 );
 ui.setSaves(saves.list());
 ui.setDonkiEvents(timeline);
+ui.setTerrainSource(site);
 const nasaImages = parseNasaImages(nasaImagesJson);
 ui.setNasaImages(nasaImages);
 const photoCard = createPhotoCard(document.body, nasaImages);
@@ -643,7 +661,7 @@ function restInfo(): RestInfo | null {
     tasks: currentCandidates().map((task) => ({
       id: task.id,
       label: taskLabel(task),
-      meters: Math.round(Math.hypot(task.x - home.x, task.z - home.z)),
+      meters: Math.round(realMeters(Math.hypot(task.x - home.x, task.z - home.z))),
       selected: selectedTasks.some((selected) => selected.id === task.id),
     })),
   };
@@ -1127,7 +1145,7 @@ function updateTutorial(): void {
     guideArrowIcon.style.transform = `rotate(${(quarter % 4) * 90}deg)`;
     const direction = (['front', 'right', 'back', 'left'] as const)[quarter % 4];
     guideArrowText.innerHTML = t(`guide.dir.${direction}.${isTouch ? 'touch' : 'keys'}`, {
-      meters: Math.round(Math.hypot(target.x - p.x, target.z - p.z)),
+      meters: Math.round(realMeters(Math.hypot(target.x - p.x, target.z - p.z))),
     });
   }
 }
@@ -1170,7 +1188,9 @@ function deathAdviceFor(events: GameEvent[]): DeathAdvice | null {
   return diagnoseDeath(kind, {
     state,
     view: describe(state, values, env),
-    metersFromHabitat: Math.min(...habitats.map((h) => Math.hypot(h.x - p.x, h.z - p.z))),
+    metersFromHabitat: realMeters(
+      Math.min(...habitats.map((h) => Math.hypot(h.x - p.x, h.z - p.z))),
+    ),
   });
 }
 

@@ -18,7 +18,14 @@ import type { DeathAdvice } from '../tutorial/death.ts';
 import { professorDeathAdviceHtml } from '../tutorial/deathView.ts';
 import { PROFESSOR_SVG } from '../tutorial/professor.ts';
 import type { PadInput } from '../world/api.ts';
-import type { ContextAction, MorningSummary, RestInfo, Ui, UiCallbacks } from './api.ts';
+import type {
+  ContextAction,
+  MorningSummary,
+  RestInfo,
+  TerrainSource,
+  Ui,
+  UiCallbacks,
+} from './api.ts';
 import { SOUND_MODES } from './fx.ts';
 import { getLang, onLangChange, setLang, t, tPlain } from './i18n.ts';
 import { type MinigameOutcome, openMinigame } from './minigame.ts';
@@ -314,6 +321,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   const dialogs: Dialog[] = [];
   let saves: SaveSummary[] = [];
   let donkiEvents: DonkiEvent[] = [];
+  let terrainSource: TerrainSource | null = null;
   const buildOptions: { dustCover: boolean; shieldMaterial: 'regolith' | 'water' } = {
     dustCover: false,
     shieldMaterial: 'regolith',
@@ -1104,7 +1112,16 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <h3>${t('data.values')}</h3>
       ${sources === '' ? `<p class="ui-small">${t('data.valuesPending')}</p>` : `<ul class="ui-list">${sources}</ul>`}
       <h3>${t('data.terrainTitle')}</h3>
-      <p class="ui-small">${t('data.terrain')}</p>`;
+      ${
+        terrainSource === null
+          ? ''
+          : `<p class="ui-small">${t('data.terrain', {
+              name: esc(terrainSource.name),
+              crop: fmt(terrainSource.cropMeters),
+              scale: fmt(terrainSource.scale),
+            })}</p>
+      <ul class="ui-list"><li><a href="${esc(terrainSource.url)}" target="_blank" rel="noopener noreferrer">${esc(terrainSource.source)}</a></li><li class="ui-small">${esc(terrainSource.citation)}</li></ul>`
+      }`;
   };
 
   // ---- 休息フェーズの2D画面（ノート） ----
@@ -1810,6 +1827,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     notify: toast,
     setNasaImages(images) {
       nasaImages = images;
+    },
+    setTerrainSource(source) {
+      terrainSource = { ...source };
     },
     setDonkiEvents(events) {
       donkiEvents = [...events];

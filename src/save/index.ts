@@ -6,7 +6,8 @@ import type { SaveStore, SaveSummary } from './api.ts';
 const STORAGE_KEY = 'lunar-outpost-saves';
 // SimState の形を変えたら上げる。違う版のセーブは読まない
 // 2：日ごとの記録に commHours（通信できた時間）を足した
-const SAVE_VERSION = 3;
+// 4：地形を実データ（NASA PGDA の Site01）に変えた。前のセーブは別の地形の座標なので読まない
+const SAVE_VERSION = 4;
 const HOURS_PER_DAY = 24;
 
 interface StoredSave extends SaveSummary {
