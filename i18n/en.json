@@ -764,5 +764,6 @@
   "tutorial.collapseIcon": "▲",
   "tutorial.expandIcon": "▼",
   "tutorial.collapseLabel": "Fold Professor Luna's message",
-  "tutorial.expandLabel": "Open Professor Luna's message"
+  "tutorial.expandLabel": "Open Professor Luna's message",
+  "task.crewFixed": "A crew member did \"{task}\" for you. It counts as one report to Earth."
 }

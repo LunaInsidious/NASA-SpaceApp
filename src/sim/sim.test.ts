@@ -410,5 +410,8 @@ describe('sim', () => {
     expect(
       step({ ...reported, commLinked: true }, 0, env, [order], values, [], rng).state.launches,
     ).toHaveLength(1);
+    // 選んだ施設を隊員が先に直したとき（main が reportTask を送る）も、1回に数える
+    const report: SimCommand = { type: 'reportTask' };
+    expect(step(later, 0, env, [report], values, [], rng).state.tasksSinceLaunch).toBe(1);
   });
 });

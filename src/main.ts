@@ -148,7 +148,8 @@ let lastEventId: string | null = null;
 // くんれんの新しい段（インベントリ画面を開いた）
 let inventoryOpened = false;
 // 休息の画面で選んだ、次に外に出たときのタスク（選んだ順）と、今日外でこなすタスク
-let selectedTaskIds: string[] = [];
+// 休息の画面で選んだ翌日のタスク（選んだときの様子のまま。夜のうちに隊員が直しても、翌朝のタスクに残して数える）
+let selectedTasks: PlannedTask[] = [];
 let todayPlan: readonly PlannedTask[] = [];
 let menuPaused = false;
 let indoors = state.player.indoors;
@@ -237,13 +238,16 @@ const ui = createUi(
     },
     onContextAction: doAction,
     onTaskToggle: (taskId) => {
-      selectedTaskIds = selectedTaskIds.includes(taskId)
-        ? selectedTaskIds.filter((id) => id !== taskId)
-        : [...selectedTaskIds, taskId];
-      const chosen = currentCandidates().find((task) => task.id === taskId);
-      if (chosen !== undefined) {
-        help.learn(taskDef(taskDefs, chosen.kind).terms, true);
+      if (selectedTasks.some((task) => task.id === taskId)) {
+        selectedTasks = selectedTasks.filter((task) => task.id !== taskId);
+        return;
       }
+      const chosen = currentCandidates().find((task) => task.id === taskId);
+      if (chosen === undefined) {
+        throw new Error(`選んだタスク ${taskId} が候補にない`);
+      }
+      selectedTasks = [...selectedTasks, chosen];
+      help.learn(taskDef(taskDefs, chosen.kind).terms, true);
     },
     onOpenDictionary: () => help.open(),
     soundMode: () => fx.soundMode(),
@@ -404,7 +408,7 @@ function startFrom(next: SimState, fromSave: boolean): void {
   dayLog = [];
   restReason = null;
   queuedOrder = null;
-  selectedTaskIds = [];
+  selectedTasks = [];
   todayPlan = [];
   ui.stopMinigame();
   pending.length = 0;
@@ -509,11 +513,9 @@ function doAction(action: ContextAction): void {
       wentOutToday = true;
       tankWarnings = 0;
       // 新しく選んだタスクがあれば、それを今日のタスクにする（なければ、さっきの続き）
-      if (selectedTaskIds.length > 0) {
-        todayPlan = selectedTaskIds.flatMap((id) =>
-          currentCandidates().filter((task) => task.id === id),
-        );
-        selectedTaskIds = [];
+      if (selectedTasks.length > 0) {
+        todayPlan = selectedTasks;
+        selectedTasks = [];
       }
       fx.sound('door');
       // 居住モジュールの真ん中（倒れたあと、退避したあと）にいると、ドームの中に隠れてしまう。ドアの前に出す
@@ -647,7 +649,7 @@ function restInfo(): RestInfo | null {
       id: task.id,
       label: taskLabel(task),
       meters: Math.round(Math.hypot(task.x - home.x, task.z - home.z)),
-      selected: selectedTaskIds.includes(task.id),
+      selected: selectedTasks.some((selected) => selected.id === task.id),
     })),
   };
 }
@@ -982,7 +984,7 @@ function updateTutorial(): void {
     inventoryOpen: ui.isInventoryOpen(),
     windowOpen: ui.isMenuOpen(),
     inventoryOpened,
-    tasksSelected: selectedTaskIds.length + todayPlan.length,
+    tasksSelected: selectedTasks.length + todayPlan.length,
     orderQueued: queuedOrder !== null,
   });
   if (tutorial.takeFlareDrillRequest()) {
@@ -1271,8 +1273,14 @@ engine.runRenderLoop(() => {
   if (ui.isInventoryOpen()) {
     inventoryOpened = true;
   }
-  // 隊員が直した・その場で直したなど、もう要らなくなったタスクには印をつける
-  todayPlan = settleTasks(todayPlan, state, values);
+  // 隊員が直した・その場で直したなど、もう要らなくなったタスクには印をつける。
+  // 隊員が先に直した点検は、プレイヤーがこなしたのと同じに地球への報告に数える
+  const settled = settleTasks(todayPlan, state, values);
+  todayPlan = settled.plan;
+  for (const task of settled.crewFixed) {
+    pending.push({ type: 'reportTask' });
+    ui.notify(t('task.crewFixed', { task: taskLabel(task) }), false);
+  }
   ui.setTaskList(todayPlan.map((task) => ({ label: taskLabel(task), done: task.done })));
   const actionsKey = actions.join(',');
   if (actionsKey !== lastActionsKey) {
