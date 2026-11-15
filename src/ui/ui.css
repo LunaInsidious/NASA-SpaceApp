@@ -830,7 +830,8 @@
 
 .ui-why:hover + .ui-why-tip,
 .ui-why:focus-visible + .ui-why-tip,
-.ui-why:focus + .ui-why-tip {
+.ui-why:focus + .ui-why-tip,
+.ui-why.open + .ui-why-tip {
   display: block;
 }
 
@@ -2449,4 +2450,39 @@ body.nb-open .advice-card {
 /* メニューの「タイトルに戻る」：ほかの項目と同じ大きさで、横いっぱいに（見つけやすく） */
 .ui-root .ui-menu-grid button.ui-menu-title {
   grid-column: 1 / -1;
+}
+
+/* 中身だけを並べる入れ物（今日のタスクの欄。ゲージと同じ並びに入れる） */
+.ui-contents {
+  display: contents;
+}
+
+/* ゲージの「？」：右の端に小さく。説明はゲージの上に出す（PC はゲージが左下にあるので） */
+.ui-gauge {
+  position: relative;
+}
+
+.ui-root .ui-gauge button.ui-why {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-left: 0;
+  font-size: 12px;
+}
+
+.ui-root .ui-gauge .ui-why-tip {
+  top: auto;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  margin: 0 0 4px;
+}
+
+/* スマホ・タブレットはゲージが左上なので、説明はゲージの下に出す */
+@media (max-width: 640px), (pointer: coarse) {
+  .ui-root .ui-gauge .ui-why-tip {
+    top: 100%;
+    bottom: auto;
+    margin: 4px 0 0;
+  }
 }

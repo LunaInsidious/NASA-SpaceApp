@@ -98,7 +98,8 @@ const DOSE_WARN_RATIO = 0.5; // 被ばくが上限のこの割合を超えたら
 const DOSE_DANGER_RATIO = 0.8; // 被ばくのゲージを赤くする（表示だけ）
 const LIFE_WARN_DAYS = 14; // 生命維持のゲージを黄色にする（表示だけ）
 // いつも見せるゲージの種類と色
-type GaugeKey = 'tank' | 'life' | 'power' | 'dose';
+const GAUGE_KEYS = ['tank', 'life', 'power', 'dose'] as const;
+type GaugeKey = (typeof GAUGE_KEYS)[number];
 type GaugeLevel = 'ok' | 'warn' | 'danger';
 const KNOB_TRAVEL = 0.6; // パッドのつまみが動ける範囲（半径に対する割合）
 const ISO_DATE_LENGTH = 10;
@@ -566,7 +567,11 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     if (value === null) {
       return;
     }
+    value.classList.remove('ui-pop');
+    // 付け直して、もう一度弾ませる（ゲージは作り直さないので、終わったら外す）
+    void value.offsetWidth;
     value.classList.add('ui-pop');
+    value.addEventListener('animationend', () => value.classList.remove('ui-pop'), { once: true });
     const rect = value.getBoundingClientRect();
     const pop = document.createElement('div');
     pop.className = 'ui-gain';
@@ -674,37 +679,72 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
 
   /**
    * いつも見せるゲージ（アイコンと横のバー）：ボンベ・生命維持・電力・被ばく。数字は出さない。
-   * 色は ok（緑）・warn（黄）・danger（赤）。アイコンにマウスを重ねると意味を出す
+   * 色は ok（緑）・warn（黄）・danger（赤）。右の「？」にマウスを重ねるか押すと、今の数と意味を出す。
+   * HUD は時間が進むたびに描き直すので、ゲージは1回だけ作り、数・色・説明だけを変える（開いた説明が消えないように）
    */
-  const gaugesHtml = (current: SimState, currentView: SimView, tankLevel: GaugeLevel) => {
-    const gauge = (key: GaugeKey, ratio: number, value: string, level: GaugeLevel) => {
-      const pct = Math.round(Math.min(1, Math.max(0, ratio)) * PERCENT);
-      // 数字は出さず、ゲージだけ。数字はアイコンにマウスを重ねたときの説明に入れる
-      return `<div class="ui-gauge ui-gauge-${key} ui-gauge-${level}" title="${tPlain('gauge.title', { name: tPlain(`gauge.${key}`), value })}">
+  const tasksEl = document.createElement('div');
+  tasksEl.className = 'ui-contents';
+  const gaugesEl = document.createElement('div');
+  hudTankEl.append(tasksEl, gaugesEl);
+  let gaugesLang: string | null = null;
+  const buildGauges = () => {
+    gaugesEl.innerHTML = GAUGE_KEYS.map(
+      (key) => `<div class="ui-gauge ui-gauge-${key}" data-gauge="${key}">
         <span class="ui-gauge-icon" aria-hidden="true">${t(`gauge.icon.${key}`)}</span>
-        <span class="ui-gauge-bar" role="meter" aria-label="${tPlain(`gauge.${key}`)}" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><span style="width:${pct}%"></span></span>
-      </div>`;
+        <span class="ui-gauge-bar" role="meter" aria-label="${tPlain(`gauge.${key}`)}" aria-valuemin="0" aria-valuemax="100"><span></span></span>
+        <button type="button" class="ui-why" aria-label="${tPlain('gauge.whyLabel', { name: tPlain(`gauge.name.${key}`) })}">?</button>
+        <span class="ui-why-tip" role="tooltip"></span>
+      </div>`,
+    ).join('');
+    gaugesLang = getLang();
+  };
+  const gaugePart = (row: Element, selector: string): HTMLElement => {
+    const el = row.querySelector<HTMLElement>(selector);
+    if (el === null) {
+      throw new Error(`ゲージに ${selector} がない`);
+    }
+    return el;
+  };
+  const renderGauges = (current: SimState, currentView: SimView, tankLevel: GaugeLevel) => {
+    if (gaugesLang !== getLang()) {
+      buildGauges();
+    }
+    gaugesEl.className = `ui-panel ui-gauges ui-tank ui-tank-${tankLevel} ${current.player.indoors ? 'indoors' : ''}`;
+    const gauge = (key: GaugeKey, ratio: number, now: string, level: GaugeLevel) => {
+      const row = gaugesEl.querySelector(`[data-gauge="${key}"]`);
+      if (row === null) {
+        throw new Error(`ゲージ ${key} がない`);
+      }
+      const pct = Math.round(Math.min(1, Math.max(0, ratio)) * PERCENT);
+      row.className = `ui-gauge ui-gauge-${key} ui-gauge-${level}`;
+      const bar = gaugePart(row, '.ui-gauge-bar');
+      bar.setAttribute('aria-valuenow', String(pct));
+      gaugePart(bar, 'span').style.width = `${pct}%`;
+      // 説明：名前・今の数・意味（変わったときだけ書き換える）
+      const tip = gaugePart(row, '.ui-why-tip');
+      const html = `<b>${t(`gauge.name.${key}`)}</b><br>${now}<br>${t(`gauge.help.${key}`)}`;
+      if (tip.dataset.html !== html) {
+        tip.innerHTML = html;
+        tip.dataset.html = html;
+      }
     };
     // ボンベ：中では満タンに戻る。外では、あと何時間何分いられるか
     const left = timeLeft(currentView.tankRatio);
-    const tank = gauge(
+    gauge(
       'tank',
       currentView.tankRatio,
       current.player.indoors
-        ? tPlain('gauge.inside')
-        : tPlain('gauge.time', {
-            hours: left.hours,
-            minutes: String(left.minutes).padStart(2, '0'),
-          }),
+        ? t('gauge.now.tankInside')
+        : t('gauge.now.tank', { hours: left.hours, minutes: left.minutes }),
       current.player.indoors ? 'ok' : tankLevel,
     );
     // 生命維持：酸素・水・食料のうち、いちばん早くなくなるものが、あと何日もつか
     const days = currentView.lifeSupportDays.min;
     const steady = days >= values.display.maxLifeSupportDays.value;
-    const life = gauge(
+    gauge(
       'life',
       steady ? 1 : days / values.display.lifeGaugeFullDays.value,
-      steady ? tPlain('gauge.steady') : tPlain('gauge.days', { days: fmt(days) }),
+      steady ? t('gauge.now.lifeSteady') : t('gauge.now.life', { days: fmt(days) }),
       days < LOW_DAYS ? 'danger' : days < LIFE_WARN_DAYS ? 'warn' : 'ok',
     );
     // 電力：蓄電池があればたまり具合。なければ、作る電気が使う電気にどれだけ足りているか
@@ -721,27 +761,40 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         : demandKw > 0
           ? power.generationKw / demandKw
           : 1;
-    const powerGauge = gauge(
+    const trend = t(
+      Math.abs(net) < POWER_EVEN_KW
+        ? 'gauge.trend.even'
+        : net > 0
+          ? 'gauge.trend.up'
+          : 'gauge.trend.down',
+    );
+    gauge(
       'power',
       powerRatio,
-      Math.abs(net) < POWER_EVEN_KW ? '±' : net > 0 ? '▲' : '▼',
+      power.batteryCapacityKwh > 0
+        ? t('gauge.now.power', { pct: fmt(powerRatio * PERCENT), trend })
+        : t('gauge.now.powerNoBattery', { pct: fmt(Math.min(1, powerRatio) * PERCENT), trend }),
       stoppedNeedKw > 0 ? 'danger' : net < -POWER_EVEN_KW ? 'warn' : 'ok',
     );
     // 被ばく：これまでに浴びた量が、上限のどれだけか
     const doseRatio = currentView.shielding.playerDoseMsv / currentView.shielding.doseLimitMsv;
-    const dose = gauge(
+    gauge(
       'dose',
       doseRatio,
-      `${fmt(doseRatio * PERCENT)}%`,
+      t('gauge.now.dose', {
+        msv: fmt(currentView.shielding.playerDoseMsv, 1),
+        limit: fmt(currentView.shielding.doseLimitMsv),
+        pct: fmt(doseRatio * PERCENT),
+      }),
       doseRatio >= DOSE_DANGER_RATIO ? 'danger' : doseRatio >= DOSE_WARN_RATIO ? 'warn' : 'ok',
     );
-    return `<div class="ui-panel ui-gauges ui-tank ui-tank-${tankLevel} ${current.player.indoors ? 'indoors' : ''}">${tank}${life}${powerGauge}${dose}</div>`;
   };
 
   const renderHud = () => {
     if (state === null || view === null) {
       hudEl.innerHTML = '';
-      hudTankEl.innerHTML = '';
+      tasksEl.innerHTML = '';
+      gaugesEl.hidden = true;
       return;
     }
     const life = view.lifeSupportDays;
@@ -751,7 +804,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         : view.tankRatio < TANK_WARN_RATIO
           ? 'warn'
           : 'ok';
-    hudTankEl.innerHTML = `
+    tasksEl.innerHTML = `
       ${
         !state.player.indoors && taskList.length > 0
           ? `<div class="ui-panel ui-tasks"><div class="ui-label">${t('tasks.today')}</div>${taskList
@@ -761,8 +814,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
               )
               .join('')}</div>`
           : ''
-      }
-      ${gaugesHtml(state, view, tankLevel)}`;
+      }`;
+    gaugesEl.hidden = false;
+    renderGauges(state, view, tankLevel);
     hudEl.innerHTML = detailPanelsHtml(state, view);
     const maxDays = values.display.maxLifeSupportDays.value;
     if (
@@ -1820,6 +1874,18 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         break;
       }
     }
+  });
+
+  // 「？」：PC はマウスを重ねると、スマホは押すと説明が出る（もう一度押すか、ほかの場所を押すと閉じる）。
+  // 押したあとはボタンからフォーカスが外れる（main.ts）ので、開いているかは open で持つ
+  document.addEventListener('pointerdown', (e) => {
+    const why = e.target instanceof Element ? e.target.closest('.ui-why') : null;
+    for (const open of root.querySelectorAll('.ui-why.open')) {
+      if (open !== why) {
+        open.classList.remove('open');
+      }
+    }
+    why?.classList.toggle('open');
   });
 
   // HUD は時間が進むたびに描き直すので、押した瞬間に反応させる
