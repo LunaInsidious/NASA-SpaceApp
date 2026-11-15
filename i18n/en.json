@@ -231,7 +231,6 @@
   "data.eventLine": "{strength} · {date}",
   "data.donkiLink": "Open in DONKI",
   "data.values": "Reference materials",
-  "data.valuesPending": "The sources for the game's numbers are still being checked.",
   "data.terrainTitle": "Terrain",
   "data.terrain": "The terrain is real NASA data from the lunar south pole ({name}). A real {crop} m square is shrunk to 1/{scale} both across and in height (slopes and shadow shapes stay as they really are). Distances on screen are converted back to real lengths.",
   "achievement.solarInShadow": "Solar panel in the shadow",
@@ -823,5 +822,6 @@
   "monitor.crew": "👩‍🚀 Crew jobs",
   "monitor.tasks": "📋 Tomorrow's tasks",
   "monitor.details": "📊 Details (supplies, power, development)",
-  "notebook.doFirst.monitor": "Decide it on the control monitor to go on to the next morning"
+  "notebook.doFirst.monitor": "Decide it on the control monitor to go on to the next morning",
+  "data.valuesGameTuning": "The other {count} numbers are set to make the game fun to play (game tuning values). Some differ from the real world."
 }
