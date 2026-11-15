@@ -998,5 +998,9 @@
   "story.feeling.excited": "You were full of energy from the start. Use that energy to grow your Moon base.",
   "story.feeling.nervous": "You were nervous at first, and now you are a real crew member.",
   "tutorial.locked.buildDone": "You already built it! Building just what Professor Luna asks for is enough. Save your materials for later.",
-  "tutorial.locked.orderMax": "During training, order just what Professor Luna asks for (one Food and one New crew member)."
+  "tutorial.locked.orderMax": "During training, order just what Professor Luna asks for (one Food and one New crew member).",
+  "data.imagesTitle": "Photos and images we use",
+  "data.imagesNote": "Real NASA photos shown on fact cards and when you build, and the image of Earth in the sky.",
+  "data.imageLink": "See it in the NASA Image Library",
+  "data.textureLink": "See the original page"
 }

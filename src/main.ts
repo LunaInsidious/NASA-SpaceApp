@@ -7,6 +7,7 @@ import donkiJson from '../data/donki-events.json';
 import missionsJson from '../data/missions.json';
 import nasaImagesJson from '../data/nasa-images.json';
 import tasksJson from '../data/tasks.json';
+import texturesJson from '../data/textures.json';
 import valuesJson from '../data/values.json';
 import { type Card, createCardStore, parseCards } from './cards/index.ts';
 import { cardsHtml } from './cards/view.ts';
@@ -61,7 +62,7 @@ import type { ContextAction, MorningSummary, NightReportView, RestInfo } from '.
 import { createFx } from './ui/fx.ts';
 import { onLangChange, t, tPlain } from './ui/i18n.ts';
 import { createUi } from './ui/index.ts';
-import { createPhotoCard, parseNasaImages } from './ui/photo.ts';
+import { createPhotoCard, parseNasaImages, parseTextureSources } from './ui/photo.ts';
 import { createWorld } from './world/index.ts';
 import './style.css';
 
@@ -349,6 +350,7 @@ ui.setDonkiEvents(timeline);
 ui.setTerrainSource(site);
 const nasaImages = parseNasaImages(nasaImagesJson);
 ui.setNasaImages(nasaImages);
+ui.setTextureSources(parseTextureSources(texturesJson));
 const photoCard = createPhotoCard(document.body, nasaImages);
 // スマホでは博士の吹き出しの下に並べる（PC ではそれぞれの場所に出る）
 const adviceCard = createAdviceCard(tutorial.guideStack, (menu) => ui.openMenu(menu));

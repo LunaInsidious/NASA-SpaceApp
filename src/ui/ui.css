@@ -2592,3 +2592,18 @@ body.nb-open .advice-card {
     display: block;
   }
 }
+
+/* データの窓の、使っている写真と画像：小さな絵と、題・クレジット・元のページ */
+.ui-list.ui-image-sources > li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ui-list.ui-image-sources img {
+  flex: none;
+  width: 72px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+}

@@ -1,7 +1,9 @@
+import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import achievements from '../data/achievements.json';
 import missions from '../data/missions.json';
 import nasaImages from '../data/nasa-images.json';
+import textures from '../data/textures.json';
 import values from '../data/values.json';
 import en from '../i18n/en.json';
 import ja from '../i18n/ja.json';
@@ -18,7 +20,7 @@ import {
 } from '../src/tutorial/index.ts';
 import { stripRuby } from '../src/ui/i18n.ts';
 import { realValueEntries } from '../src/ui/index.ts';
-import { parseNasaImages } from '../src/ui/photo.ts';
+import { parseNasaImages, parseTextureSources } from '../src/ui/photo.ts';
 
 function isValueEntry(node: object): node is ValueEntry {
   const { value, unit, source, url, ...rest } = node as Record<string, unknown>;
@@ -210,5 +212,14 @@ describe('ふりがな', () => {
       expect(keys.filter((key) => !(key in lang))).toEqual([]);
     }
     expect(STORY_STEPS.every((step) => STEPS.includes(step))).toBe(true);
+  });
+
+  it('データの窓に出す画像（data/textures.json）の形が正しく、ファイルが public/ にある', () => {
+    const sources = parseTextureSources(textures);
+    expect(sources.length).toBeGreaterThan(0);
+    for (const source of sources) {
+      expect(existsSync(`public/${source.file}`), source.file).toBe(true);
+      expect(source.url).toMatch(/^https:\/\//);
+    }
   });
 });

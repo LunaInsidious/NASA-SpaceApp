@@ -17,6 +17,38 @@ export type NasaImages = Record<string, NasaImage>;
 
 const PHOTO_MS = 9000;
 
+/** ゲームで使っている画像（地球のテクスチャなど）の出典。data/textures.json */
+export interface TextureSource {
+  id: string;
+  /** public/ の中のファイル */
+  file: string;
+  titleEn: string;
+  titleJa: string;
+  credit: string;
+  url: string;
+}
+
+/** data/textures.json の形を確かめる。形が違えば止める */
+export function parseTextureSources(json: unknown): TextureSource[] {
+  if (!Array.isArray(json)) {
+    throw new Error('data/textures.json が配列ではない');
+  }
+  return json.map((entry: Record<string, unknown>, i) => {
+    const { id, file, titleEn, titleJa, credit, url } = entry;
+    if (
+      typeof id !== 'string' ||
+      typeof file !== 'string' ||
+      typeof titleEn !== 'string' ||
+      typeof titleJa !== 'string' ||
+      typeof credit !== 'string' ||
+      typeof url !== 'string'
+    ) {
+      throw new Error(`data/textures.json の ${i} 件目の形が違う`);
+    }
+    return { id, file, titleEn, titleJa, credit, url };
+  });
+}
+
 /** data/nasa-images.json の形を確かめる。形が違えば止める */
 export function parseNasaImages(json: unknown): NasaImages {
   if (typeof json !== 'object' || json === null || Array.isArray(json)) {

@@ -15,7 +15,7 @@ import type { MinigameKind } from '../tasks/minigame.ts';
 import type { DeathAdvice } from '../tutorial/death.ts';
 import type { PadInput } from '../world/api.ts';
 import type { SoundMode } from './fx.ts';
-import type { NasaImages } from './photo.ts';
+import type { NasaImages, TextureSource } from './photo.ts';
 
 /** その場でできること。E キー（スマホではボタン）で先頭のものを行う */
 export type ContextAction =
@@ -178,6 +178,8 @@ export interface Ui {
   setDonkiEvents(events: DonkiEvent[]): void;
   /** データ出典の窓に出す、地形の元のデータ（public/terrain/<地点>/site.json）。起動時に main が1回呼ぶ */
   setTerrainSource(source: TerrainSource): void;
+  /** データの窓に出す、ゲームで使っている画像（地球のテクスチャなど）の出典。起動時に main が1回呼ぶ */
+  setTextureSources(sources: TextureSource[]): void;
   /** NASA の本物の写真（data/nasa-images.json）。太陽フレアの警報に出す。起動時に main が1回呼ぶ */
   setNasaImages(images: NasaImages): void;
   closeMenus(): void;
