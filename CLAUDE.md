@@ -4,7 +4,7 @@ NASA Space Apps Challenge 2026「Build a Junior Astronaut Mission Trainer」に�
 
 ## 共通ルール（docs/SPEC.md から写したもの）
 
-1. ゲーム内の数値は `data/values.json` からだけ読む。数値を自分で考えたり、コードに直接書いたりしない。値がなければ仮の値を入れ、`"source": "TBD"` と書く
+1. ゲーム内の数値は `data/values.json` からだけ読む。数値を自分で考えたり、コードに直接書いたりしない。出典は、本物の資料（名前と `url`）か、`"ゲームの調整値：理由"`（本物の答えがない値。本物と違う値にしたときは「実際は〜」と資料も書く）のどちらか。`"TBD"` や「仮の値」は使わない（2026-11-15 人間の判断で仕様から変更。`tests/data.test.ts` で確かめる）
 2. 画面に出る文言は `i18n/en.json` と `i18n/ja.json` からだけ読む。文言をコードに直接書かない
 3. シミュレーション（`src/sim/`）はBabylon.jsもDOMも使わない純粋なTypeScriptにする。変更したら `pnpm test` を通す
 4. 型定義（`src/contracts/`）は勝手に変えない。変える必要があれば、PRの説明に理由を書いて人間に確認を求める

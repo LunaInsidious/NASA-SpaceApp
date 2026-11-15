@@ -47,6 +47,23 @@ describe('data/values.json', () => {
   it('すべての値が { value, unit, source, url? } の形をしている', () => {
     expect(findInvalidEntries(values, '')).toEqual([]);
   });
+
+  it('出典が決まっていない値（TBD・仮の値）がない。本物の資料か、ゲームの調整値と書く', () => {
+    const pending: string[] = [];
+    const walk = (node: unknown, path: string) => {
+      if (typeof node !== 'object' || node === null) return;
+      if ('value' in node) {
+        const { source } = node as unknown as { source: string };
+        if (/TBD|仮の/.test(source)) pending.push(`${path}: ${source}`);
+        return;
+      }
+      for (const [key, child] of Object.entries(node)) {
+        walk(child, path === '' ? key : `${path}.${key}`);
+      }
+    };
+    walk(values, '');
+    expect(pending).toEqual([]);
+  });
 });
 
 describe('i18n', () => {

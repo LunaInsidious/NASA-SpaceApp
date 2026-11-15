@@ -240,11 +240,19 @@ function bar(ratio: number, extraClass: string): string {
   return `<div class="ui-bar ${extraClass} ${low}"><div style="width:${fmt(clamped * PERCENT)}%"></div></div>`;
 }
 
+/** ゲームとして決めた値（本物の答えがない値）の出典の書き出し。data/values.json の source がこれで始まる */
+export const GAME_TUNING_SOURCE_PREFIX = 'ゲームの調整値';
+
 /**
- * values をたどり、確かめられた出典（"TBD" でも "docs/SPEC.md" で始まるものでもない）を重複なしで集める。
+ * values をたどり、本物の資料の出典（ゲームの調整値でも docs/SPEC.md でもない）を重複なしで集める。
+ * gameTuning はゲームの調整値・docs/SPEC.md で決めた値の数。
  * 値の形は tests/data.test.ts が確かめているので、形が違えば作りの誤りとして例外にする
  */
-function collectValueSources(values: Values): { source: string; url: string | undefined }[] {
+function collectValueSources(values: Values): {
+  sources: { source: string; url: string | undefined }[];
+  gameTuning: number;
+} {
+  let gameTuning = 0;
   const found = new Map<string, { source: string; url: string | undefined }>();
   const walk = (node: unknown) => {
     if (typeof node !== 'object' || node === null) {
@@ -255,7 +263,9 @@ function collectValueSources(values: Values): { source: string; url: string | un
       if (typeof source !== 'string' || (url !== undefined && typeof url !== 'string')) {
         throw new Error('values の出典の形が違う');
       }
-      if (source !== 'TBD' && !source.startsWith('docs/SPEC.md')) {
+      if (source.startsWith(GAME_TUNING_SOURCE_PREFIX) || source.startsWith('docs/SPEC.md')) {
+        gameTuning++;
+      } else {
         found.set(`${source}\n${url ?? ''}`, { source, url });
       }
       return;
@@ -265,7 +275,7 @@ function collectValueSources(values: Values): { source: string; url: string | un
     }
   };
   walk(values);
-  return [...found.values()];
+  return { sources: [...found.values()], gameTuning };
 }
 
 export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Values): Ui {
@@ -1105,7 +1115,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         </li>`,
       )
       .join('');
-    const sources = collectValueSources(values)
+    const collected = collectValueSources(values);
+    const sources = collected.sources
       .map(
         ({ source, url }) =>
           `<li>${url === undefined ? esc(source) : `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(source)}</a>`}</li>`,
@@ -1119,7 +1130,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <h3>${t('source.title')}</h3>
       ${SOURCE_SECTIONS.map((section) => `<h4>${t(`source.section.${section}`)}</h4>${sourceListHtml(values, section)}`).join('')}
       <h3>${t('data.values')}</h3>
-      ${sources === '' ? `<p class="ui-small">${t('data.valuesPending')}</p>` : `<ul class="ui-list">${sources}</ul>`}
+      <ul class="ui-list">${sources}</ul>
+      <p class="ui-small">${t('data.valuesGameTuning', { count: fmt(collected.gameTuning) })}</p>
       <h3>${t('data.terrainTitle')}</h3>
       ${
         terrainSource === null
