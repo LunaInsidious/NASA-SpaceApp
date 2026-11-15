@@ -73,6 +73,9 @@ export function createHelp(
   });
   window.addEventListener('keydown', (e) => {
     if (open && e.key === 'Escape') {
+      // ことばじてんだけを閉じる（下にあるメニューの窓まで閉じないように、main の Esc には渡さない。
+      // ことばじてんは main より先に作るので、この受け取りが先に動く）
+      e.stopImmediatePropagation();
       closeHelp();
     }
   });
