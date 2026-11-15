@@ -408,6 +408,22 @@ export function createTutorial(
   let typing: Typing | null = null;
   // いま出している（出し終えた）文の段。同じ段を描き直すときは、1文字ずつ出し直さない
   let typedKey = '';
+  // 吹き出しを見出しの1行にたたんでいるか（3D の場面を見たいとき）。新しい段では、ひらき直す
+  let collapsed = false;
+  const setCollapsed = (value: boolean) => {
+    collapsed = value;
+    panel.classList.toggle('tutorial-collapsed', collapsed);
+    for (const toggle of panel.querySelectorAll<HTMLButtonElement>('.tutorial-collapse')) {
+      renderCollapseButton(toggle);
+    }
+  };
+  const renderCollapseButton = (toggle: HTMLButtonElement) => {
+    toggle.innerHTML = t(collapsed ? 'tutorial.expandIcon' : 'tutorial.collapseIcon');
+    const label = tPlain(collapsed ? 'tutorial.expandLabel' : 'tutorial.collapseLabel');
+    toggle.title = label;
+    toggle.setAttribute('aria-label', label);
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+  };
   // ミッションのパネルを閉じたあと、また開くための小さなボタン（記号だけ）
   let panelClosed = false;
   const reopen = document.createElement('button');
@@ -640,6 +656,7 @@ export function createTutorial(
     }
     typing?.finish();
     typedKey = key;
+    setCollapsed(false);
     panel.classList.add('speaking');
     typing = typeText(elements, () => {
       panel.classList.remove('speaking');
@@ -671,7 +688,9 @@ export function createTutorial(
     short.innerHTML = t('tutorial.rereadShort');
     reread.append(long, short);
     reread.setAttribute('aria-label', tPlain('tutorial.reread'));
-    head.append(title, progress, reread);
+    const toggle = button('', 'tutorial-collapse', () => setCollapsed(!collapsed));
+    renderCollapseButton(toggle);
+    head.append(title, progress, reread, toggle);
     return head;
   }
 

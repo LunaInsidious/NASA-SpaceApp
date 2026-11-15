@@ -760,5 +760,9 @@
   "menu.data": "📊 Data",
   "menu.language": "🌐 Language",
   "menu.new": "NEW",
-  "tutorial.more": "▼ More below"
+  "tutorial.more": "▼ More below",
+  "tutorial.collapseIcon": "▲",
+  "tutorial.expandIcon": "▼",
+  "tutorial.collapseLabel": "Fold Professor Luna's message",
+  "tutorial.expandLabel": "Open Professor Luna's message"
 }

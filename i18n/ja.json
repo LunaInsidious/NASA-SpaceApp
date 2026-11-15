@@ -760,5 +760,9 @@
   "menu.data": "📊 データ",
   "menu.language": "🌐 ことば（Language）",
   "menu.new": "NEW",
-  "tutorial.more": "▼ ｜続《つづ》きが あるよ"
+  "tutorial.more": "▼ ｜続《つづ》きが あるよ",
+  "tutorial.collapseIcon": "▲",
+  "tutorial.expandIcon": "▼",
+  "tutorial.collapseLabel": "ルナ｜博士《はかせ》の お｜話《はなし》を たたむ",
+  "tutorial.expandLabel": "ルナ｜博士《はかせ》の お｜話《はなし》を ひらく"
 }

@@ -884,7 +884,6 @@ body[data-tutorial-step="comm"] .ui-status::before {
   }
 
   .tutorial.tutorial-compact .tutorial-professor,
-  .tutorial.tutorial-compact .tutorial-head,
   .tutorial.tutorial-compact .tutorial-why,
   .tutorial.tutorial-compact .tutorial-label,
   .tutorial.tutorial-compact .tutorial-frozen,
@@ -894,5 +893,34 @@ body[data-tutorial-step="comm"] .ui-status::before {
 
   .tutorial.tutorial-compact .tutorial-text {
     margin: 0;
+  }
+}
+
+/* たたんだ吹き出し：見出しの1行（くんれん 4/30・読み直す・ひらく）だけ */
+.tutorial.tutorial-collapsed > :not(.tutorial-head) {
+  display: none;
+}
+
+.tutorial .tutorial-collapse {
+  min-width: 34px;
+  padding: 2px 8px;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .tutorial.tutorial-collapsed .tutorial-head {
+    padding-left: 0;
+    min-height: 0;
+  }
+
+  /* 置く場所を選んでいる間も、見出しの1行は残す（たためるように）。博士の顔はなし */
+  .tutorial.tutorial-compact {
+    max-height: 22vh;
+  }
+
+  .tutorial.tutorial-compact .tutorial-head {
+    display: flex;
+    padding-left: 0;
+    min-height: 0;
   }
 }
