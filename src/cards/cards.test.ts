@@ -5,6 +5,7 @@ import valuesJson from '../../data/values.json';
 import en from '../../i18n/en.json';
 import ja from '../../i18n/ja.json';
 import { createInitialState } from '../sim/index.ts';
+import { realValueEntries } from '../ui/index.ts';
 import { createCardStore, parseCards } from './index.ts';
 
 const cards = parseCards(cardsJson, Object.keys(nasaImagesJson));
@@ -29,6 +30,33 @@ describe('豆知識カード', () => {
     expect(first.map((card) => card.id)).toEqual(['evaHours']);
     expect(store.unlock('firstRest')).toEqual([]);
     expect(store.list().filter((entry) => entry.owned)).toHaveLength(1);
+  });
+
+  it('カードの本物のデータは values.json にあり、本物の資料（url つき）で、名前と単位の言葉があり、データの窓にも出る', () => {
+    const inDataWindow = realValueEntries(valuesJson).map(({ path }) => path);
+    for (const card of cards) {
+      for (const path of card.values) {
+        const entry = path
+          .split('.')
+          .reduce<unknown>((node, key) => (node as Record<string, unknown>)?.[key], valuesJson) as
+          | { unit: string; source: string; url?: string }
+          | undefined;
+        expect(entry, `${card.id}: ${path}`).toBeDefined();
+        expect(entry?.url, `${card.id}: ${path}`).toMatch(/^https:\/\//);
+        expect(entry?.source.startsWith('ゲームの調整値'), `${card.id}: ${path}`).toBe(false);
+        for (const lang of [ja, en]) {
+          expect(Object.keys(lang), path).toContain(`valueName.${path}`);
+          if (entry?.unit !== 'ratio') {
+            expect(Object.keys(lang), path).toContain(`unit.${entry?.unit}`);
+          }
+        }
+        expect(inDataWindow, `${card.id}: ${path}`).toContain(path);
+      }
+    }
+    // データが主役のカードは、本物のデータを1つ以上持つ
+    for (const id of ['gravity', 'sleep', 'dailyNeeds', 'commDelay', 'moonRadiation']) {
+      expect(cards.find((card) => card.id === id)?.values.length, id).toBeGreaterThan(0);
+    }
   });
 
   it('写真のキーが data/nasa-images.json にないカードは読み込めない', () => {

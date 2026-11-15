@@ -23,7 +23,7 @@ import type {
   SimState,
   Values,
 } from './contracts/index.ts';
-import { createTerrainEnv, terrainFromSite } from './env/index.ts';
+import { createTerrainEnv, outerFromSite, terrainFromSite } from './env/index.ts';
 import { parseSite } from './env/site.ts';
 import { createHelp } from './help/index.ts';
 import { asHelpTerm } from './help/terms.ts';
@@ -73,6 +73,11 @@ const SITE_DIR = `${import.meta.env.BASE_URL}terrain/site01/`;
 // 足音を鳴らす間隔（歩いた距離、m）。見た目と音だけの値
 const STEP_SOUND_METERS = 1.6;
 const MINUTES_PER_HOUR = 60;
+// 歩く範囲の端で「これ以上は行けない」を出す間隔（ミリ秒。見せ方の値）
+const MAP_EDGE_NOTICE_MS = 4000;
+let lastMapEdgeNotice = Number.NEGATIVE_INFINITY;
+// 着陸のほこりで傷んだと知らせる傷みの大きさ（1% 以上。知らせるかどうかだけの、見せ方の値）
+const LANDING_DUST_NOTICE = 0.01;
 // 朝の窓に出す物資（増減があったものだけ）
 const MORNING_STOCKS = ['oxygen', 'water', 'food', 'spareParts', 'materials'] as const;
 // 休むときに1つずつ順に見せる、休む理由（文言は rest.reason.<キー>、数は values.json）
@@ -131,15 +136,20 @@ async function fetchOk(url: string): Promise<Response> {
   return response;
 }
 const site = parseSite(await (await fetchOk(`${SITE_DIR}site.json`)).json());
-const env = createTerrainEnv(
-  terrainFromSite(site, await (await fetchOk(`${SITE_DIR}${site.heightFile}`)).arrayBuffer()),
-  values,
+// 歩く範囲と、まわりの見えるだけの地形は、同時に読む
+const [heightData, outerData] = await Promise.all(
+  [site.heightFile, site.outerHeightFile].map(async (file) =>
+    (await fetchOk(`${SITE_DIR}${file}`)).arrayBuffer(),
+  ),
 );
+const env = createTerrainEnv(terrainFromSite(site, heightData), values);
 /** 画面に出す距離は実寸に換算する（地形は縦横とも 1/scale に縮めてある。docs/SPEC.md「着陸地点」） */
 function realMeters(gameMeters: number): number {
   return gameMeters * site.scale;
 }
-const world = createWorld(scene, env, values);
+// 歩く範囲のまわりの、見えるだけの地形
+const outer = outerFromSite(site, outerData);
+const world = createWorld(scene, env, values, outer);
 // 建設モードの間、PC で地面をクリックしたらそこに置く（confirmBuild は下で定義。呼ばれるのは起動のあと）
 world.onGroundClick(() => confirmBuild());
 
@@ -204,7 +214,7 @@ const tutorial = createTutorial(
 const title = createTitle(document.body, {
   saves: () => saves.list(),
   onNew: () => tutorial.startNew(),
-  cardsHtml: () => cardsHtml(cardStore.list(), nasaImages),
+  cardsHtml: () => cardsHtml(cardStore.list(), nasaImages, values),
   onOpenTerm: (term) => help.openTerm(asHelpTerm(term, '豆知識カード')),
   onContinue: (saveId) => {
     startFrom(saves.load(saveId), true);
@@ -283,7 +293,16 @@ const ui = createUi(
       const list = cardStore.list();
       return { owned: list.filter((entry) => entry.owned).length, total: list.length };
     },
-    cardsHtml: () => cardsHtml(cardStore.list(), nasaImages),
+    cardsHtml: () => cardsHtml(cardStore.list(), nasaImages, values),
+    cardsForValue: (path) =>
+      cardStore
+        .list()
+        .filter((entry) => entry.card.values.includes(path))
+        .map((entry) => ({
+          id: entry.card.id,
+          title: t(`${entry.card.textKey}.title`),
+          owned: entry.owned,
+        })),
     onOpenTerm: (term) => help.openTerm(asHelpTerm(term, '豆知識カード')),
     onMinigameSound: (name) => {
       fx.sound(name === 'hit' ? 'pop' : name === 'miss' ? 'land' : 'star');
@@ -922,6 +941,7 @@ function sleepUntilMorning(): void {
         delta: state.stocks[kind] - before.stocks[kind],
       })).filter((change) => Math.abs(change.delta) >= MORNING_MIN_DELTA),
       arrived: result.emitted.filter((e) => e.type === 'launchArrived').length,
+      dusted: result.emitted.some((e) => e.type === 'launchArrived') ? landingDustedCount() : 0,
       spaceWeather: result.emitted.flatMap((e) => (e.type === 'eventStarted' ? [e.event] : [])),
       newlyShaded: [...shadedAfter].filter((id) => !shadedBefore.has(id)).length,
       newlyLit: [...shadedBefore].filter(
@@ -937,6 +957,7 @@ function sleepUntilMorning(): void {
     // 何も起きなかった朝は窓を出さずに、すぐ外へ出られるようにする（物資の増減は夜の通信で分かる）
     const happened =
       summary.arrived > 0 ||
+      summary.dusted > 0 ||
       summary.spaceWeather.length > 0 ||
       summary.newlyShaded > 0 ||
       summary.newlyLit > 0;
@@ -948,6 +969,15 @@ function sleepUntilMorning(): void {
     }
   }
   refreshView();
+}
+
+/** ロケットが着いたときに、巻き上げたほこりで傷んだ施設の数（着陸船の近くで、傷みが目に見えるほどのもの。sim の landingDust と同じ広がり） */
+function landingDustedCount(): number {
+  const peak = values.terrain.landerDustPeak.value;
+  const damage = values.facilities.landingDustDamage.value;
+  return state.facilities.filter(
+    (f) => ((env.dustFactorAt(f.x, f.z) - 1) / peak) * damage >= LANDING_DUST_NOTICE,
+  ).length;
 }
 
 /** 外にいられる残りの時間が決めた時間を切ったら、知らせる（1時間と30分） */
@@ -1266,6 +1296,10 @@ function handleEvents(events: GameEvent[]): void {
       earn('launchArrived');
       fx.banner(t('fx.arrived'), 'small');
       fx.sound('coin');
+      const dusted = landingDustedCount();
+      if (dusted > 0) {
+        ui.notify(t('landingDust.notify', { count: dusted }), true);
+      }
     }
     if (event.type === 'playerDowned' || event.type === 'gameOver') {
       fx.sound('down');
@@ -1462,13 +1496,27 @@ engine.runRenderLoop(() => {
   }
   ui.setTaskList(todayPlan.map((task) => ({ label: taskLabel(task), done: task.done })));
   ui.setTutorialLimits(tutorial.limits());
+  // 見えない壁：外の地形は見えるが、ボンベの酸素では行って帰れないので、ここまで
+  if (world.isAtMapEdge() && performance.now() - lastMapEdgeNotice > MAP_EDGE_NOTICE_MS) {
+    lastMapEdgeNotice = performance.now();
+    ui.notify(t('map.edge'), true);
+  }
   const actionsKey = actions.join(',');
   if (actionsKey !== lastActionsKey) {
     lastActionsKey = actionsKey;
     ui.setContextActions(actions);
   }
+  // くんれんの「あれが地球だよ」：カメラを空の地球へ向ける
+  const earth = env.earthDirection();
+  world.setSkyFocus(tutorial.showsEarth() ? Math.atan2(earth.x, earth.z) : null);
   world.frame(dtSec);
   scene.render();
+});
+// 読み込みの間の画面（index.html）は、最初の1枚を描いたら消す
+const splash = requireElement('splash', HTMLDivElement);
+scene.onAfterRenderObservable.addOnce(() => {
+  splash.classList.add('done');
+  splash.addEventListener('transitionend', () => splash.remove(), { once: true });
 });
 
 window.addEventListener('resize', () => engine.resize());

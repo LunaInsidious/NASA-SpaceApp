@@ -6,7 +6,8 @@
     "terms": ["regolith"],
     "photo": null,
     "source": "NASA: Lunar Dust Effects on Spacesuit Systems: Insights from the Apollo Spacesuits (Christoffersen et al.)",
-    "url": "https://ntrs.nasa.gov/citations/20090015239"
+    "url": "https://ntrs.nasa.gov/citations/20090015239",
+    "values": ["protection.regolithCoverBonus"]
   },
   {
     "id": "radiation",
@@ -15,7 +16,8 @@
     "terms": ["radiation", "flare", "shield"],
     "photo": "flare",
     "source": "NASA: Why Space Radiation Matters",
-    "url": "https://www.nasa.gov/missions/analog-field-testing/why-space-radiation-matters/"
+    "url": "https://www.nasa.gov/missions/analog-field-testing/why-space-radiation-matters/",
+    "values": ["facilities.habitat.indoorProtection", "crew.doseLimitMsv"]
   },
   {
     "id": "evaHours",
@@ -24,7 +26,8 @@
     "terms": ["tank"],
     "photo": null,
     "source": "NASA: Exploration EVA System Concept of Operations Summary for Artemis Phase 1",
-    "url": "https://www.nasa.gov/wp-content/uploads/2020/01/topic_1-_eva_lunar_surface_concept_of_operations.pdf"
+    "url": "https://www.nasa.gov/wp-content/uploads/2020/01/topic_1-_eva_lunar_surface_concept_of_operations.pdf",
+    "values": ["eva.maxHours", "eva.weeklyHoursPerPerson"]
   },
   {
     "id": "solar",
@@ -35,7 +38,8 @@
     "terms": ["solar"],
     "photo": "solarInShadow",
     "source": "NASA: Moon's South Pole is Full of Mystery, Science, Intrigue",
-    "url": "https://www.nasa.gov/humans-in-space/moons-south-pole-is-full-of-mystery-science-intrigue/"
+    "url": "https://www.nasa.gov/humans-in-space/moons-south-pole-is-full-of-mystery-science-intrigue/",
+    "values": ["moon.sunElevationDeg", "facilities.solar.generationKw"]
   },
   {
     "id": "battery",
@@ -46,7 +50,8 @@
     "terms": ["battery"],
     "photo": "battery",
     "source": "NASA: Spacewalkers Begin Work to Replace Batteries",
-    "url": "https://www.nasa.gov/blogs/spacestation/2020/06/26/spacewalkers-begin-work-to-replace-batteries/"
+    "url": "https://www.nasa.gov/blogs/spacestation/2020/06/26/spacewalkers-begin-work-to-replace-batteries/",
+    "values": ["moon.sunPeriodDays"]
   },
   {
     "id": "antenna",
@@ -57,7 +62,8 @@
     "terms": ["antenna"],
     "photo": "antenna",
     "source": "NASA: What is the Deep Space Network?",
-    "url": "https://www.nasa.gov/directorates/somd/space-communications-navigation-program/what-is-the-deep-space-network/"
+    "url": "https://www.nasa.gov/directorates/somd/space-communications-navigation-program/what-is-the-deep-space-network/",
+    "values": []
   },
   {
     "id": "greenhouse",
@@ -68,7 +74,8 @@
     "terms": ["greenhouse"],
     "photo": "greenhouse",
     "source": "NASA Facts: Veggie",
-    "url": "https://www.nasa.gov/wp-content/uploads/2023/03/veggie-fact-sheet-508.pdf"
+    "url": "https://www.nasa.gov/wp-content/uploads/2023/03/veggie-fact-sheet-508.pdf",
+    "values": ["facilities.greenhouse.foodKgPerDay", "facilities.greenhouse.powerKw"]
   },
   {
     "id": "lifeSupport",
@@ -79,7 +86,8 @@
     "terms": ["lifeSupport"],
     "photo": "lifeSupport",
     "source": "NASA: NASA Achieves Water Recovery Milestone on International Space Station",
-    "url": "https://www.nasa.gov/missions/station/iss-research/nasa-achieves-water-recovery-milestone-on-international-space-station/"
+    "url": "https://www.nasa.gov/missions/station/iss-research/nasa-achieves-water-recovery-milestone-on-international-space-station/",
+    "values": ["facilities.lifeSupport.oxygenKgPerDay", "facilities.lifeSupport.waterPerOxygen"]
   },
   {
     "id": "iceDrill",
@@ -90,7 +98,8 @@
     "terms": ["iceDrill", "ice"],
     "photo": "iceDrill",
     "source": "NASA: Polar Resources Ice Mining Experiment 1 (PRIME-1)",
-    "url": "https://www.nasa.gov/mission/polar-resources-ice-mining-experiment-1-prime-1/"
+    "url": "https://www.nasa.gov/mission/polar-resources-ice-mining-experiment-1-prime-1/",
+    "values": ["facilities.iceDrill.waterKgPerDay", "facilities.iceDrill.powerKw"]
   },
   {
     "id": "shield",
@@ -101,7 +110,8 @@
     "terms": ["shield", "radiation"],
     "photo": "shield",
     "source": "NASA: Crew Checks Station Sound Levels, Tests Radiation Protection Vest",
-    "url": "https://www.nasa.gov/blogs/spacestation/2022/06/07/crew-checks-station-sound-levels-tests-radiation-protection-vest/"
+    "url": "https://www.nasa.gov/blogs/spacestation/2022/06/07/crew-checks-station-sound-levels-tests-radiation-protection-vest/",
+    "values": ["facilities.shield.regolithProtection"]
   },
   {
     "id": "habitat2",
@@ -112,7 +122,8 @@
     "terms": ["habitat"],
     "photo": null,
     "source": "NASA: Lunar Living: NASA's Artemis Base Camp Concept",
-    "url": "https://www.nasa.gov/blogs/missions/2020/10/28/lunar-living-nasas-artemis-base-camp-concept/"
+    "url": "https://www.nasa.gov/blogs/missions/2020/10/28/lunar-living-nasas-artemis-base-camp-concept/",
+    "values": []
   },
   {
     "id": "ice",
@@ -121,7 +132,8 @@
     "terms": ["ice"],
     "photo": "foundIce",
     "source": "NASA: NASA Missions Uncover the Moon's Buried Treasures",
-    "url": "https://www.nasa.gov/news-release/nasa-missions-uncover-the-moons-buried-treasures/"
+    "url": "https://www.nasa.gov/news-release/nasa-missions-uncover-the-moons-buried-treasures/",
+    "values": ["crew.waterKgPerDay"]
   },
   {
     "id": "earthSet",
@@ -130,7 +142,8 @@
     "terms": ["horizon", "antenna"],
     "photo": null,
     "source": "NASA: Exploration and Space Communications: LCRNS",
-    "url": "https://www.nasa.gov/goddard/esc/lcrns/"
+    "url": "https://www.nasa.gov/goddard/esc/lcrns/",
+    "values": ["comm.earthPeriodDays"]
   },
   {
     "id": "relay",
@@ -140,7 +153,8 @@
     "terms": ["relay"],
     "photo": null,
     "source": "NASA: NASA Delivers Navigation System for Commercial Lunar Relay",
-    "url": "https://www.nasa.gov/technology/space-comms/nasa-delivers-navigation-system-for-commercial-lunar-relay/"
+    "url": "https://www.nasa.gov/technology/space-comms/nasa-delivers-navigation-system-for-commercial-lunar-relay/",
+    "values": ["comm.relayOrbitHours", "launch.items.relaySatellite.massKg"]
   },
   {
     "id": "launchArrived",
@@ -149,7 +163,8 @@
     "terms": ["launch"],
     "photo": null,
     "source": "NASA: Apollo 11 Mission Overview",
-    "url": "https://www.nasa.gov/missions/apollo/apollo-11/apollo-11-mission-overview/"
+    "url": "https://www.nasa.gov/missions/apollo/apollo-11/apollo-11-mission-overview/",
+    "values": ["launch.capacityKg", "launch.items.food.massKg"]
   },
   {
     "id": "spaceWeather",
@@ -158,7 +173,8 @@
     "terms": ["donki", "flare"],
     "photo": "flare",
     "source": "NASA: Space Weather Database Of Notifications, Knowledge, Information (DONKI)",
-    "url": "https://technology.nasa.gov/patent/GSC-TOPS-223"
+    "url": "https://technology.nasa.gov/patent/GSC-TOPS-223",
+    "values": ["events.sepDurationHours", "events.sepMultiplier"]
   },
   {
     "id": "repair",
@@ -167,7 +183,8 @@
     "terms": ["repair"],
     "photo": null,
     "source": "NASA: Astronauts Repair Canadarm2 Robotic Arm and Complete Spacewalk",
-    "url": "https://www.nasa.gov/blogs/spacestation/2026/06/30/astronauts-repair-canadarm2-robotic-arm-and-complete-spacewalk/"
+    "url": "https://www.nasa.gov/blogs/spacestation/2026/06/30/astronauts-repair-canadarm2-robotic-arm-and-complete-spacewalk/",
+    "values": []
   },
   {
     "id": "crew3",
@@ -177,7 +194,8 @@
     "terms": [],
     "photo": null,
     "source": "NASA: Our Artemis Crew",
-    "url": "https://www.nasa.gov/feature/our-artemis-crew/"
+    "url": "https://www.nasa.gov/feature/our-artemis-crew/",
+    "values": []
   },
   {
     "id": "day15",
@@ -187,7 +205,8 @@
     "terms": [],
     "photo": null,
     "source": "NASA: Lunar Surface Technology",
-    "url": "https://www.nasa.gov/lunar-surface-technology/"
+    "url": "https://www.nasa.gov/lunar-surface-technology/",
+    "values": ["moon.sunPeriodDays"]
   },
   {
     "id": "day30",
@@ -197,7 +216,8 @@
     "terms": [],
     "photo": null,
     "source": "NASA Science: Weather on the Moon",
-    "url": "https://science.nasa.gov/moon/weather-on-the-moon/"
+    "url": "https://science.nasa.gov/moon/weather-on-the-moon/",
+    "values": []
   },
   {
     "id": "dev50",
@@ -207,7 +227,8 @@
     "terms": ["development"],
     "photo": null,
     "source": "NASA Science: Moon Facts",
-    "url": "https://science.nasa.gov/moon/facts/"
+    "url": "https://science.nasa.gov/moon/facts/",
+    "values": []
   },
   {
     "id": "cleared",
@@ -216,6 +237,62 @@
     "terms": ["development"],
     "photo": null,
     "source": "NASA: Moon to Mars | NASA's Artemis Program",
-    "url": "https://www.nasa.gov/humans-in-space/artemis/"
+    "url": "https://www.nasa.gov/humans-in-space/artemis/",
+    "values": []
+  },
+  {
+    "id": "gravity",
+    "condition": "dayAtLeast",
+    "threshold": 2,
+    "textKey": "card.gravity",
+    "terms": [],
+    "photo": null,
+    "source": "NASA Moon Fact Sheet",
+    "url": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html",
+    "values": ["moon.gravity"]
+  },
+  {
+    "id": "sleep",
+    "condition": "dayAtLeast",
+    "threshold": 3,
+    "textKey": "card.sleep",
+    "terms": [],
+    "photo": null,
+    "source": "NASA-STD-3001 6.0 Medical Operations",
+    "url": "https://www.nasa.gov/reference/6-0-medical-operations/",
+    "values": ["crew.sleepHours"]
+  },
+  {
+    "id": "dailyNeeds",
+    "condition": "crewAtLeast",
+    "threshold": 2,
+    "textKey": "card.dailyNeeds",
+    "terms": [],
+    "photo": null,
+    "source": "NASA BVAD 2022（生命維持の基準の値）：1人1日 0.84 kg",
+    "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+    "values": ["crew.oxygenKgPerDay", "crew.waterKgPerDay", "crew.foodKgPerDay"]
+  },
+  {
+    "id": "commDelay",
+    "condition": "dayAtLeast",
+    "threshold": 5,
+    "textKey": "card.commDelay",
+    "terms": [],
+    "photo": null,
+    "source": "NASA Moon Fact Sheet（semimajor axis 384,400 km ÷ 光の速さ）",
+    "url": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html",
+    "values": ["moon.commDelaySec"]
+  },
+  {
+    "id": "moonRadiation",
+    "condition": "dayAtLeast",
+    "threshold": 10,
+    "textKey": "card.moonRadiation",
+    "terms": [],
+    "photo": null,
+    "source": "嫦娥4号の月面での測定（Zhang ほか 2020、Science Advances）：1日 1.369 mSv",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7518862/",
+    "values": ["moon.radiationMsvPerDay", "crew.doseLimitMsv"]
   }
 ]

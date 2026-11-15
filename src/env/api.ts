@@ -13,3 +13,10 @@ export interface TerrainEnv extends Env {
   /** 地球の方向の単位ベクトル（地球が地平線の上にいるときの向き） */
   earthDirection(): { x: number; y: number; z: number };
 }
+
+/** 歩く範囲のまわりの、見えるだけの地形（同じ中心・同じ高さの基準・同じ縮尺）。歩く範囲の外は歩けない */
+export interface OuterTerrain {
+  sizeMeters: number;
+  resolution: number;
+  heights: Float32Array; // resolution * resolution。行が z、列が x の順
+}

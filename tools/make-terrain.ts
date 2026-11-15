@@ -2,6 +2,7 @@
 // 指定した中心のまわりを切り出し、縦横を同じ割合（scale 分の1）で縮めて public/terrain/<地点>/ に書く：
 //   height.bin        ゲームの高さ（m）。Float32 のリトルエンディアン、行が z（地球の向き）、列が x（東）
 //   illumination.png  平均の日照率（白いほどよく日が当たる。上が地球の向き）。人間が PGDA の日照の画像と見比べる用
+//   outer.bin         まわりの広い範囲の高さ（見るだけ。歩けない）。同じ縮尺・同じ高さの基準。行と列の向きは height.bin と同じ
 //   site.json         出典、範囲、縮尺、緯度、着陸船の位置、氷の場所
 // 日照と氷（永久影）は、ゲームと同じ計算（src/env の createTerrainEnv）で求める。だからゲームの中の影と氷の場所が合う。
 // 使い方（引数はすべて要る）:
@@ -10,6 +11,7 @@
 //     --azimuths <日照を調べる太陽の向きの数> --ice-min-radius <氷にする永久影の最小の半径 m（ゲーム）>
 //     --lander-search <着陸船を探す中心からの距離 m（ゲーム）> --lander-flat-radius <平らであってほしい半径 m（ゲーム）>
 //     --lander-max-slope-deg <着陸船の場所の最大の傾き 度> --lander-lit-radius <日なたであってほしい半径 m（ゲーム）>
+//     --outer-crop <まわりの見える範囲の実寸の一辺 m> --outer-resolution <その一辺の頂点の数>
 // GeoTIFF は圧縮なし・32 ビット浮動小数・ストリップ形式だけを読む（PGDA の LOLA_5mpp のファイルはこの形）。違えば止める
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -63,6 +65,11 @@ const landerFlatRadius = numArg('lander-flat-radius');
 const landerLitRadius = numArg('lander-lit-radius');
 const landerMaxSlopeDeg = numArg('lander-max-slope-deg');
 const outDir = arg('out');
+const outerCropMeters = numArg('outer-crop');
+const outerResolution = numArg('outer-resolution');
+if (outerCropMeters <= cropMeters) {
+  throw new Error('--outer-crop は --crop より大きくする（まわりの見える範囲）');
+}
 const name = arg('name');
 
 // ---- GeoTIFF を読む ----
@@ -161,6 +168,19 @@ for (let iz = 0; iz < resolution; iz++) {
 const heights = new Float32Array(resolution * resolution);
 for (let i = 0; i < heights.length; i++) {
   heights[i] = (real[i] - base) / scale;
+}
+// まわりの見える範囲（歩く範囲と同じ中心・同じ高さの基準・同じ縮尺）
+const outerHeights = new Float32Array(outerResolution * outerResolution);
+for (let iz = 0; iz < outerResolution; iz++) {
+  for (let ix = 0; ix < outerResolution; ix++) {
+    const X = centerX - outerCropMeters / 2 + (ix * outerCropMeters) / (outerResolution - 1);
+    const Y = centerY - outerCropMeters / 2 + (iz * outerCropMeters) / (outerResolution - 1);
+    const h = realHeightAt(X, Y);
+    if (!Number.isFinite(h)) {
+      throw new Error(`まわりの高さが数ではない（X ${X}, Y ${Y}）`);
+    }
+    outerHeights[iz * outerResolution + ix] = (h - base) / scale;
+  }
 }
 const rho = Math.hypot(centerX, centerY);
 const latitudeDeg = -(90 - (2 * Math.atan(rho / (2 * MOON_RADIUS_M)) * 180) / Math.PI);
@@ -319,6 +339,8 @@ function round(v: number): number {
 mkdirSync(outDir, { recursive: true });
 const heightFile = 'height.bin';
 writeFileSync(`${outDir}/${heightFile}`, Buffer.from(heights.buffer));
+const outerHeightFile = 'outer.bin';
+writeFileSync(`${outDir}/${outerHeightFile}`, Buffer.from(outerHeights.buffer));
 const site: Site = {
   name,
   source: SOURCE,
@@ -335,6 +357,9 @@ const site: Site = {
   landerPosition,
   iceSpots,
   heightFile,
+  outerSizeMeters: outerCropMeters / scale,
+  outerResolution,
+  outerHeightFile,
 };
 writeFileSync(`${outDir}/site.json`, `${JSON.stringify(site, null, 2)}\n`);
 
@@ -382,6 +407,6 @@ console.log(
     `高さ: 実寸 ${round(base)}〜${round(base + maxH * scale)} m → ゲーム 0〜${round(maxH)} m`,
     `着陸船: (${landerPosition.join(', ')})  まわりの日照率 ${Math.round(lander.lit * 100)}%  地球が見える: ${earthLit}`,
     `氷: ${iceSpots.length} か所。いちばん近いのは (${nearestIce.x}, ${nearestIce.z}) 半径 ${nearestIce.radius} m、着陸船から ${round(Math.hypot(nearestIce.x - landerPosition[0], nearestIce.z - landerPosition[1]))} m`,
-    `書いた: ${outDir}/{${heightFile}, site.json, illumination.png}`,
+    `書いた: ${outDir}/{${heightFile}, ${outerHeightFile}, site.json, illumination.png}`,
   ].join('\n'),
 );

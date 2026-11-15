@@ -1,7 +1,7 @@
 // 実データの地形の Env。座標は x が東（南極の極投影の X）、z が地球のある月の表側の向き（Y）、y が上。
 // 単位はゲームの m（実寸を site.json の scale で縦横とも同じ割合で縮めたもの）
 import type { Values } from '../contracts/index.ts';
-import type { TerrainEnv } from './api.ts';
+import type { OuterTerrain, TerrainEnv } from './api.ts';
 import type { Site } from './site.ts';
 
 type Vec3 = { x: number; y: number; z: number };
@@ -33,6 +33,21 @@ export function terrainFromSite(site: Site, heightFile: ArrayBufferLike): Terrai
     latitudeDeg: site.latitudeDeg,
     landerPosition: site.landerPosition,
     iceSpots: site.iceSpots,
+  };
+}
+
+/** site.json と outer.bin から、まわりの見える範囲を作る。形が合わなければ止める */
+export function outerFromSite(site: Site, outerFile: ArrayBufferLike): OuterTerrain {
+  const expected = site.outerResolution * site.outerResolution * Float32Array.BYTES_PER_ELEMENT;
+  if (outerFile.byteLength !== expected) {
+    throw new Error(
+      `まわりの地形のファイルの大きさが違う（${outerFile.byteLength} バイト、${expected} バイトのはず）`,
+    );
+  }
+  return {
+    sizeMeters: site.outerSizeMeters,
+    resolution: site.outerResolution,
+    heights: new Float32Array(outerFile),
   };
 }
 

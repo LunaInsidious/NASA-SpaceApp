@@ -12,5 +12,26 @@
     "eventTime": "2024-05-14T16:51Z",
     "classOrIntensity": "X8.7",
     "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/FLR/30849/-1"
+  },
+  {
+    "kind": "sep",
+    "donkiId": "2024-05-10T13:35:00-SEP-001",
+    "eventTime": "2024-05-10T13:35Z",
+    "classOrIntensity": "GOES >10 MeV",
+    "link": "https://ccmc.gsfc.nasa.gov/DONKI/view/SEP/30677/-1"
+  },
+  {
+    "kind": "sep",
+    "donkiId": "2024-05-11T02:10:00-SEP-001",
+    "eventTime": "2024-05-11T02:10Z",
+    "classOrIntensity": "GOES >100 MeV",
+    "link": "https://ccmc.gsfc.nasa.gov/DONKI/view/SEP/30714/-1"
+  },
+  {
+    "kind": "sep",
+    "donkiId": "2024-05-13T14:00:00-SEP-001",
+    "eventTime": "2024-05-13T14:00Z",
+    "classOrIntensity": "GOES >10 MeV",
+    "link": "https://ccmc.gsfc.nasa.gov/DONKI/view/SEP/30817/-1"
   }
 ]

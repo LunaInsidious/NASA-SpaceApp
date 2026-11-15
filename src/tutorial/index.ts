@@ -34,6 +34,7 @@ function devStartIndex(): number {
 export const STEPS = [
   'move',
   'look',
+  'earth',
   'buildSolar',
   'placeSolar',
   'power',
@@ -235,7 +236,7 @@ const MORE_THRESHOLD_PX = 6;
 const MORE_SCROLL_RATIO = 0.8;
 
 // 読んで「わかった」を押すと進む段
-const ACK_STEPS: readonly Step[] = ['power', 'comm', 'lifeLine'];
+const ACK_STEPS: readonly Step[] = ['earth', 'power', 'comm', 'lifeLine'];
 // 大きな窓が出たときに、博士の口が動く長さ（見た目だけ）
 const MODAL_SPEAK_MS = 1500;
 
@@ -344,6 +345,8 @@ export interface Tutorial {
   guide(): 'ice' | 'home' | null;
   /** 大きな窓を出していて、ゲームを止めておくべきか */
   isBlocking(): boolean;
+  /** 「あれが地球だよ」の段で、カメラを空の地球へ向けるか */
+  showsEarth(): boolean;
   /** 飛ばせないチュートリアルの最中か（アクシデントのカードはボンベだけにする） */
   isTutorial(): boolean;
   /** チュートリアル中にゲームオーバーになった。理由とルナはかせのアドバイスを見せ、新しいゲームで1段目からやり直す */
@@ -386,7 +389,35 @@ const STEP_PAGES: Partial<Record<Step, RestRequiredPage>> = {
 };
 
 // title：タイトル画面で「はじめから」か「つづきから」を選ぶのを待っている（何も出さない）
-type Mode = 'title' | 'ask' | 'tutorial' | 'finishedModal' | 'missions' | 'failed';
+// intro：はじめての子に、ミッションのはじまりの話（STORY_INTRO_PAGES 枚）を見せている
+type Mode = 'title' | 'ask' | 'intro' | 'tutorial' | 'finishedModal' | 'missions' | 'failed';
+// はじまりの話の枚数（i18n の story.intro.1〜）
+export const STORY_INTRO_PAGES = 3;
+// はじまりの話で、返事を選ぶページ（story.intro.<n>.reply.1〜2 と react.1〜2）。1枚目の返事で、きみの気持ちを覚えておく
+export const INTRO_REPLY_PAGES: readonly number[] = [1, 3];
+// 博士に返事を選んで答える段（tutorial.reply.<段>.1〜2 と tutorial.react.<段>.1〜2）。「わかった！」の代わり
+export const REPLY_STEPS: readonly Step[] = ['earth', 'power', 'comm'];
+// 返事の数
+export const REPLY_COUNT = 2;
+// 1枚目の返事と気持ち（くんれんの最後に、博士がこれに触れる）
+const FEELINGS = ['excited', 'nervous'] as const;
+// 博士がお話（tutorial.story.*）をする段。やることの上に、物語の一言として出す
+export const STORY_STEPS: readonly Step[] = [
+  'move',
+  'look',
+  'earth',
+  'buildSolar',
+  'battery',
+  'buildAntenna',
+  'comm',
+  'buildHabitat',
+  'order',
+  'arrived',
+  'toIce',
+  'flareDrill',
+  'regolith',
+  'data',
+];
 
 export function createTutorial(
   root: HTMLElement,
@@ -401,7 +432,16 @@ export function createTutorial(
   onLearn: (terms: readonly HelpTerm[], announce: boolean) => void,
 ): Tutorial {
   let mode: Mode = 'title';
+  // はじまりの話の何枚目か（1から）。introReply は、そのページで選んだ返事（博士の反応を見せている間）
+  let introPage = 1;
+  let introReply: number | null = null;
+  // はじまりの話の1枚目で選んだ気持ち（選んでいなければ null。?step= で途中から始めたときなど）
+  let feeling: (typeof FEELINGS)[number] | null = null;
+  // くんれんの段で選んだ返事（博士の反応を見せてから、次の段へ）
+  let stepReply: number | null = null;
+  let stepReplyTimer: number | null = null;
   let index = 0;
+  // 「みまわす」の段を始めたときのカメラの向き
   let stepYaw: number | null = null;
   // 「あるく」の段を始めた場所
   let stepOrigin: { x: number; z: number } | null = null;
@@ -484,14 +524,39 @@ export function createTutorial(
   root.append(reopen);
   const modal = document.createElement('div');
   modal.className = 'tutorial-modal-layer';
+  // 博士への返事を選ぶ層（ノベルゲームのように、画面を暗くして選択肢だけを浮かべる。選ぶまでほかは押せない）
+  const choiceLayer = document.createElement('div');
+  choiceLayer.className = 'tutorial-choice-layer';
+  choiceLayer.hidden = true;
+  // 今の段で選択肢を出したか（同じ段で何度も出さない）
+  let choiceShownFor = '';
+  function openChoices(texts: string[], onPick: (picked: number) => void): void {
+    const list = document.createElement('div');
+    list.className = 'tutorial-choices';
+    list.append(
+      ...texts.map((text, i) =>
+        button(text, 'tutorial-choice', () => {
+          choiceLayer.hidden = true;
+          choiceLayer.replaceChildren();
+          document.body.classList.remove('tutorial-choosing');
+          onPick(i + 1);
+        }),
+      ),
+    );
+    choiceLayer.replaceChildren(list);
+    choiceLayer.hidden = false;
+    // 選んでいる間は、博士の話だけを暗い層の上に出す（読めるように。押せないようにする）
+    document.body.classList.add('tutorial-choosing');
+  }
   const guideStack = document.createElement('div');
   guideStack.className = 'guide-stack';
   guideStack.append(panel);
-  root.append(guideStack, modal);
+  root.append(guideStack, modal, choiceLayer);
   // 外でやる段なのに中にいるときの、ひとこと
   const outdoorNote = document.createElement('p');
   outdoorNote.className = 'tutorial-note';
   outdoorNote.hidden = true;
+
   const renderOutdoorNote = () => {
     outdoorNote.innerHTML = t('tutorial.goOutsideFirst');
   };
@@ -524,7 +589,11 @@ export function createTutorial(
     const dialog = document.querySelector('.ui-modal-layer:not([hidden])');
     const pauseMenu = document.querySelector('.ui-pause:not([hidden])');
     const helpOpen = document.querySelector('.help-layer:not([hidden])');
-    if (target !== null && dialog !== null && !dialog.contains(target)) {
+    // 1日の終わりの暗転（「○日目」）の間は、何も指さない（暗い画面の上に矢印が残らないように）
+    const dayFade = document.querySelector('.day-fade:not([hidden])');
+    if (dayFade !== null || !choiceLayer.hidden) {
+      target = null;
+    } else if (target !== null && dialog !== null && !dialog.contains(target)) {
       target = null;
     } else if (
       target !== null &&
@@ -633,7 +702,14 @@ export function createTutorial(
       panel.hidden = true;
       showModal('tutorial.welcome.title', 'tutorial.welcome.question', [
         // 初めてなら、セーブがあっても新しいゲームで始める（途中の状態だと、今はできない指示が出る）
-        button(t('tutorial.welcome.firstTime'), 'tutorial-big primary', () => resetTo('tutorial')),
+        button(t('tutorial.welcome.firstTime'), 'tutorial-big primary', () => {
+          // はじめてなら、くんれんの前に、ミッションのはじまりの話をする
+          mode = 'intro';
+          introPage = 1;
+          introReply = null;
+          feeling = null;
+          render();
+        }),
         button(t('tutorial.welcome.played'), 'tutorial-big', () => {
           // あそんだことがあるなら、ことばじてんは全部の言葉を見せる（自分で選んだので、お知らせは出さない）
           onLearn(HELP_TERMS, false);
@@ -641,6 +717,43 @@ export function createTutorial(
           render();
         }),
       ]);
+      return;
+    }
+    if (mode === 'intro') {
+      panel.hidden = true;
+      const last = introPage >= STORY_INTRO_PAGES;
+      const next = button(t(last ? 'story.start' : 'story.next'), 'tutorial-big primary', () => {
+        introReply = null;
+        if (last) {
+          resetTo('tutorial');
+          return;
+        }
+        introPage++;
+        render();
+      });
+      const title = t(`story.intro.${introPage}.title`);
+      if (!INTRO_REPLY_PAGES.includes(introPage)) {
+        showModalText(title, t(`story.intro.${introPage}.body`), [next]);
+        return;
+      }
+      if (introReply === null) {
+        // 博士の話を見せてから、きみの返事を選ぶ（文字は打たない。選ぶだけ）
+        showModalText(title, t(`story.intro.${introPage}.body`), []);
+        const page = introPage;
+        openChoices(
+          Array.from({ length: REPLY_COUNT }, (_, i) => t(`story.intro.${page}.reply.${i + 1}`)),
+          (picked) => {
+            introReply = picked;
+            if (page === 1) {
+              feeling = FEELINGS[picked - 1];
+            }
+            render();
+          },
+        );
+        return;
+      }
+      // 博士の反応
+      showModalText(title, t(`story.intro.${introPage}.react.${introReply}`), [next]);
       return;
     }
     if (mode === 'failed') {
@@ -661,7 +774,12 @@ export function createTutorial(
     }
     if (mode === 'finishedModal') {
       panel.hidden = true;
-      showModal('tutorial.finished.title', 'tutorial.finished.body', [
+      // はじまりで選んだ気持ちに、博士が触れる
+      const body =
+        feeling === null
+          ? t('tutorial.finished.body')
+          : `${t(`story.feeling.${feeling}`)}<br>${t('tutorial.finished.body')}`;
+      showModalText(t('tutorial.finished.title'), body, [
         button(t('tutorial.finished.start'), 'tutorial-big primary', () => {
           mode = 'missions';
           render();
@@ -776,6 +894,15 @@ export function createTutorial(
   function resetTo(next: Mode): void {
     mode = next;
     index = next === 'tutorial' ? devStartIndex() : 0;
+    // 反応を待っている途中で始め直したら、その待ちはやめる
+    if (stepReplyTimer !== null) {
+      window.clearTimeout(stepReplyTimer);
+      stepReplyTimer = null;
+    }
+    stepReply = null;
+    choiceShownFor = '';
+    choiceLayer.hidden = true;
+    document.body.classList.remove('tutorial-choosing');
     stepYaw = null;
     stepOrigin = null;
     stepRest = null;
@@ -817,9 +944,15 @@ export function createTutorial(
     doLabel.innerHTML = t('tutorial.doLabel');
     const skip = skipButton();
     // やることを上に大きく、どうして（理由と言葉の意味）は下に少し小さく
+    // 物語の一言（この段で博士がお話をするなら、やることの上に）
+    const story = document.createElement('p');
+    story.className = 'tutorial-story';
+    story.hidden = !STORY_STEPS.includes(step());
+    story.innerHTML = story.hidden ? '' : t(`tutorial.story.${step()}`);
     const parts: HTMLElement[] = [
       professor(),
       header(t('tutorial.title'), t('tutorial.progress', { n: index + 1, total: STEPS.length })),
+      story,
       doLabel,
       text,
       outdoorNote,
@@ -834,8 +967,17 @@ export function createTutorial(
       frozen.innerHTML = t('tutorial.timeStopped');
       parts.splice(2, 0, frozen);
     }
-    speak(`step:${index}:${flareChoice ?? ''}`, [text, why], skip);
-    if (ACK_STEPS.includes(step())) {
+    speak(`step:${index}:${flareChoice ?? ''}`, [story, text, why], skip);
+    if (REPLY_STEPS.includes(step()) && stepReply !== null) {
+      // 返事を選んだあと：博士の反応だけを見せて、少ししたら次の段へ
+      story.hidden = false;
+      story.innerHTML = t(`tutorial.react.${step()}.${stepReply}`);
+      panel.replaceChildren(professor(), parts[1], story);
+      return;
+    }
+    if (REPLY_STEPS.includes(step())) {
+      // 返事は、博士が話し終えたら選択肢の層で選ぶ（update で開く）
+    } else if (ACK_STEPS.includes(step())) {
       const row = document.createElement('div');
       row.className = 'tutorial-buttons';
       row.append(button(t('tutorial.ok'), 'tutorial-ok', advance));
@@ -852,20 +994,31 @@ export function createTutorial(
     const text = document.createElement('p');
     text.className = 'tutorial-text';
     text.innerHTML = mission === undefined ? t('mission.allDone') : t(mission.textKey);
+    // ミッションは物語の章：題は「第n章：…」、やることの上に物語の一言
+    const story = document.createElement('p');
+    story.className = 'tutorial-story';
+    story.hidden = mission === undefined;
+    story.innerHTML = mission === undefined ? '' : t(`mission.story.${mission.id}`);
     const skip = skipButton();
     const parts: HTMLElement[] = [
       professor(),
       header(
-        t('mission.title'),
+        mission === undefined
+          ? t('mission.title')
+          : t('mission.chapter', {
+              n: missionIndex + 1,
+              name: t(`mission.chapter.${mission.id}`),
+            }),
         t('tutorial.progress', {
           n: Math.min(missionIndex + 1, missions.length),
           total: missions.length,
         }),
       ),
+      story,
       text,
       skip,
     ];
-    speak(`mission:${missionIndex}`, [text], skip);
+    speak(`mission:${missionIndex}`, [story, text], skip);
     // 全部おわったら、パネルを閉じられるようにする（閉じても 📋 からまた開ける）
     if (mission === undefined) {
       const row = document.createElement('div');
@@ -882,6 +1035,7 @@ export function createTutorial(
   }
 
   function advance(): void {
+    stepReply = null;
     stepYaw = null;
     stepOrigin = null;
     stepRest = null;
@@ -969,6 +1123,7 @@ export function createTutorial(
       case 'comm':
       case 'arrived':
         return !p.windowOpen;
+      case 'earth':
       case 'lifeLine':
         return false;
     }
@@ -1014,7 +1169,6 @@ export function createTutorial(
       // 段を出したときの場所と向き（読み終わる前に歩いたり見回したりしても数える）
       stepOrigin ??= { x: progress.playerX, z: progress.playerZ };
       stepRest ??= progress.restDays;
-      stepYaw ??= progress.viewYawRad;
       // 1回に1段だけ。文を出し終えて、少し時間がたってから進む（すでにできていた段も、読む前に飛ばさない）
       const readEnough =
         typing?.isTyping() !== true &&
@@ -1023,6 +1177,30 @@ export function createTutorial(
         advance();
       }
       outdoorNote.hidden = !(OUTDOOR_STEPS.includes(step()) && progress.indoors);
+      stepYaw ??= progress.viewYawRad;
+      // 博士への返事の段：話し終えたら、画面を暗くして返事を選ばせる
+      const choiceKey = `step:${index}`;
+      if (
+        REPLY_STEPS.includes(step()) &&
+        stepReply === null &&
+        choiceShownFor !== choiceKey &&
+        typing?.isTyping() !== true &&
+        !rereading
+      ) {
+        choiceShownFor = choiceKey;
+        const current = step();
+        openChoices(
+          Array.from({ length: REPLY_COUNT }, (_, i) => t(`tutorial.reply.${current}.${i + 1}`)),
+          (picked) => {
+            stepReply = picked;
+            render();
+            stepReplyTimer = window.setTimeout(() => {
+              stepReplyTimer = null;
+              advance();
+            }, values.tutorial.reactionSeconds.value * MS_PER_SECOND);
+          },
+        );
+      }
       return;
     }
     if (mode === 'missions') {
@@ -1048,6 +1226,8 @@ export function createTutorial(
     guideStack,
     update,
     toTitle() {
+      choiceLayer.hidden = true;
+      document.body.classList.remove('tutorial-choosing');
       // タイトル画面に戻るときは、吹き出しも窓も出さない
       mode = 'title';
       rereading = false;
@@ -1128,8 +1308,18 @@ export function createTutorial(
           return INDOOR_STEPS.includes(step()) && lastProgress?.indoors === false ? 'home' : null;
       }
     },
+    showsEarth() {
+      return mode === 'tutorial' && step() === 'earth';
+    },
     isBlocking() {
-      return rereading || mode === 'ask' || mode === 'finishedModal' || mode === 'failed';
+      return (
+        rereading ||
+        !choiceLayer.hidden ||
+        mode === 'ask' ||
+        mode === 'intro' ||
+        mode === 'finishedModal' ||
+        mode === 'failed'
+      );
     },
     isTutorial() {
       return mode === 'tutorial';

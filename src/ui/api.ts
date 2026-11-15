@@ -44,6 +44,8 @@ export interface MorningSummary {
   stockChanges: { kind: 'oxygen' | 'water' | 'food' | 'spareParts' | 'materials'; delta: number }[];
   /** 届いたロケットの数 */
   arrived: number;
+  /** ロケットが巻き上げたほこりで傷んだ施設の数（着陸船の近くのもの） */
+  dusted: number;
   /** 太陽が動いて、影に入って止まった太陽電池の数と、日なたに戻った数 */
   newlyShaded: number;
   newlyLit: number;
@@ -114,6 +116,8 @@ export interface UiCallbacks {
   cardsCount(): { owned: number; total: number };
   /** 豆知識カードの一覧（HTML。メニューの窓に出す） */
   cardsHtml(): string;
+  /** values の値（"a.b.c"）を本物のデータとして使っている豆知識カード。title は i18n から作った HTML */
+  cardsForValue(path: string): { id: string; title: string; owned: boolean }[];
   /** 豆知識カードの言葉から、ことばじてんを開く */
   onOpenTerm(term: string): void;
   /** ミニゲームの音（当たった・外した・できた） */

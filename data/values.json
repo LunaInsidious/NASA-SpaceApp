@@ -100,6 +100,11 @@
       "source": "NASA SVS「月の緯度ごとの太陽の通り道」：月の傾きは 1.5° だけなので、南極では太陽が地平線のすぐそばを回る",
       "url": "https://svs.gsfc.nasa.gov/5038"
     },
+    "sunStartAzimuthDeg": {
+      "value": 90,
+      "unit": "deg",
+      "source": "ゲームの調整値：1日目の始まりの太陽の向き（地球の向きを 0° とする）。0° だと太陽が地球のすぐうしろにあり、最初の数日は太陽と地球が空で重なって見えるので、90° ずらした（実際は、月の満ち欠けのどの時期に着くかで決まる）"
+    },
     "sunPeriodDays": {
       "value": 29.53,
       "unit": "day",
@@ -279,9 +284,9 @@
       "source": "ゲームの調整値：レゴリスを盛るのに外で使う時間（被ばくの計算用）"
     },
     "acuteDoseMsv": {
-      "value": 50,
+      "value": 250,
       "unit": "mSv",
-      "source": "ゲームの調整値（NASA の基準は太陽の嵐1回あたり 250 mSv。危なさに気づけるよう低くした）",
+      "source": "NASA-STD-3001 Vol.1 Rev C：太陽の嵐1回あたりの被ばくの上限 250 mSv",
       "url": "https://standards.nasa.gov/sites/default/files/standards/NASA/C//nasa-std-3001-vol-1-rev-c-signature.pdf"
     },
     "repairPromptBelowCondition": {
@@ -391,9 +396,9 @@
         "source": "ゲームの調整値：建てるのに電気は使わないことにした（かんたんにするため）"
       },
       "powerKw": {
-        "value": 1,
+        "value": 2,
         "unit": "kW",
-        "source": "ゲームの調整値（実際の月面の居住モジュールは人がいると約20 kW、いないと約2 kW：NASA GRC 2023）",
+        "source": "NASA GRC 2023（月面の電力網）：居住モジュールは人がいないとき約2 kW（人がいると約20 kW だが、生命維持の電気はゲームでは生命維持装置に数える）",
         "url": "https://ntrs.nasa.gov/api/citations/20230002896/downloads/Csank_CP_20230002896_CURENT_Knoxville_TN_2023_04_18.pdf"
       },
       "crewCapacity": {
@@ -408,9 +413,9 @@
         "url": "https://www.nasa.gov/wp-content/uploads/2023/03/radiation-protection-technical-brief-ochmo.pdf"
       },
       "degradationPerDay": {
-        "value": 0.004,
+        "value": 0.00015,
         "unit": "1/day",
-        "source": "ゲームの調整値（実際の月のほこりによる低下は1日に約0.015%以下。点検に意味があるよう速く傷むことにした）",
+        "source": "CEA Liten（ISMSE-16）：月のほこりで太陽電池が下がるのは半年で 0.5〜2.5%（1日に約0.015%以下）",
         "url": "https://ismse16.sciencesconf.org/534407"
       }
     },
@@ -433,9 +438,9 @@
         "url": "https://ntrs.nasa.gov/api/citations/20160000702/downloads/20160000702.pdf"
       },
       "degradationPerDay": {
-        "value": 0.01,
+        "value": 0.00015,
         "unit": "1/day",
-        "source": "ゲームの調整値（実際の月のほこりによる低下は1日に約0.015%以下。点検に意味があるよう速く傷むことにした）",
+        "source": "CEA Liten（ISMSE-16）：月のほこりで太陽電池が下がるのは半年で 0.5〜2.5%（1日に約0.015%以下）",
         "url": "https://ismse16.sciencesconf.org/534407"
       }
     },
@@ -452,15 +457,15 @@
         "source": "ゲームの調整値：建てるのに電気は使わないことにした（かんたんにするため）"
       },
       "capacityKwh": {
-        "value": 40,
+        "value": 5,
         "unit": "kWh",
-        "source": "ゲームの調整値（実際は 60 kg で約5 kWh：ISS のリチウムイオン電池は1台 約15 kWh・約195 kg。月の夜を越せるよう大きくした）",
+        "source": "NASA（ISS のリチウムイオン電池 2016）：1台 約15 kWh・約195 kg（1 kg あたり約77 Wh）。60 kg で約5 kWh",
         "url": "https://ntrs.nasa.gov/api/citations/20170004112/downloads/20170004112.pdf"
       },
       "degradationPerDay": {
-        "value": 0.003,
+        "value": 0.00015,
         "unit": "1/day",
-        "source": "ゲームの調整値（実際の月のほこりによる低下は1日に約0.015%以下。点検に意味があるよう速く傷むことにした）",
+        "source": "CEA Liten（ISMSE-16）：月のほこりで太陽電池が下がるのは半年で 0.5〜2.5%（1日に約0.015%以下）",
         "url": "https://ismse16.sciencesconf.org/534407"
       }
     },
@@ -481,9 +486,9 @@
         "source": "ゲームの調整値：アンテナの電力（確かめられる資料が見つからなかった）"
       },
       "degradationPerDay": {
-        "value": 0.005,
+        "value": 0.00015,
         "unit": "1/day",
-        "source": "ゲームの調整値（実際の月のほこりによる低下は1日に約0.015%以下。点検に意味があるよう速く傷むことにした）",
+        "source": "CEA Liten（ISMSE-16）：月のほこりで太陽電池が下がるのは半年で 0.5〜2.5%（1日に約0.015%以下）",
         "url": "https://ismse16.sciencesconf.org/534407"
       }
     },
@@ -522,9 +527,9 @@
         "source": "ゲームの調整値：温室1つを世話する隊員の数"
       },
       "degradationPerDay": {
-        "value": 0.006,
+        "value": 0.00015,
         "unit": "1/day",
-        "source": "ゲームの調整値（実際の月のほこりによる低下は1日に約0.015%以下。点検に意味があるよう速く傷むことにした）",
+        "source": "CEA Liten（ISMSE-16）：月のほこりで太陽電池が下がるのは半年で 0.5〜2.5%（1日に約0.015%以下）",
         "url": "https://ismse16.sciencesconf.org/534407"
       }
     },
@@ -558,15 +563,15 @@
         "url": "https://ntrs.nasa.gov/api/citations/20250005808/downloads/ICES_2025_345%20AOGA%20Status%205%2022%2025.pdf"
       },
       "degradationPerDay": {
-        "value": 0.02,
+        "value": 0.00015,
         "unit": "1/day",
-        "source": "ゲームの調整値（実際の月のほこりによる低下は1日に約0.015%以下。点検に意味があるよう速く傷むことにした）（2026-11-15 バランス調整：資源がたまるだけにならないように）",
+        "source": "CEA Liten（ISMSE-16）：月のほこりで太陽電池が下がるのは半年で 0.5〜2.5%（1日に約0.015%以下）",
         "url": "https://ismse16.sciencesconf.org/534407"
       },
       "waterRecoveryRatio": {
-        "value": 0.85,
+        "value": 0.93,
         "unit": "ratio",
-        "source": "ゲームの調整値（実際の ISS は水の93〜98%を使い直せる。最初の小さな装置なので低めにした）",
+        "source": "NASA：ISS は 2023 年より前、水の 93〜94% を使い直していた（今は 98%）",
         "url": "https://www.nasa.gov/missions/station/iss-research/nasa-achieves-water-recovery-milestone-on-international-space-station/"
       }
     },
@@ -595,9 +600,9 @@
         "url": "https://ntrs.nasa.gov/api/citations/20210016820/downloads/WaterMiningArchitecture_PTMSS2021_Kleinhenz.pdf"
       },
       "degradationPerDay": {
-        "value": 0.02,
+        "value": 0.00015,
         "unit": "1/day",
-        "source": "ゲームの調整値（実際の月のほこりによる低下は1日に約0.015%以下。点検に意味があるよう速く傷むことにした）",
+        "source": "CEA Liten（ISMSE-16）：月のほこりで太陽電池が下がるのは半年で 0.5〜2.5%（1日に約0.015%以下）",
         "url": "https://ismse16.sciencesconf.org/534407"
       }
     },
@@ -635,15 +640,22 @@
         "url": "https://www.nasa.gov/wp-content/uploads/2023/03/radiation-protection-technical-brief-ochmo.pdf"
       },
       "degradationPerDay": {
-        "value": 0.001,
+        "value": 0.00015,
         "unit": "1/day",
-        "source": "ゲームの調整値：遮蔽の傷み（ほとんど傷まない）"
+        "source": "CEA Liten（ISMSE-16）：月のほこりで太陽電池が下がるのは半年で 0.5〜2.5%（1日に約0.015%以下）",
+        "url": "https://ismse16.sciencesconf.org/534407"
       },
       "waterReserveDays": {
         "value": 7,
         "unit": "day",
         "source": "ゲームの調整値：水の遮蔽の水を飲み水に回す目安の日数"
       }
+    },
+    "landingDustDamage": {
+      "value": 0.16,
+      "unit": "ratio",
+      "source": "NASA（Campos 2023）：アポロのころの月面の実験は、乗り物が巻き上げたほこりで太陽電池の力を約16%なくした。着陸船のすぐそばで16%、離れるほど少なく傷むとした",
+      "url": "https://ntrs.nasa.gov/api/citations/20230004439/downloads/SPW%202023%20R%20Campos%20final_no%20video_edit.pdf"
     }
   },
   "protection": {
@@ -733,9 +745,9 @@
     "items": {
       "oxygen": {
         "massKg": {
-          "value": 1.5,
+          "value": 2.45,
           "unit": "kg/unit",
-          "source": "ゲームの調整値（実際の ISS の酸素タンクは酸素 1 kg に入れ物を入れて約 2.45 kg：NASA Ames 2017）",
+          "source": "NASA Ames（Jones 2017）：ISS の酸素タンクは空で 55.5 kg、酸素 38.3 kg が入る（酸素 1 kg あたり 2.45 kg）",
           "url": "https://ntrs.nasa.gov/api/citations/20200001084/downloads/20200001084.pdf"
         },
         "volumeM3": {
@@ -837,9 +849,9 @@
   },
   "events": {
     "flareDurationHours": {
-      "value": 12,
+      "value": 2,
       "unit": "h",
-      "source": "ゲームの調整値（NOAA：フレアは数分から数時間。粒子の嵐が続く時間とまとめて長めにした）",
+      "source": "NOAA：太陽フレアは数分から数時間続く（その中の 2 時間とした）",
       "url": "https://www.spaceweather.gov/phenomena/solar-flares-radio-blackouts"
     },
     "sepDurationHours": {
@@ -854,21 +866,21 @@
       "source": "ゲームの調整値：宇宙天気が起きる平均の間隔（遊びの中で何度か出会えるように）"
     },
     "flareMultiplierC": {
-      "value": 5,
+      "value": 1,
       "unit": "x",
-      "source": "ゲームの調整値（フレアの光そのものは月面の被ばくをほとんど増やさない。大きなフレアのあとに来る粒子の嵐の強さをまとめて表した）",
+      "source": "NOAA：フレアは光（X線）と電波の爆発で、月面の被ばくはほとんど増やさない。危ないのはそのあとに来る粒子の嵐（SEP）",
       "url": "https://www.spaceweather.gov/phenomena/solar-flares-radio-blackouts"
     },
     "flareMultiplierM": {
-      "value": 20,
+      "value": 1,
       "unit": "x",
-      "source": "ゲームの調整値（フレアの光そのものは月面の被ばくをほとんど増やさない。大きなフレアのあとに来る粒子の嵐の強さをまとめて表した）",
+      "source": "NOAA：フレアは光（X線）と電波の爆発で、月面の被ばくはほとんど増やさない。危ないのはそのあとに来る粒子の嵐（SEP）",
       "url": "https://www.spaceweather.gov/phenomena/solar-flares-radio-blackouts"
     },
     "flareMultiplierX": {
-      "value": 120,
+      "value": 1,
       "unit": "x",
-      "source": "ゲームの調整値（フレアの光そのものは月面の被ばくをほとんど増やさない。大きなフレアのあとに来る粒子の嵐の強さをまとめて表した）",
+      "source": "NOAA：フレアは光（X線）と電波の爆発で、月面の被ばくはほとんど増やさない。危ないのはそのあとに来る粒子の嵐（SEP）",
       "url": "https://www.spaceweather.gov/phenomena/solar-flares-radio-blackouts"
     },
     "sepMultiplier": {
@@ -908,15 +920,20 @@
       "unit": "m",
       "source": "ゲームの調整値：くんれんで「歩いた」とする距離"
     },
+    "minStepSeconds": {
+      "value": 1.5,
+      "unit": "s",
+      "source": "ゲームの調整値：くんれんの段を読む前に進まないための最短の時間"
+    },
     "lookTurnRad": {
       "value": 0.6,
       "unit": "rad",
       "source": "ゲームの調整値：くんれんで「見回した」とする角度"
     },
-    "minStepSeconds": {
-      "value": 1.5,
+    "reactionSeconds": {
+      "value": 3,
       "unit": "s",
-      "source": "ゲームの調整値：くんれんの段を読む前に進まないための最短の時間"
+      "source": "ゲームの調整値：くんれんで返事を選んだあと、博士の反応を読む時間"
     }
   },
   "build": {

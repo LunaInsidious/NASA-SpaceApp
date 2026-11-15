@@ -968,3 +968,105 @@ body[data-tutorial-step="comm"] .ui-status::before {
 .tutorial.tutorial-collapsed::after {
   display: none;
 }
+
+/* 博士の物語の一言（やることの上）。指示とは別の、お話の声 */
+.tutorial .tutorial-story {
+  margin: 4px 0 2px;
+  padding: 4px 10px;
+  border-left: 3px solid #ffd27a;
+  color: #ffe9a8;
+  font-style: italic;
+  line-height: 1.6;
+}
+
+.tutorial .tutorial-story[hidden] {
+  display: none;
+}
+
+/* 置く場所を選んでいる間は、物語の一言も隠す（地面を見せる） */
+.tutorial.tutorial-compact .tutorial-story {
+  display: none;
+}
+
+/* 博士への返事を選ぶ層：ノベルゲームのように画面全体を暗くして、選択肢だけを浮かべる */
+.tutorial-choice-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  display: flex;
+  /* 選択肢は画面の下のほう（上の博士の話を隠さない） */
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px 16px calc(12vh + env(safe-area-inset-bottom));
+  background: rgba(2, 4, 10, 0.62);
+  pointer-events: auto;
+  animation: tutorial-choice-dim 0.35s ease-out;
+}
+
+.tutorial-choice-layer[hidden] {
+  display: none;
+}
+
+@keyframes tutorial-choice-dim {
+  from {
+    background: rgba(2, 4, 10, 0);
+  }
+}
+
+.tutorial-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(560px, 100%);
+}
+
+.tutorial-choice-layer button.tutorial-choice {
+  padding: 16px 24px;
+  border: 2px solid rgba(255, 210, 122, 0.85);
+  border-radius: 14px;
+  background: linear-gradient(90deg, rgba(20, 34, 60, 0.92), rgba(30, 48, 82, 0.92));
+  color: #fff6d8;
+  font:
+    800 20px / 1.5 system-ui,
+    -apple-system,
+    "Hiragino Sans",
+    "Noto Sans JP",
+    sans-serif;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  animation: tutorial-choice-in 0.4s ease-out both;
+}
+
+.tutorial-choice-layer button.tutorial-choice:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.tutorial-choice-layer button.tutorial-choice:hover,
+.tutorial-choice-layer button.tutorial-choice:focus-visible {
+  border-color: #ffd27a;
+  background: linear-gradient(90deg, rgba(48, 70, 110, 0.96), rgba(60, 86, 132, 0.96));
+  transform: scale(1.03);
+  box-shadow: 0 0 22px rgba(255, 210, 122, 0.45);
+}
+
+@keyframes tutorial-choice-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+/* 選んでいる間：博士の話（吹き出しと窓）は暗い層の上に出して読めるようにし、押せないようにする */
+body.tutorial-choosing .guide-stack,
+body.tutorial-choosing .tutorial,
+body.tutorial-choosing .tutorial-modal-layer {
+  z-index: 10;
+  pointer-events: none;
+}
+
+body.tutorial-choosing .tutorial-modal-layer {
+  align-items: flex-start;
+  padding-top: calc(10vh + env(safe-area-inset-top));
+  background: transparent;
+}

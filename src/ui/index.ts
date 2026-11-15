@@ -32,6 +32,7 @@ import { SOUND_MODES } from './fx.ts';
 import { getLang, onLangChange, setLang, t, tPlain } from './i18n.ts';
 import { type MinigameOutcome, openMinigame } from './minigame.ts';
 import { type NasaImages, photoFigureHtml } from './photo.ts';
+import { type ValueEntryLike, valueText } from './valueText.ts';
 import './ui.css';
 
 const FACILITY_KINDS: readonly FacilityKind[] = [
@@ -135,77 +136,82 @@ function pick<T extends string>(value: string | undefined, allowed: readonly T[]
   return found;
 }
 
-// 「データ」の窓で、出典と並べて見せる数値（HUD の項目ごと）
-export const SOURCE_KEYS = {
-  tank: ['eva.maxHours', 'crew.sleepHours', 'eva.weeklyHoursPerPerson'],
-  lifeSupport: [
-    'crew.oxygenKgPerDay',
-    'crew.waterKgPerDay',
-    'crew.foodKgPerDay',
-    'facilities.lifeSupport.oxygenKgPerDay',
-  ],
-  power: [
-    'facilities.solar.generationKw',
-    'facilities.battery.capacityKwh',
-    'facilities.habitat.powerKw',
-    'moon.sunPeriodDays',
-  ],
-  shielding: [
-    'moon.radiationMsvPerDay',
-    'crew.doseLimitMsv',
-    'facilities.habitat.indoorProtection',
-    'events.flareMultiplierX',
-  ],
-  development: ['development.clearThreshold', 'development.scalePerCrew'],
-  comm: ['comm.earthPeriodDays', 'moon.commDelaySec'],
-  // X級フレアの倍率と、ふだん浴びる放射線は「遮蔽と放射線」に出しているので、ここには重ねない
-  flare: ['events.flareMultiplierM', 'events.sepMultiplier', 'events.flareDurationHours'],
-} as const;
-type SourceSection = keyof typeof SOURCE_KEYS;
-const SOURCE_SECTIONS = Object.keys(SOURCE_KEYS) as SourceSection[];
-
-interface ValueEntryLike {
-  value: number;
-  unit: string;
-  source: string;
-  url?: string;
+/** ゲームとして決めた値か（本物の答えがない値。docs/SPEC.md で決めた値も同じ） */
+function isGameTuning(source: string): boolean {
+  return source.startsWith(GAME_TUNING_SOURCE_PREFIX) || source.startsWith('docs/SPEC.md');
 }
 
-/** values の中の "a.b.c" の値。なければ作りの誤りなので例外 */
-function valueAt(values: Values, path: string): ValueEntryLike {
-  let node: unknown = values;
-  for (const part of path.split('.')) {
-    if (typeof node !== 'object' || node === null || !(part in node)) {
-      throw new Error(`values に ${path} がない`);
+/** values.json のすべての値と、その "a.b.c" の名前（ファイルの順） */
+export function allValueEntries(values: Values): { path: string; entry: ValueEntryLike }[] {
+  const found: { path: string; entry: ValueEntryLike }[] = [];
+  const walk = (node: unknown, path: string) => {
+    if (typeof node !== 'object' || node === null) {
+      throw new Error(`values の ${path} がオブジェクトではない`);
     }
-    node = (node as Record<string, unknown>)[part];
-  }
-  return node as ValueEntryLike;
+    if ('value' in node) {
+      found.push({ path, entry: node as ValueEntryLike });
+      return;
+    }
+    for (const [key, child] of Object.entries(node)) {
+      walk(child, path === '' ? key : `${path}.${key}`);
+    }
+  };
+  walk(values, '');
+  return found;
 }
 
-/** 数と単位を、子どもに読める形で（ratio は % にする）。単位の言葉は i18n の unit.* */
-function valueText(entry: ValueEntryLike): string {
-  if (entry.unit === 'ratio') {
-    return `${fmt(entry.value * PERCENT)}%`;
-  }
-  return t(`unit.${entry.unit}`, { value: String(entry.value) });
+/** 本物の資料で決めた値（データの窓で、名前・数・出典を1行ずつ出す） */
+export function realValueEntries(values: Values): { path: string; entry: ValueEntryLike }[] {
+  return allValueEntries(values).filter(({ entry }) => !isGameTuning(entry.source));
 }
 
-/** 数値と、その出典（リンクつき）の一覧。出典が決まっていなければそう書く */
-function sourceListHtml(values: Values, section: SourceSection): string {
-  const rows = SOURCE_KEYS[section].map((path) => {
-    const entry = valueAt(values, path);
+/** 本物の資料で決めた数を、まとまり（values.json のいちばん上の区分）ごとに、名前・数・出典つきで */
+function realValuesHtml(
+  values: Values,
+  cardLinks: (path: string) => { id: string; title: string; owned: boolean }[],
+): string {
+  const groups = new Map<string, string[]>();
+  for (const { path, entry } of realValueEntries(values)) {
+    const group = path.split('.')[0];
     const source =
-      entry.source === 'TBD'
-        ? `<span class="ui-src-tbd">${t('source.tbd')}</span>`
-        : entry.source.startsWith('docs/SPEC.md')
-          ? t('source.gameDesign')
-          : entry.url !== undefined
-            ? `<a href="${esc(entry.url)}" target="_blank" rel="noopener noreferrer">${esc(entry.source)}</a>`
-            : esc(entry.source);
-    return `<li><b>${t(`valueName.${path}`)}</b>：${valueText(entry)}<br><span class="ui-small">${t('source.label')} ${source}</span></li>`;
-  });
-  return `<ul class="ui-src-list">${rows.join('')}</ul>`;
+      entry.url === undefined
+        ? esc(entry.source)
+        : `<a href="${esc(entry.url)}" target="_blank" rel="noopener noreferrer">${esc(entry.source)}</a>`;
+    // この値を本物のデータとして使っている豆知識カード（持っていれば押してカードへ）
+    const cards = cardLinks(path)
+      .map((card) =>
+        card.owned
+          ? `<button class="card-link" data-action="openCard" data-card="${esc(card.id)}">🃏 ${card.title}</button>`
+          : `<span class="card-link locked">${t('data.cardLocked')}</span>`,
+      )
+      .join('');
+    const row = `<li><b>${t(`valueName.${path}`)}</b>：${valueText(entry)}<br><span class="ui-small">${t('source.label')} ${source}</span>${cards === '' ? '' : `<div class="card-links">${cards}</div>`}</li>`;
+    groups.set(group, [...(groups.get(group) ?? []), row]);
+  }
+  return [...groups.entries()]
+    .map(
+      ([group, rows]) =>
+        `<h4>${t(`valueGroup.${group}`)}</h4><ul class="ui-src-list">${rows.join('')}</ul>`,
+    )
+    .join('');
+}
+
+/** ゲームとして決めた数：数と、そう決めたわけ（たたんで出す） */
+function tuningValuesHtml(values: Values): string {
+  const tuning = allValueEntries(values).filter(({ entry }) => isGameTuning(entry.source));
+  const rows = tuning
+    .map(({ path, entry }) => {
+      const amount =
+        entry.unit === 'ratio' ? `${fmt(entry.value * PERCENT)}%` : `${entry.value} ${entry.unit}`;
+      const why = entry.source.startsWith(GAME_TUNING_SOURCE_PREFIX)
+        ? entry.source.slice(GAME_TUNING_SOURCE_PREFIX.length).replace(/^：/, '')
+        : entry.source;
+      return `<li><code>${esc(path)}</code> ＝ <b>${esc(amount)}</b><br><span class="ui-small">${esc(why)}</span></li>`;
+    })
+    .join('');
+  return `<details class="ui-tuning"><summary>${t('data.valuesTuningTitle', { count: fmt(tuning.length) })}</summary>
+    <p class="ui-small">${t('data.valuesGameTuning', { count: fmt(tuning.length) })}</p>
+    <ul class="ui-src-list">${rows}</ul></details>`;
 }
 
 /** 電力の差し引き。たまるか、へるかを＋と−、色、矢印で見せる */
@@ -299,41 +305,6 @@ function bar(ratio: number, extraClass: string): string {
 
 /** ゲームとして決めた値（本物の答えがない値）の出典の書き出し。data/values.json の source がこれで始まる */
 export const GAME_TUNING_SOURCE_PREFIX = 'ゲームの調整値';
-
-/**
- * values をたどり、本物の資料の出典（ゲームの調整値でも docs/SPEC.md でもない）を重複なしで集める。
- * gameTuning はゲームの調整値・docs/SPEC.md で決めた値の数。
- * 値の形は tests/data.test.ts が確かめているので、形が違えば作りの誤りとして例外にする
- */
-function collectValueSources(values: Values): {
-  sources: { source: string; url: string | undefined }[];
-  gameTuning: number;
-} {
-  let gameTuning = 0;
-  const found = new Map<string, { source: string; url: string | undefined }>();
-  const walk = (node: unknown) => {
-    if (typeof node !== 'object' || node === null) {
-      return;
-    }
-    if ('value' in node) {
-      const { source, url } = node as { source?: unknown; url?: unknown };
-      if (typeof source !== 'string' || (url !== undefined && typeof url !== 'string')) {
-        throw new Error('values の出典の形が違う');
-      }
-      if (source.startsWith(GAME_TUNING_SOURCE_PREFIX) || source.startsWith('docs/SPEC.md')) {
-        gameTuning++;
-      } else {
-        found.set(`${source}\n${url ?? ''}`, { source, url });
-      }
-      return;
-    }
-    for (const child of Object.values(node)) {
-      walk(child);
-    }
-  };
-  walk(values);
-  return { sources: [...found.values()], gameTuning };
-}
 
 export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Values): Ui {
   const isTouch = window.matchMedia('(pointer: coarse)').matches;
@@ -1166,6 +1137,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <p>${t('morning.lead')}</p>
       ${rows === '' ? '' : `<ul class="ui-list">${rows}</ul>`}
       ${summary.arrived > 0 ? `<p class="ui-ok">${t('morning.arrived')}</p>` : ''}
+      ${summary.dusted > 0 ? `<p class="ui-warn">${t('landingDust.morning', { count: summary.dusted })}</p>` : ''}
       ${summary.newlyShaded > 0 ? `<p class="ui-warn">${t('morning.shaded', { count: summary.newlyShaded })}</p>` : ''}
       ${summary.newlyLit > 0 ? `<p class="ui-ok">${t('morning.lit', { count: summary.newlyLit })}</p>` : ''}
       ${weather}
@@ -1253,23 +1225,14 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         </li>`,
       )
       .join('');
-    const collected = collectValueSources(values);
-    const sources = collected.sources
-      .map(
-        ({ source, url }) =>
-          `<li>${url === undefined ? esc(source) : `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(source)}</a>`}</li>`,
-      )
-      .join('');
     return `
       <h2>${t('data.title')}</h2>
       <h3>${t('data.spaceWeather')}</h3>
       <p class="ui-small">${t('data.spaceWeatherNote')}</p>
       <ul class="ui-list">${events}</ul>
-      <h3>${t('source.title')}</h3>
-      ${SOURCE_SECTIONS.map((section) => `<h4>${t(`source.section.${section}`)}</h4>${sourceListHtml(values, section)}`).join('')}
-      <h3>${t('data.values')}</h3>
-      <ul class="ui-list">${sources}</ul>
-      <p class="ui-small">${t('data.valuesGameTuning', { count: fmt(collected.gameTuning) })}</p>
+      <h3>${t('data.valuesReal')}</h3>
+      ${realValuesHtml(values, callbacks.cardsForValue)}
+      ${tuningValuesHtml(values)}
       <h3>${t('data.terrainTitle')}</h3>
       ${
         terrainSource === null
@@ -1315,6 +1278,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       ...(r.greeting === null
         ? []
         : [`<div class="cr-bubble cr-bubble-greet">${r.greeting}</div>`]),
+      // 今日の行動：広い画面では右のモニターに出すので、せまい画面（左右のモニターがない）だけ吹き出しで
+      `<div class="cr-bubble cr-bubble-today"><b>${t('cr.today')}</b><ul class="cr-today">${info.today.map((line) => `<li>${line}</li>`).join('')}</ul></div>`,
       ...r.lines.map((line) => `<div class="cr-bubble">${line}</div>`),
       ...r.dangers.map((line) => `<div class="cr-bubble cr-bubble-danger">${line}</div>`),
       `<div class="cr-bubble"><div class="nb-comm-stars">${stars}</div>${r.starChanges.map((line) => `<p class="nb-comm-starline">${line}</p>`).join('')}</div>`,
@@ -1769,6 +1734,23 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           throw new Error('ui の言葉がない');
         }
         callbacks.onOpenTerm(term);
+        break;
+      }
+      case 'openCard': {
+        const cardId = target.dataset.card;
+        if (cardId === undefined) {
+          throw new Error('ui のカードの ID がない');
+        }
+        pauseView = 'cards';
+        cardsPulse = false;
+        renderPauseOverlay();
+        renderTopButtons();
+        const card = pauseEl.querySelector<HTMLElement>(`[data-card-id="${CSS.escape(cardId)}"]`);
+        if (card === null) {
+          throw new Error(`豆知識カード ${cardId} が一覧にない`);
+        }
+        card.scrollIntoView({ block: 'center' });
+        card.classList.add('card-flash');
         break;
       }
       case 'nightView':

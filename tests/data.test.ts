@@ -7,9 +7,17 @@ import en from '../i18n/en.json';
 import ja from '../i18n/ja.json';
 import type { ValueEntry } from '../src/contracts/index.ts';
 import { parseAchievements } from '../src/save/achievements.ts';
-import { parseMissions, STEPS } from '../src/tutorial/index.ts';
+import {
+  INTRO_REPLY_PAGES,
+  parseMissions,
+  REPLY_COUNT,
+  REPLY_STEPS,
+  STEPS,
+  STORY_INTRO_PAGES,
+  STORY_STEPS,
+} from '../src/tutorial/index.ts';
 import { stripRuby } from '../src/ui/i18n.ts';
-import { SOURCE_KEYS } from '../src/ui/index.ts';
+import { realValueEntries } from '../src/ui/index.ts';
 import { parseNasaImages } from '../src/ui/photo.ts';
 
 function isValueEntry(node: object): node is ValueEntry {
@@ -159,19 +167,48 @@ describe('ふりがな', () => {
     expect(bare).toEqual([]);
   });
 
-  it('「データ」の窓に出す数値はどれも values.json にあり、単位の言葉が i18n にある（ratio は % にする）', () => {
-    for (const path of Object.values(SOURCE_KEYS).flat()) {
-      const entry = path
-        .split('.')
-        .reduce<unknown>(
-          (node, key) => (node as Record<string, unknown>)[key],
-          values,
-        ) as ValueEntry;
-      expect(entry, path).toBeDefined();
+  it('本物の資料で決めた値には、データの窓に出す名前・単位の言葉・まとまりの見出しがある（ratio は % にする）', () => {
+    for (const { path, entry } of realValueEntries(values)) {
+      expect(Object.keys(ja), path).toContain(`valueName.${path}`);
+      expect(Object.keys(en), path).toContain(`valueName.${path}`);
+      expect(Object.keys(ja), path).toContain(`valueGroup.${path.split('.')[0]}`);
       if (entry.unit !== 'ratio') {
         expect(Object.keys(ja), path).toContain(`unit.${entry.unit}`);
         expect(Object.keys(en), path).toContain(`unit.${entry.unit}`);
       }
     }
+  });
+
+  it('物語：はじまりの話の各ページ、博士がお話をする段、ミッションの章の題とお話が、日本語と英語の両方にある', () => {
+    const keys = [
+      ...Array.from({ length: STORY_INTRO_PAGES }, (_, i) => [
+        `story.intro.${i + 1}.title`,
+        `story.intro.${i + 1}.body`,
+      ]).flat(),
+      ...STORY_STEPS.map((step) => `tutorial.story.${step}`),
+      ...parseMissions(missions).flatMap((m) => [
+        `mission.chapter.${m.id}`,
+        `mission.story.${m.id}`,
+      ]),
+      // 博士への返事と、博士の反応
+      ...INTRO_REPLY_PAGES.flatMap((page) =>
+        Array.from({ length: REPLY_COUNT }, (_, i) => [
+          `story.intro.${page}.reply.${i + 1}`,
+          `story.intro.${page}.react.${i + 1}`,
+        ]).flat(),
+      ),
+      ...REPLY_STEPS.flatMap((step) =>
+        Array.from({ length: REPLY_COUNT }, (_, i) => [
+          `tutorial.reply.${step}.${i + 1}`,
+          `tutorial.react.${step}.${i + 1}`,
+        ]).flat(),
+      ),
+      'story.feeling.excited',
+      'story.feeling.nervous',
+    ];
+    for (const lang of [ja, en]) {
+      expect(keys.filter((key) => !(key in lang))).toEqual([]);
+    }
+    expect(STORY_STEPS.every((step) => STEPS.includes(step))).toBe(true);
   });
 });
