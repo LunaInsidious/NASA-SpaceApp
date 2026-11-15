@@ -163,6 +163,8 @@ let restReason: (typeof REST_REASONS)[number] | null = null;
 let lastNightStars: Stars | null = null;
 // 地球管制が明日のタスクをすすめた日（同じ日に何度も中に入っても、すすめ直さない）
 let suggestedOnDay = -1;
+// いま選んでいる明日のタスクが、地球管制のすすめのままか（自分で変えたら、すすめ直さない）
+let tasksFromEarth = false;
 let lastRestKey = '';
 // 準備した注文（「翌日へ」か「外に出る」で送る。それまでは取り消せる）
 let queuedOrder: LaunchItem[] | null = null;
@@ -261,6 +263,8 @@ const ui = createUi(
     },
     onContextAction: doAction,
     onTaskToggle: (taskId) => {
+      // 自分で選び直したら、地球管制はもうすすめ直さない
+      tasksFromEarth = false;
       if (selectedTasks.some((task) => task.id === taskId)) {
         selectedTasks = selectedTasks.filter((task) => task.id !== taskId);
         return;
@@ -434,6 +438,10 @@ function startFrom(next: SimState, fromSave: boolean): void {
   queuedOrder = null;
   selectedTasks = [];
   todayPlan = [];
+  // 別のゲームの夜の続き（★の比べる相手、タスクのすすめ）は持ち越さない
+  lastNightStars = null;
+  suggestedOnDay = -1;
+  tasksFromEarth = false;
   ui.stopMinigame();
   pending.length = 0;
   accumulatedHours = 0;
@@ -687,10 +695,12 @@ function currentStars(): Stars {
  */
 function suggestTomorrowTasks(): void {
   const today = Math.floor(state.timeHours / HOURS_PER_DAY);
-  if (tutorial.isTutorial() || suggestedOnDay === today || selectedTasks.length > 0) {
+  const ownChoice = selectedTasks.length > 0 && !tasksFromEarth;
+  if (tutorial.isTutorial() || suggestedOnDay === today || ownChoice) {
     return;
   }
   suggestedOnDay = today;
+  tasksFromEarth = true;
   const view = describe(state, values, env);
   const waterLow = view.lifeSupportDays.water < values.advice.lifeSupportLowDays.value;
   selectedTasks = suggestTasks(
