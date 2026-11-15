@@ -32,7 +32,7 @@ import { SOUND_MODES } from './fx.ts';
 import { getLang, onLangChange, setLang, t, tPlain } from './i18n.ts';
 import { type MinigameOutcome, openMinigame } from './minigame.ts';
 import { type NasaImages, photoFigureHtml } from './photo.ts';
-import { valueAt, valueText } from './valueText.ts';
+import { type ValueEntryLike, valueText } from './valueText.ts';
 import './ui.css';
 
 const FACILITY_KINDS: readonly FacilityKind[] = [
@@ -136,66 +136,48 @@ function pick<T extends string>(value: string | undefined, allowed: readonly T[]
   return found;
 }
 
-// 「データ」の窓で、出典と並べて見せる数値（HUD の項目ごと）
-export const SOURCE_KEYS = {
-  tank: ['eva.maxHours', 'crew.sleepHours', 'eva.weeklyHoursPerPerson'],
-  lifeSupport: [
-    'crew.oxygenKgPerDay',
-    'crew.waterKgPerDay',
-    'crew.foodKgPerDay',
-    'facilities.lifeSupport.oxygenKgPerDay',
-    'facilities.lifeSupport.waterPerOxygen',
-    'facilities.greenhouse.foodKgPerDay',
-    'facilities.iceDrill.waterKgPerDay',
-  ],
-  power: [
-    'facilities.solar.generationKw',
-    'facilities.battery.capacityKwh',
-    'facilities.habitat.powerKw',
-    'moon.sunPeriodDays',
-    'moon.sunElevationDeg',
-    'facilities.greenhouse.powerKw',
-    'facilities.iceDrill.powerKw',
-  ],
-  shielding: [
-    'moon.radiationMsvPerDay',
-    'crew.doseLimitMsv',
-    'facilities.habitat.indoorProtection',
-    'events.flareMultiplierX',
-    'facilities.shield.regolithProtection',
-    'protection.regolithCoverBonus',
-  ],
-  development: ['development.clearThreshold', 'development.scalePerCrew'],
-  comm: ['comm.earthPeriodDays', 'moon.commDelaySec', 'comm.relayOrbitHours'],
-  // X級フレアの倍率と、ふだん浴びる放射線は「遮蔽と放射線」に出しているので、ここには重ねない
-  flare: [
-    'events.flareMultiplierM',
-    'events.sepMultiplier',
-    'events.flareDurationHours',
-    'events.sepDurationHours',
-  ],
-  moon: ['moon.gravity'],
-  supply: ['launch.capacityKg', 'launch.items.food.massKg', 'launch.items.relaySatellite.massKg'],
-} as const;
-type SourceSection = keyof typeof SOURCE_KEYS;
-const SOURCE_SECTIONS = Object.keys(SOURCE_KEYS) as SourceSection[];
+/** ゲームとして決めた値か（本物の答えがない値。docs/SPEC.md で決めた値も同じ） */
+function isGameTuning(source: string): boolean {
+  return source.startsWith(GAME_TUNING_SOURCE_PREFIX) || source.startsWith('docs/SPEC.md');
+}
 
-/** 数値と、その出典（リンクつき）の一覧。出典が決まっていなければそう書く */
-function sourceListHtml(
+/** values.json のすべての値と、その "a.b.c" の名前（ファイルの順） */
+export function allValueEntries(values: Values): { path: string; entry: ValueEntryLike }[] {
+  const found: { path: string; entry: ValueEntryLike }[] = [];
+  const walk = (node: unknown, path: string) => {
+    if (typeof node !== 'object' || node === null) {
+      throw new Error(`values の ${path} がオブジェクトではない`);
+    }
+    if ('value' in node) {
+      found.push({ path, entry: node as ValueEntryLike });
+      return;
+    }
+    for (const [key, child] of Object.entries(node)) {
+      walk(child, path === '' ? key : `${path}.${key}`);
+    }
+  };
+  walk(values, '');
+  return found;
+}
+
+/** 本物の資料で決めた値（データの窓で、名前・数・出典を1行ずつ出す） */
+export function realValueEntries(values: Values): { path: string; entry: ValueEntryLike }[] {
+  return allValueEntries(values).filter(({ entry }) => !isGameTuning(entry.source));
+}
+
+/** 本物の資料で決めた数を、まとまり（values.json のいちばん上の区分）ごとに、名前・数・出典つきで */
+function realValuesHtml(
   values: Values,
-  section: SourceSection,
   cardLinks: (path: string) => { id: string; title: string; owned: boolean }[],
 ): string {
-  const rows = SOURCE_KEYS[section].map((path) => {
-    const entry = valueAt(values, path);
+  const groups = new Map<string, string[]>();
+  for (const { path, entry } of realValueEntries(values)) {
+    const group = path.split('.')[0];
     const source =
-      entry.source === 'TBD'
-        ? `<span class="ui-src-tbd">${t('source.tbd')}</span>`
-        : entry.source.startsWith('docs/SPEC.md')
-          ? t('source.gameDesign')
-          : entry.url !== undefined
-            ? `<a href="${esc(entry.url)}" target="_blank" rel="noopener noreferrer">${esc(entry.source)}</a>`
-            : esc(entry.source);
+      entry.url === undefined
+        ? esc(entry.source)
+        : `<a href="${esc(entry.url)}" target="_blank" rel="noopener noreferrer">${esc(entry.source)}</a>`;
+    // この値を本物のデータとして使っている豆知識カード（持っていれば押してカードへ）
     const cards = cardLinks(path)
       .map((card) =>
         card.owned
@@ -203,9 +185,33 @@ function sourceListHtml(
           : `<span class="card-link locked">${t('data.cardLocked')}</span>`,
       )
       .join('');
-    return `<li><b>${t(`valueName.${path}`)}</b>：${valueText(entry)}<br><span class="ui-small">${t('source.label')} ${source}</span>${cards === '' ? '' : `<div class="card-links">${cards}</div>`}</li>`;
-  });
-  return `<ul class="ui-src-list">${rows.join('')}</ul>`;
+    const row = `<li><b>${t(`valueName.${path}`)}</b>：${valueText(entry)}<br><span class="ui-small">${t('source.label')} ${source}</span>${cards === '' ? '' : `<div class="card-links">${cards}</div>`}</li>`;
+    groups.set(group, [...(groups.get(group) ?? []), row]);
+  }
+  return [...groups.entries()]
+    .map(
+      ([group, rows]) =>
+        `<h4>${t(`valueGroup.${group}`)}</h4><ul class="ui-src-list">${rows.join('')}</ul>`,
+    )
+    .join('');
+}
+
+/** ゲームとして決めた数：数と、そう決めたわけ（たたんで出す） */
+function tuningValuesHtml(values: Values): string {
+  const tuning = allValueEntries(values).filter(({ entry }) => isGameTuning(entry.source));
+  const rows = tuning
+    .map(({ path, entry }) => {
+      const amount =
+        entry.unit === 'ratio' ? `${fmt(entry.value * PERCENT)}%` : `${entry.value} ${entry.unit}`;
+      const why = entry.source.startsWith(GAME_TUNING_SOURCE_PREFIX)
+        ? entry.source.slice(GAME_TUNING_SOURCE_PREFIX.length).replace(/^：/, '')
+        : entry.source;
+      return `<li><code>${esc(path)}</code> ＝ <b>${esc(amount)}</b><br><span class="ui-small">${esc(why)}</span></li>`;
+    })
+    .join('');
+  return `<details class="ui-tuning"><summary>${t('data.valuesTuningTitle', { count: fmt(tuning.length) })}</summary>
+    <p class="ui-small">${t('data.valuesGameTuning', { count: fmt(tuning.length) })}</p>
+    <ul class="ui-src-list">${rows}</ul></details>`;
 }
 
 /** 電力の差し引き。たまるか、へるかを＋と−、色、矢印で見せる */
@@ -299,41 +305,6 @@ function bar(ratio: number, extraClass: string): string {
 
 /** ゲームとして決めた値（本物の答えがない値）の出典の書き出し。data/values.json の source がこれで始まる */
 export const GAME_TUNING_SOURCE_PREFIX = 'ゲームの調整値';
-
-/**
- * values をたどり、本物の資料の出典（ゲームの調整値でも docs/SPEC.md でもない）を重複なしで集める。
- * gameTuning はゲームの調整値・docs/SPEC.md で決めた値の数。
- * 値の形は tests/data.test.ts が確かめているので、形が違えば作りの誤りとして例外にする
- */
-function collectValueSources(values: Values): {
-  sources: { source: string; url: string | undefined }[];
-  gameTuning: number;
-} {
-  let gameTuning = 0;
-  const found = new Map<string, { source: string; url: string | undefined }>();
-  const walk = (node: unknown) => {
-    if (typeof node !== 'object' || node === null) {
-      return;
-    }
-    if ('value' in node) {
-      const { source, url } = node as { source?: unknown; url?: unknown };
-      if (typeof source !== 'string' || (url !== undefined && typeof url !== 'string')) {
-        throw new Error('values の出典の形が違う');
-      }
-      if (source.startsWith(GAME_TUNING_SOURCE_PREFIX) || source.startsWith('docs/SPEC.md')) {
-        gameTuning++;
-      } else {
-        found.set(`${source}\n${url ?? ''}`, { source, url });
-      }
-      return;
-    }
-    for (const child of Object.values(node)) {
-      walk(child);
-    }
-  };
-  walk(values);
-  return { sources: [...found.values()], gameTuning };
-}
 
 export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Values): Ui {
   const isTouch = window.matchMedia('(pointer: coarse)').matches;
@@ -1254,23 +1225,14 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         </li>`,
       )
       .join('');
-    const collected = collectValueSources(values);
-    const sources = collected.sources
-      .map(
-        ({ source, url }) =>
-          `<li>${url === undefined ? esc(source) : `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(source)}</a>`}</li>`,
-      )
-      .join('');
     return `
       <h2>${t('data.title')}</h2>
       <h3>${t('data.spaceWeather')}</h3>
       <p class="ui-small">${t('data.spaceWeatherNote')}</p>
       <ul class="ui-list">${events}</ul>
-      <h3>${t('source.title')}</h3>
-      ${SOURCE_SECTIONS.map((section) => `<h4>${t(`source.section.${section}`)}</h4>${sourceListHtml(values, section, callbacks.cardsForValue)}`).join('')}
-      <h3>${t('data.values')}</h3>
-      <ul class="ui-list">${sources}</ul>
-      <p class="ui-small">${t('data.valuesGameTuning', { count: fmt(collected.gameTuning) })}</p>
+      <h3>${t('data.valuesReal')}</h3>
+      ${realValuesHtml(values, callbacks.cardsForValue)}
+      ${tuningValuesHtml(values)}
       <h3>${t('data.terrainTitle')}</h3>
       ${
         terrainSource === null

@@ -5,7 +5,7 @@ import valuesJson from '../../data/values.json';
 import en from '../../i18n/en.json';
 import ja from '../../i18n/ja.json';
 import { createInitialState } from '../sim/index.ts';
-import { SOURCE_KEYS } from '../ui/index.ts';
+import { realValueEntries } from '../ui/index.ts';
 import { createCardStore, parseCards } from './index.ts';
 
 const cards = parseCards(cardsJson, Object.keys(nasaImagesJson));
@@ -33,7 +33,7 @@ describe('豆知識カード', () => {
   });
 
   it('カードの本物のデータは values.json にあり、本物の資料（url つき）で、名前と単位の言葉があり、データの窓にも出る', () => {
-    const inDataWindow = Object.values(SOURCE_KEYS).flat() as string[];
+    const inDataWindow = realValueEntries(valuesJson).map(({ path }) => path);
     for (const card of cards) {
       for (const path of card.values) {
         const entry = path

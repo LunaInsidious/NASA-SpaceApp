@@ -2555,3 +2555,29 @@ body.nb-open .advice-card {
     box-shadow: 0 0 0 3px #ffd27a;
   }
 }
+
+/* データの窓の出典のリンク：暗い背景でも読める明るい色 */
+.ui-root .ui-src-list a,
+.ui-root .ui-list a {
+  color: #9fd3ff;
+}
+
+.ui-root .ui-src-list a:visited,
+.ui-root .ui-list a:visited {
+  color: #c7b3ff;
+}
+
+/* ゲームとして決めた数（たたんで出す） */
+.ui-tuning {
+  margin-top: 12px;
+}
+
+.ui-tuning summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.ui-tuning code {
+  font-size: 11px;
+  opacity: 0.8;
+}
