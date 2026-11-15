@@ -658,7 +658,7 @@
   "facilityIcon.battery": "⚡",
   "facilityIcon.antenna": "📡",
   "facilityIcon.greenhouse": "🌱",
-  "facilityIcon.lifeSupport": "💨",
+  "facilityIcon.lifeSupport": "♻️",
   "facilityIcon.iceDrill": "⛏️",
   "facilityIcon.shield": "🛡️",
   "hud.powerStopped": "⚠ {count} machine(s) stopped for lack of power ({kw} kW needed to run them)",

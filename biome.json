@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!docs/SPEC.md"]
+    "includes": ["**", "!docs/SPEC.md", "!.claude"]
   },
   "formatter": {
     "indentStyle": "space",

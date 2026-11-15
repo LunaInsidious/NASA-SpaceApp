@@ -658,7 +658,7 @@
   "facilityIcon.battery": "⚡",
   "facilityIcon.antenna": "📡",
   "facilityIcon.greenhouse": "🌱",
-  "facilityIcon.lifeSupport": "💨",
+  "facilityIcon.lifeSupport": "♻️",
   "facilityIcon.iceDrill": "⛏️",
   "facilityIcon.shield": "🛡️",
   "hud.powerStopped": "⚠ ｜電気《でんき》が ｜足《た》りず ｜止《と》まっている ｜機械《きかい》 {count}｜台《だい》（｜動《うご》かすには {kw} kW ｜要《い》る）",
