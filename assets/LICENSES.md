@@ -1,41 +1,42 @@
-# 素材の出典とライセンス
+# Asset Sources and Licenses
 
-## NASA の写真（public/nasa/）
+## NASA photos (public/nasa/)
 
-NASA の画像・動画ライブラリ（https://images.nasa.gov）から取った写真。NASA の画像は原則として著作権の対象外（NASA Images and Media Usage Guidelines: https://www.nasa.gov/nasa-brand-center/images-and-media/ ）。NASA のロゴ（ミートボール、ワーム）が写っている写真は使わない（仕様の共通ルール5）。ゲームの中からは NASA に問い合わせず、ここにある縮小版（`~small.jpg`）だけを使う。
+Photos from the NASA Image and Video Library (https://images.nasa.gov), resized versions (`~small.jpg`). NASA images are generally not subject to copyright in the United States (NASA Images and Media Usage Guidelines: https://www.nasa.gov/nasa-brand-center/images-and-media/ ). No photo shows the NASA insignia or logotype.
 
 - `iss047e057658~small.jpg` — "Universal Battery Charger (UBC) Install" — NASA (JSC) — https://images.nasa.gov/details/iss047e057658
 - `PIA25136~small.jpg` — "A New Antenna for NASA's Deep Space Network" — NASA/JPL-Caltech — https://images.nasa.gov/details/PIA25136
 - `KSC-20180307-PH_CSH01_0015~small.jpg` — "PONDS Watering System for Veggie" — NASA (KSC) — https://images.nasa.gov/details/KSC-20180307-PH_CSH01_0015
-- `KSC-08pd3209~small.jpg` — "KSC-08pd3209"（Water Recovery System rack 2）— NASA (KSC) — https://images.nasa.gov/details/KSC-08pd3209
+- `KSC-08pd3209~small.jpg` — "KSC-08pd3209" (Water Recovery System rack 2) — NASA (KSC) — https://images.nasa.gov/details/KSC-08pd3209
 - `KSC-20231102-PH-FMX01_0020~small.jpg` — "MSOLO PRIME-1 Simulation" — NASA (KSC) — https://images.nasa.gov/details/KSC-20231102-PH-FMX01_0020
 - `iss053e238888~small.jpg` — "Personal Radiation Shielding Garment" — NASA (JSC) — https://images.nasa.gov/details/iss053e238888
 - `PIA00001~small.jpg` — "South Pole Region of the Moon as Seen by Clementine" — NASA/JPL — https://images.nasa.gov/details/PIA00001
 - `PIA24161~small.jpg` — "Lunar Trailblazer to Support NASA's Artemis Program" — NASA/JPL-Caltech — https://images.nasa.gov/details/PIA24161
 - `GSFC_20171208_Archive_e001209~small.jpg` — "NASA's SDO Shows Images of Significant Solar Flare" — NASA/SDO (GSFC) — https://images.nasa.gov/details/GSFC_20171208_Archive_e001209
 
-候補にしたが、ロゴやほかの会社の商標が写っていたので使わないもの：`art001e001712`（Orion の機体に NASA のロゴの一部）、`iss053e238886`（ベストの丸いワッペン）、`jsc2026e020764`（モニターの会社のロゴ）。
+## Lunar terrain (public/terrain/site01/)
 
-## 月の地形（public/terrain/site01/）
+Derived from `Site01_final_adj_5mpp_surf.tif` (Site01 Connecting ridge, 5 m/pixel) of "High-Resolution LOLA Topography for Lunar South Pole Sites", NASA Goddard Space Flight Center Planetary Geodynamics Data Archive (PGDA) — https://pgda.gsfc.nasa.gov/products/78 . Cropped and scaled down with `tools/make-terrain.ts` (`pnpm terrain`). NASA data are generally not subject to copyright in the United States.
 
-NASA ゴダード宇宙飛行センターの Planetary Geodynamics Data Archive（PGDA）の「High-Resolution LOLA Topography for Lunar South Pole Sites」（https://pgda.gsfc.nasa.gov/products/78 ）の `Site01_final_adj_5mpp_surf.tif`（Site01 Connecting ridge、5 m/画素）を、`tools/make-terrain.ts`（`pnpm terrain`）で切り出して縮めたもの。元の GeoTIFF（約 41MB）は 2026-11-15 に1回だけダウンロードし、リポジトリには入れていない（`.scratch/terrain/` に置いて変換する）。NASA のデータは原則として著作権の対象外。論文の引用：Barker, M.K. et al. (2021) Improved LOLA elevation maps for south pole landing sites: Error estimates and their impact on illumination conditions. Planetary and Space Science 203, 105119. doi:10.1016/j.pss.2020.105119
+Citation: Barker, M.K. et al. (2021) Improved LOLA elevation maps for south pole landing sites: Error estimates and their impact on illumination conditions. Planetary and Space Science 203, 105119. doi:10.1016/j.pss.2020.105119
 
-- `height.bin` — 高さ（ゲームの m）。中心 X −11470 m、Y −13070 m（南極の極投影）のまわり 1500 m 四方を 201×201 点にし、縦横とも 1/5 に縮めた
-- `illumination.png` — ゲームと同じ計算で求めた平均の日照率（上が地球の向き）。PGDA の日照の画像と見比べる用
-- `site.json` — 出典、範囲、縮尺、緯度、着陸船の位置、氷の場所（永久影）
+- `height.bin` — Heights of the walkable area: a 1500 m square around X −11470 m, Y −13070 m (polar stereographic), sampled at 301×301 points and scaled down to 1/5
+- `outer.bin` — Heights of the surrounding area (view only): a 6000 m square around the same center, sampled at 241×241 points, same scale
+- `illumination.png` — Average sunlight fraction computed with the game's lighting model (top is toward Earth)
+- `site.json` — Source, extent, scale, latitude, lander position and ice locations (permanently shadowed regions)
 
-## 地球の写真（public/textures/）
+## Earth image (public/textures/)
 
-- `earth-bluemarble-2048.jpg` — NASA Earth Observatory の「Blue Marble: Next Generation」の、地形と海底の地形が入った版（雲なし）を 2048×1024 に縮めたもの — NASA Earth Observatory（NASA images by Reto Stöckli）— https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/ 。NASA の画像は原則として著作権の対象外。どの月の画像から作ったかと、ダウンロードした URL は記録がない（2026-11-15 に別の作業で足されたもの。見た目から、この版だと判断した）
+- `earth-bluemarble-2048.jpg` — "Blue Marble: Next Generation" with topography and bathymetry, resized to 2048×1024 — NASA Earth Observatory (NASA images by Reto Stöckli) — https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/ . NASA images are generally not subject to copyright in the United States.
 
-## 音
+## Audio
 
-効果音は WebAudio でその場で作る（`src/ui/fx.ts`。このリポジトリのオリジナル）。
+Sound effects are synthesized at runtime with the Web Audio API (`src/ui/fx.ts`) and are original to this repository.
 
-BGM（public/audio/）：
+Background music (public/audio/):
 
-- `calm-track-loop.m4a` — "Calm Track"（ループ版 `calm_track-loop.ogg`）— pmiller — CC0 1.0（https://creativecommons.org/publicdomain/zero/1.0/ ）— https://opengameart.org/content/calm-track 。2026-11-15 にダウンロードし、ffmpeg で AAC（96 kbps）に変えた（Safari でも鳴らすため）。曲そのものは変えていない
+- `calm-track-loop.m4a` — "Calm Track" (loop version, `calm_track-loop.ogg`) — pmiller — CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/ ) — https://opengameart.org/content/calm-track . Converted from Ogg Vorbis to AAC; the music itself is unchanged.
 
-## favicon（public/favicon._、public/apple-touch-icon.png、public/favicon-_.png）
+## Favicon (public/favicon.\*, public/apple-touch-icon.png)
 
-このリポジトリのオリジナル。月の地平線、基地のドーム、地平線すれすれの太陽を SVG で描き、各サイズの PNG と ICO はその SVG から書き出した。AI（Claude）を使って作成した（提出ルールの AI 使用の記載のため）。NASA のロゴやデザイン要素は使っていない。
+Original to this repository, created with the help of AI (Claude). A lunar horizon, a base dome and the Sun just above the horizon, drawn as SVG; the PNG and ICO files are exported from that SVG. No NASA logos or design elements are used.
