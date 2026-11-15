@@ -39,7 +39,7 @@ PRを出す前に `pnpm lint`、`pnpm test`、`pnpm build` を通す。
 
 - モジュールのつなぎ目は `src/sim/api.ts`、`src/env/api.ts`、`src/world/api.ts`、`src/ui/api.ts`、`src/save/api.ts`。Engine と Scene は `src/main.ts` が作り、`step` を固定の刻みで呼ぶ
 - 施設ごとの数値は当面 `data/values.json` の `facilities.<種類>` に置く。仕様のデータ表は `data/facilities.json` を別に置く形なので、どちらにするかは人間に確認する
-- `data/donki-events.json` は、DONKI のページで確かめた実際のフレア2件（M5.9、X8.7）。SEP はまだない。宇宙天気は一覧からランダムに起こす（平均 `events.meanIntervalDays` 日に1回）。取り直すときは `tools/fetch-donki.ts`（1回の実行で NASA に2回問い合わせる。繰り返し実行しない）
+- `data/donki-events.json` は、DONKI のページで確かめた実際のフレア2件（M5.9、X8.7）と、GOES 衛星が測った SEP 3件（2024-05-10・11・13。2026-11-15 に api.nasa.gov の DONKI から1回だけ取った。kauai.ccmc.gsfc.nasa.gov はこの環境からつながらなかった）。フレアの光そのものは被ばくを増やさず（倍率 1）、危ないのは SEP だけ。宇宙天気は一覧からランダムに起こす（平均 `events.meanIntervalDays` 日に1回）。取り直すときは `tools/fetch-donki.ts`（1回の実行で NASA に2回問い合わせる。繰り返し実行しない）
 - 起動するとタイトル画面（`src/title/`）。「はじめから」で「あそんだことがある？」へ、「つづきから」でセーブの一覧から選んで再開。うしろにはいちばん新しいセーブの月面を見せる
 - セーブ（`src/save/`）：休息フェーズの始まり（居住モジュールに入ったとき）に自動セーブ、手動は `save.manualSlots` 枠。形式を変えたら `SAVE_VERSION` を上げる
 - 実績は `data/achievements.json`（条件の種類は `src/save/achievements.ts` の `ACHIEVEMENT_CONDITIONS`）。判定は main.ts
