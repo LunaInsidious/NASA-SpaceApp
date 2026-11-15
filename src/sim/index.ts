@@ -21,6 +21,8 @@ import { computeDevelopment } from './development.ts';
 import { type Evaluation, evaluate, evaluateComm, isEarthUp, sunlitAt } from './model.ts';
 
 const HOURS_PER_DAY = 24;
+const DEGREES_PER_HALF_TURN = 180;
+const RAD_PER_DEG = Math.PI / DEGREES_PER_HALF_TURN;
 const EPSILON = 1e-9;
 const LIFE_RESOURCES = ['oxygen', 'water', 'food'] as const;
 
@@ -43,7 +45,8 @@ function emptyRecord(day: number): DailyRecord {
 
 function sunAzimuth(timeHours: number, values: Values): number {
   const periodHours = values.moon.sunPeriodDays.value * HOURS_PER_DAY;
-  return ((2 * Math.PI * timeHours) / periodHours) % (2 * Math.PI);
+  const start = values.moon.sunStartAzimuthDeg.value * RAD_PER_DEG;
+  return (start + (2 * Math.PI * timeHours) / periodHours) % (2 * Math.PI);
 }
 
 function playerOf(state: SimState): CrewMember {
@@ -158,7 +161,7 @@ export function createInitialState(
   const [landerX, landerZ] = landerPosition;
   const state: SimState = {
     timeHours: 0,
-    sunAzimuthRad: 0,
+    sunAzimuthRad: sunAzimuth(0, values),
     stocks: {
       oxygen: s.oxygenKg.value,
       water: s.waterKg.value,
