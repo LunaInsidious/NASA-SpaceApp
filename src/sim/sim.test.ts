@@ -5,6 +5,7 @@ import type {
   Env,
   Facility,
   GameEvent,
+  LaunchItem,
   SimCommand,
   SimState,
   Values,
@@ -330,6 +331,21 @@ describe('sim', () => {
       expect(cost % step).toBe(0);
       expect(cost).toBeGreaterThanOrEqual(step);
     }
+  });
+
+  it('くんれんとミッションで頼む荷物は、1回の上限に収まる（隊員と食料を一緒に、中継衛星を1機）', () => {
+    const capacity = values.launch.capacityKg.value;
+    const total = (items: LaunchItem[]) =>
+      items.reduce((sum, item) => sum + launchItemCost(item, values), 0);
+    // くんれんの「ちゅうもん」の段：食料を ＋1回（bulkOrderStep）と、新しい隊員を1人
+    expect(
+      total([
+        { kind: 'food', quantity: values.launch.bulkOrderStep.value },
+        { kind: 'crew', quantity: 1 },
+      ]),
+    ).toBeLessThanOrEqual(capacity);
+    // 「中継衛星を1機頼もう」のミッション
+    expect(total([{ kind: 'relaySatellite', quantity: 1 }])).toBeLessThanOrEqual(capacity);
   });
 
   it('翌日へは、次の日の始まりまで刻みを1つずつ回したのと同じ結果になり、届くはずのロケットも届く', () => {

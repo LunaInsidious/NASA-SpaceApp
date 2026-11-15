@@ -655,9 +655,9 @@
       "source": "docs/SPEC.md 未決事項（仮の値）"
     },
     "capacityKg": {
-      "value": 400,
+      "value": 600,
       "unit": "kg",
-      "source": "TBD（2026-11-15 バランス調整：資源がたまるだけにならないように）"
+      "source": "TBD（2026-11-15 バランス調整：隊員1人（大きさで 500）と食料 50 kg が1回で頼める上限）"
     },
     "costRoundTo": {
       "value": 10,
@@ -744,9 +744,9 @@
       },
       "crew": {
         "massKg": {
-          "value": 300,
+          "value": 500,
           "unit": "kg/person",
-          "source": "TBD（2026-11-15 バランス調整：資源がたまるだけにならないように）"
+          "source": "TBD"
         },
         "volumeM3": {
           "value": 3,
