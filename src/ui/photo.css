@@ -84,12 +84,12 @@
   }
 }
 
-/* スマホ・タブレットでは左下の仮想パッドと重ならないよう、上の方に出す。
+/* スマホ・タブレットでは左下の仮想パッドと重ならないよう、左上のゲージの下に出す。
    幅は PC と同じくらいまで（タブレットで画面いっぱいの横長にしない） */
 @media (pointer: coarse) {
   .nasa-photo-card {
     bottom: auto;
-    top: 130px;
+    top: calc(184px + env(safe-area-inset-top));
     left: 8px;
     width: min(320px, calc(100vw - 16px));
   }
