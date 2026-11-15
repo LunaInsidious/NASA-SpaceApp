@@ -67,16 +67,19 @@ export const STEPS = [
 type Step = (typeof STEPS)[number];
 // くんれんで建てる段と、その施設。くんれんの間は、その段の施設だけを建てられる
 // （先にほかの物を建てて資材がなくなり、居住モジュールが建てられず進めなくなることがないように）
-const BUILD_STEPS: Partial<Record<Step, FacilityKind>> = {
-  buildSolar: 'solar',
-  placeSolar: 'solar',
-  battery: 'battery',
-  buildAntenna: 'antenna',
-  buildHabitat: 'habitat',
+// count は、その段を終えたときの施設の数（居住モジュールは最初から1つあるので2）。それ以上は建てさせない（資材が足りなくなって進めなくならないように）
+const BUILD_STEPS: Partial<Record<Step, { kind: FacilityKind; count: number }>> = {
+  buildSolar: { kind: 'solar', count: 1 },
+  placeSolar: { kind: 'solar', count: 1 },
+  battery: { kind: 'battery', count: 1 },
+  buildAntenna: { kind: 'antenna', count: 1 },
+  buildHabitat: { kind: 'habitat', count: 2 },
 };
 // くんれんで注文する段で頼めるもの（博士が言うもの）と、かならず入れるもの（あとで隊員に係を決める段があるので）
 const ORDER_STEP_ITEMS: readonly LaunchItemKind[] = ['food', 'crew'];
 const ORDER_STEP_REQUIRED: LaunchItemKind = 'crew';
+// 注文の段で頼んでよい数（＋を押せる回数）：博士の言うとおり、食料を1つと、新しい隊員を1人
+const ORDER_STEP_MAX: Partial<Record<LaunchItemKind, number>> = { food: 1, crew: 1 };
 
 // その段で説明する言葉。段を見せたときに、ことばじてんに足す
 const STEP_TERMS: Partial<Record<Step, readonly HelpTerm[]>> = {
@@ -1265,14 +1268,21 @@ export function createTutorial(
     },
     limits() {
       if (mode !== 'tutorial') {
-        return { build: null, order: null, orderRequires: null };
+        return { build: null, order: null, orderRequires: null, orderMax: null, buildDone: false };
       }
-      const kind = BUILD_STEPS[step()];
+      const target = BUILD_STEPS[step()];
+      const built =
+        target === undefined || lastProgress === null
+          ? 0
+          : lastProgress.state.facilities.filter((f) => f.kind === target.kind).length;
+      const buildDone = target !== undefined && built >= target.count;
       const ordering = step() === 'order';
       return {
-        build: kind === undefined ? [] : [kind],
+        build: target === undefined || buildDone ? [] : [target.kind],
         order: ordering ? ORDER_STEP_ITEMS : [],
         orderRequires: ordering ? ORDER_STEP_REQUIRED : null,
+        orderMax: ordering ? ORDER_STEP_MAX : null,
+        buildDone,
       };
     },
     allowsNextDay() {

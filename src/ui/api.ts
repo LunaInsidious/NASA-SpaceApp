@@ -202,4 +202,8 @@ export interface TutorialLimits {
   order: readonly LaunchItemKind[] | null;
   /** 注文に必ず入れるもの */
   orderRequires: LaunchItemKind | null;
+  /** 荷物ごとに頼んでよい数（＋を押せる回数）。null なら数の制限なし */
+  orderMax: Partial<Record<LaunchItemKind, number>> | null;
+  /** 建てる段で、もう言われた数だけ建てたか（建てられないわけを「もう建てたよ」にする） */
+  buildDone: boolean;
 }

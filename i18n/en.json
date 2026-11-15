@@ -791,6 +791,7 @@
   "comm.tomorrow.tasks": "Tomorrow, finish {count} more task(s) to order the next supplies.",
   "comm.tomorrow.free": "Tomorrow, grow your base however you like.",
   "comm.tomorrowTasks": "Tomorrow's suggestions: {tasks}",
+  "comm.listSeparator": ", ",
   "comm.tomorrowTasksNone": "No tasks for tomorrow yet (you can choose them on the control monitor).",
   "comm.stars": "Development stars",
   "comm.reply": "📨 Reply to Mission Control (order supplies)",
@@ -995,5 +996,7 @@
   "tutorial.reply.comm.2": "What if Earth sets?",
   "tutorial.react.comm.2": "Then we can’t talk. Later, order a relay satellite and you can talk any time.",
   "story.feeling.excited": "You were full of energy from the start. Use that energy to grow your Moon base.",
-  "story.feeling.nervous": "You were nervous at first, and now you are a real crew member."
+  "story.feeling.nervous": "You were nervous at first, and now you are a real crew member.",
+  "tutorial.locked.buildDone": "You already built it! Building just what Professor Luna asks for is enough. Save your materials for later.",
+  "tutorial.locked.orderMax": "During training, order just what Professor Luna asks for (one Food and one New crew member)."
 }
