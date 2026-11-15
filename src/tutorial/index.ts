@@ -416,8 +416,11 @@ export function createTutorial(
       panel.append(moreHint);
     }
     moreHint.innerHTML = t('tutorial.more');
+    // 吹き出しが中でスクロールする画面のときだけ（広い PC では吹き出しは伸びるだけでスクロールしない。
+    // 外に出している博士の絵が短い吹き出しの下にはみ出すと scrollHeight が増えるが、読み残しではない）
+    const scrolls = getComputedStyle(panel).overflowY !== 'visible';
     const rest = panel.scrollHeight - panel.scrollTop - panel.clientHeight;
-    moreHint.hidden = panel.hidden || rest <= MORE_THRESHOLD_PX;
+    moreHint.hidden = panel.hidden || !scrolls || rest <= MORE_THRESHOLD_PX;
   };
   panel.addEventListener('scroll', updateMoreHint);
   // 吹き出しをクリック・タップすると、出している途中の文をすぐ全部出す
