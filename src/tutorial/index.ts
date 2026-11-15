@@ -551,7 +551,11 @@ export function createTutorial(
     const dialog = document.querySelector('.ui-modal-layer:not([hidden])');
     const pauseMenu = document.querySelector('.ui-pause:not([hidden])');
     const helpOpen = document.querySelector('.help-layer:not([hidden])');
-    if (target !== null && dialog !== null && !dialog.contains(target)) {
+    // 1日の終わりの暗転（「○日目」）の間は、何も指さない（暗い画面の上に矢印が残らないように）
+    const dayFade = document.querySelector('.day-fade:not([hidden])');
+    if (dayFade !== null) {
+      target = null;
+    } else if (target !== null && dialog !== null && !dialog.contains(target)) {
       target = null;
     } else if (
       target !== null &&
