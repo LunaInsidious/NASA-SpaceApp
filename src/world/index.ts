@@ -68,9 +68,6 @@ import {
   PLAYER_BLOB_ALPHA,
   PLAYER_BLOB_RADIUS_M,
   PLAYER_BOUNDS_MARGIN_M,
-  PLAYER_SHADOW_ALPHA,
-  PLAYER_SHADOW_LENGTH_M,
-  PLAYER_SHADOW_WIDTH_M,
   POP_OVERSHOOT,
   POP_SECONDS,
   PREVIEW_ALPHA,
@@ -418,8 +415,7 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
   let excludedKey = '';
   const updateShadowExclusion = () => {
     const excluded: AbstractMesh[] = [];
-    playerSunlit = env.isSunlit(player.x, player.z, player.y + 1, sunAzimuth);
-    if (!playerSunlit) {
+    if (!env.isSunlit(player.x, player.z, player.y + 1, sunAzimuth)) {
       excluded.push(...astronaut.meshes);
     }
     for (const [id, visual] of facilityVisuals) {
@@ -502,7 +498,7 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
     placePlayerShadow();
   };
 
-  // 宇宙飛行士の影：足元の丸い影（跳ねても地面に残る）と、日なたにいるときは太陽と反対に伸びる影
+  // 宇宙飛行士の影：足元の丸い影だけ（太陽と反対に伸びる長い影は、でこぼこの地面で欠けたり浮いたりするのでやめた）
   const shadowMat = new StandardMaterial('player-shadow-mat', scene);
   shadowMat.disableLighting = true;
   shadowMat.diffuseColor = Color3.Black();
@@ -512,30 +508,8 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
   blob.material = shadowMat;
   blob.rotation.x = Math.PI / 2;
   blob.isPickable = false;
-  const streakMat = shadowMat.clone('player-streak-mat');
-  streakMat.alpha = PLAYER_SHADOW_ALPHA;
-  const streak = CreatePlane(
-    'player-streak',
-    { width: PLAYER_SHADOW_WIDTH_M, height: PLAYER_SHADOW_LENGTH_M },
-    scene,
-  );
-  streak.material = streakMat;
-  streak.isPickable = false;
-  let playerSunlit = true;
   function placePlayerShadow(): void {
-    const ground = env.heightAt(player.x, player.z);
-    blob.position.set(player.x, ground + SHADOW_LIFT_M, player.z);
-    const sun = env.sunDirection(sunAzimuth);
-    const len = Math.hypot(sun.x, sun.z);
-    streak.setEnabled(astronaut.root.isEnabled() && playerSunlit && len > 0);
-    if (len === 0) return;
-    // 影は太陽と反対の向きに伸びる。板を寝かせ（x で 90°）、長さの向きを影の向きに回す
-    const dx = -sun.x / len;
-    const dz = -sun.z / len;
-    const mx = player.x + (dx * PLAYER_SHADOW_LENGTH_M) / 2;
-    const mz = player.z + (dz * PLAYER_SHADOW_LENGTH_M) / 2;
-    streak.position.set(mx, env.heightAt(mx, mz) + SHADOW_LIFT_M, mz);
-    streak.rotation.set(Math.PI / 2, Math.atan2(dx, dz), 0);
+    blob.position.set(player.x, env.heightAt(player.x, player.z) + SHADOW_LIFT_M, player.z);
   }
 
   // 施設の上に浮かぶアイコン（種類ごとに1枚の絵を作って使い回す）
