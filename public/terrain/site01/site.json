@@ -11,10 +11,7 @@
   "resolution": 201,
   "baseHeightMeters": 1776.63,
   "latitudeDeg": -89.4265,
-  "landerPosition": [
-    -15,
-    115.5
-  ],
+  "landerPosition": [-15, 115.5],
   "iceSpots": [
     {
       "x": 51.07,
