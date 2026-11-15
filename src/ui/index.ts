@@ -1278,6 +1278,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       ...(r.greeting === null
         ? []
         : [`<div class="cr-bubble cr-bubble-greet">${r.greeting}</div>`]),
+      // 今日の行動：広い画面では右のモニターに出すので、せまい画面（左右のモニターがない）だけ吹き出しで
+      `<div class="cr-bubble cr-bubble-today"><b>${t('cr.today')}</b><ul class="cr-today">${info.today.map((line) => `<li>${line}</li>`).join('')}</ul></div>`,
       ...r.lines.map((line) => `<div class="cr-bubble">${line}</div>`),
       ...r.dangers.map((line) => `<div class="cr-bubble cr-bubble-danger">${line}</div>`),
       `<div class="cr-bubble"><div class="nb-comm-stars">${stars}</div>${r.starChanges.map((line) => `<p class="nb-comm-starline">${line}</p>`).join('')}</div>`,
