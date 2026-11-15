@@ -859,5 +859,9 @@
   "gauge.name.tank": "Suit oxygen tank",
   "gauge.name.life": "Life support",
   "gauge.name.power": "Power",
-  "gauge.name.dose": "Radiation dose"
+  "gauge.name.dose": "Radiation dose",
+  "cr.today": "Today's actions",
+  "cr.today.times": "{text} ×{count}",
+  "cr.today.stayed": "You did not go outside today",
+  "cr.today.nothing": "You went outside but did no tasks or building"
 }

@@ -1348,8 +1348,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         <div class="cr-crew">${'🧑‍🚀'.repeat(currentView.crew.count)}</div></div>`;
   };
 
-  /** 右：地球との通信と、ロケット（飛んでいるか、注文できるか） */
-  const controlScreensRight = (currentView: SimView) => {
+  /** 右：今日の行動と、ロケット（飛んでいるか、注文できるか）と、地球との通信。左と同じ5段の高さにそろえる */
+  const controlScreensRight = (currentView: SimView, today: readonly string[]) => {
     const l = currentView.launch;
     const flying = [...l.inFlight].sort((a, b) => a.hoursUntilArrival - b.hoursUntilArrival)[0];
     const toDays = (hours: number) => Math.max(1, Math.ceil(hours / HOURS_PER_DAY));
@@ -1363,6 +1363,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
             : t('cr.rocket.wait', { days: toDays(l.hoursUntilNext) });
     const linked = currentView.comm.linked;
     return `
+      <div class="cr-screen cr-screen-tall"><div class="cr-screen-title">${t('cr.today')}</div>
+        <ul class="cr-today">${today.map((line) => `<li>${line}</li>`).join('')}</ul></div>
       <div class="cr-screen cr-screen-tall"><div class="cr-screen-title">${t('cr.rocket')}</div>
         ${routeSvg(l, true, true, MONITOR_ROCKET_SCALE)}<div class="ui-small">${rocket}</div></div>
       <div class="cr-screen ${linked ? '' : 'cr-danger'}"><div class="cr-screen-title">${t('cr.earth')}</div>
@@ -1514,7 +1516,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
               ${arriving}
               <section class="nb-page ${arriving === '' ? '' : 'nb-page-arriving'}" data-page="${nightView}">${nightViewHtml(nightView, rest, state, view)}</section>
             </div>
-            <div class="cr-bank cr-bank-right">${controlScreensRight(view)}</div>
+            <div class="cr-bank cr-bank-right">${controlScreensRight(view, rest.today)}</div>
           </div>
         </div>
         <div class="cr-desk">

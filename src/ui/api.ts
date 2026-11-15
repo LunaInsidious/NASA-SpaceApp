@@ -84,6 +84,8 @@ export interface RestInfo {
   canNextDay: boolean;
   /** 地球管制からの通信（話せない日は基地の端末）。文は i18n から作った HTML */
   report: NightReportView;
+  /** 今日、外でしたこと（i18n から作った HTML。同じことは「×回数」でまとめる）。管制室の右のモニターに出す */
+  today: string[];
   /** 翌日のタスクの候補（label は i18n から作った HTML、meters は居住モジュールからの距離）。selected は選んだもの */
   tasks: { id: string; label: string; meters: number; selected: boolean }[];
 }

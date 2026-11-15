@@ -2486,3 +2486,19 @@ body.nb-open .advice-card {
     margin: 4px 0 0;
   }
 }
+
+/* 管制室の右のモニター：今日の行動（外でしたことを1行ずつ） */
+.cr-today {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-y: auto;
+}
+
+.cr-today li::before {
+  content: "✔ ";
+  color: #7dff9a;
+}

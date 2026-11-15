@@ -652,6 +652,32 @@ function restReasonText(reason: (typeof REST_REASONS)[number]): string {
 }
 
 /** 休息フェーズの2D画面に出すもの。中にいる間だけ（タイトル画面の間は出さない） */
+/** 今日、外でしたことを1行ずつ（同じことは回数でまとめる）。外に出なかった・何もしなかったときは、そう書く */
+function todayLines(): string[] {
+  if (!wentOutToday) {
+    return [t('cr.today.stayed')];
+  }
+  const counts = new Map<string, { entry: DayLogEntry; count: number }>();
+  for (const entry of dayLog) {
+    const key = `${entry.kind}:${entry.facility ?? ''}`;
+    const found = counts.get(key);
+    if (found === undefined) {
+      counts.set(key, { entry, count: 1 });
+    } else {
+      found.count++;
+    }
+  }
+  if (counts.size === 0) {
+    return [t('cr.today.nothing')];
+  }
+  return [...counts.values()].map(({ entry, count }) => {
+    const text = t(`review.did.${entry.kind}`, {
+      name: entry.facility === undefined ? '' : t(`facility.${entry.facility}`),
+    });
+    return count === 1 ? text : t('cr.today.times', { text, count });
+  });
+}
+
 function restInfo(): RestInfo | null {
   if (!indoors || title.isOpen() || state.phase === 'gameOver') {
     return null;
@@ -666,6 +692,7 @@ function restInfo(): RestInfo | null {
     canNextDay: actions.includes('nextDay'),
     requiredPage: tutorial.requiredRestPage(),
     report: nightReport(),
+    today: todayLines(),
     tasks: currentCandidates().map((task) => ({
       id: task.id,
       label: taskLabel(task),

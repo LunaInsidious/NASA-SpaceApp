@@ -859,5 +859,9 @@
   "gauge.name.tank": "ボンベの ｜酸素《さんそ》",
   "gauge.name.life": "｜生命維持《せいめいいじ》",
   "gauge.name.power": "｜電力《でんりょく》",
-  "gauge.name.dose": "｜被《ひ》ばく"
+  "gauge.name.dose": "｜被《ひ》ばく",
+  "cr.today": "｜今日《きょう》の ｜行動《こうどう》",
+  "cr.today.times": "{text} ×{count}",
+  "cr.today.stayed": "｜今日《きょう》は ｜外《そと》に ｜出《で》なかった",
+  "cr.today.nothing": "｜外《そと》に ｜出《で》たけれど、タスクや ｜建設《けんせつ》は しなかった"
 }
