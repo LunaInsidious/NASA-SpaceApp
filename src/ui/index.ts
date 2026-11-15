@@ -1166,6 +1166,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <p>${t('morning.lead')}</p>
       ${rows === '' ? '' : `<ul class="ui-list">${rows}</ul>`}
       ${summary.arrived > 0 ? `<p class="ui-ok">${t('morning.arrived')}</p>` : ''}
+      ${summary.dusted > 0 ? `<p class="ui-warn">${t('landingDust.morning', { count: summary.dusted })}</p>` : ''}
       ${summary.newlyShaded > 0 ? `<p class="ui-warn">${t('morning.shaded', { count: summary.newlyShaded })}</p>` : ''}
       ${summary.newlyLit > 0 ? `<p class="ui-ok">${t('morning.lit', { count: summary.newlyLit })}</p>` : ''}
       ${weather}

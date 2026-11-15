@@ -108,6 +108,9 @@ import {
   SHADOW_CHECK_INTERVAL_SEC,
   SHADOW_LIFT_M,
   SKY_DIAMETER_M,
+  SKY_FOCUS_BETA_RAD,
+  SKY_FOCUS_RATE,
+  SKY_FOCUS_YAW_OFFSET_RAD,
   STAR_COUNT,
   STAR_TEXTURE_SIZE,
   SUN_DIAMETER_M,
@@ -765,7 +768,17 @@ export function createWorld(
 
   // スマホの縦長の画面では上に博士の吹き出しが出るので、宇宙飛行士を下のほうに見せる
   const phoneLayout = window.matchMedia(PHONE_LAYOUT_QUERY);
+  // くんれんの場面で、カメラを向ける水平の向き（null ならプレイヤーが動かす）
+  let skyFocusYaw: number | null = null;
   const updateCamera = (dt: number) => {
+    if (skyFocusYaw !== null) {
+      // 見る向き yaw ＝ atan2(-cos α, -sin α)。その向きにするカメラの α を求めて、ゆっくり近づける
+      const yaw = skyFocusYaw + SKY_FOCUS_YAW_OFFSET_RAD;
+      const alpha = Math.atan2(-Math.cos(yaw), -Math.sin(yaw));
+      const k = 1 - Math.exp(-SKY_FOCUS_RATE * dt);
+      camera.alpha += angleDelta(alpha, camera.alpha) * k;
+      camera.beta += (SKY_FOCUS_BETA_RAD - camera.beta) * k;
+    }
     const shift = phoneLayout.matches ? PHONE_PLAYER_SCREEN_SHIFT : 0;
     // ビューの座標で下にずらす。目標の距離での画面の高さの半分は radius × tan(fov / 2)
     camera.targetScreenOffset.y = -shift * camera.radius * Math.tan(camera.fov / 2);
@@ -1104,6 +1117,9 @@ export function createWorld(
       astronaut.root.setEnabled(visible);
       blob.setEnabled(visible);
       placePlayerShadow();
+    },
+    setSkyFocus(yawRad) {
+      skyFocusYaw = yawRad;
     },
     getViewYawRad() {
       const d = camera.target.subtract(camera.position);

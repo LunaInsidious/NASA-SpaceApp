@@ -44,6 +44,8 @@ export interface MorningSummary {
   stockChanges: { kind: 'oxygen' | 'water' | 'food' | 'spareParts' | 'materials'; delta: number }[];
   /** 届いたロケットの数 */
   arrived: number;
+  /** ロケットが巻き上げたほこりで傷んだ施設の数（着陸船の近くのもの） */
+  dusted: number;
   /** 太陽が動いて、影に入って止まった太陽電池の数と、日なたに戻った数 */
   newlyShaded: number;
   newlyLit: number;
