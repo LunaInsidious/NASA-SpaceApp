@@ -841,5 +841,8 @@
   "route.daysLeft": "{days} day(s)",
   "route.label": "The rocket route from Earth to the Moon",
   "route.earth": "Earth",
-  "route.moon": "Moon"
+  "route.moon": "Moon",
+  "dayFade.day": "Day {day}",
+  "dayFade.rocket": "The supply rocket arrives in {days} day(s)",
+  "dayFade.arrived": "🚀 The supply rocket has arrived!"
 }

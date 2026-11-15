@@ -334,6 +334,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     <div class="ui-buttons" data-part="buttons"></div>
     <div class="ui-pad" data-part="pad" hidden><div class="ui-pad-knob" data-part="knob"></div></div>
     <div class="ui-pause" data-part="pauseOverlay" hidden></div>
+    <div class="day-fade" data-part="dayFade" hidden></div>
     <div class="nb-layer" data-part="notebook" hidden></div>
     <div class="ui-modal-layer" data-part="modal" hidden></div>`;
   const part = (name: string): HTMLElement => {
@@ -354,6 +355,18 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   const padEl = part('pad');
   const knobEl = part('knob');
   const modalEl = part('modal');
+  // 1日の終わりの暗転（「○日目」と、飛んでいる補給のロケット）。押すとすぐ終わる
+  const dayFadeEl = part('dayFade');
+  const endDayFade = () => {
+    dayFadeEl.hidden = true;
+    dayFadeEl.innerHTML = '';
+  };
+  dayFadeEl.addEventListener('animationend', (e) => {
+    if (e.target === dayFadeEl) {
+      endDayFade();
+    }
+  });
+  dayFadeEl.addEventListener('click', endDayFade);
   const notebookEl = part('notebook');
   // メニューは、窓の外（暗いところ）をクリックしても閉じる。警報やゲームオーバーの窓は選んでもらうので閉じない
   modalEl.addEventListener('click', (e) => {
@@ -1930,6 +1943,27 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         cardsPulse = true;
       }
       renderTopButtons();
+    },
+    showDayTransition(info) {
+      // いちばん早く届くロケットだけを描いて、その日数を言う（何本も飛んでいても、絵と文をそろえる）
+      const soonest = [...info.launch.inFlight].sort(
+        (a, b) => a.hoursUntilArrival - b.hoursUntilArrival,
+      )[0];
+      const rocket =
+        soonest === undefined
+          ? ''
+          : `<div class="day-fade-route">${routeSvg({ ...info.launch, inFlight: [soonest] }, true)}</div>
+             <p>${t('dayFade.rocket', { days: Math.max(1, Math.ceil(soonest.hoursUntilArrival / HOURS_PER_DAY)) })}</p>`;
+      const arrived =
+        info.arrived > 0 ? `<p class="day-fade-arrived">${t('dayFade.arrived')}</p>` : '';
+      dayFadeEl.innerHTML = `<div class="day-fade-body">
+          <div class="day-fade-day">${t('dayFade.day', { day: info.day + 1 })}</div>
+          ${arrived}${rocket}
+        </div>`;
+      // 同じ要素でアニメーションをもう一度動かす
+      dayFadeEl.hidden = true;
+      void dayFadeEl.offsetWidth;
+      dayFadeEl.hidden = false;
     },
     showMorning(summary) {
       pushDialog({ type: 'morning', summary });

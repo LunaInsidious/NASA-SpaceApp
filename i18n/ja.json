@@ -841,5 +841,8 @@
   "route.daysLeft": "あと {days}｜日《にち》",
   "route.label": "｜地球《ちきゅう》から ｜月《つき》への ロケットの ｜道《みち》",
   "route.earth": "｜地球《ちきゅう》",
-  "route.moon": "｜月《つき》"
+  "route.moon": "｜月《つき》",
+  "dayFade.day": "{day}｜日目《にちめ》",
+  "dayFade.rocket": "｜補給《ほきゅう》の ロケットは あと {days}｜日《にち》で ｜届《とど》くよ",
+  "dayFade.arrived": "🚀 ｜補給《ほきゅう》の ロケットが ｜届《とど》いたよ！"
 }

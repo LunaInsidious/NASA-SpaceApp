@@ -901,6 +901,12 @@ function sleepUntilMorning(): void {
         (id) => !shadedAfter.has(id) && state.facilities.some((f) => f.id === id),
       ).length,
     };
+    // 暗転して「○日目」。飛んでいる補給のロケットがあれば、どこにいて、あと何日で届くかも
+    ui.showDayTransition({
+      day: summary.day,
+      launch: describe(state, values, env).launch,
+      arrived: summary.arrived,
+    });
     // 何も起きなかった朝は窓を出さずに、すぐ外へ出られるようにする（物資の増減は夜の通信で分かる）
     const happened =
       summary.arrived > 0 ||

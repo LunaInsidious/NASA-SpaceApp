@@ -137,6 +137,11 @@ export interface Ui {
   /** カードの数が変わった（新しく手に入れたら isNew。ボタンを光らせる） */
   cardsChanged(isNew: boolean): void;
   /** 「翌日へ」のあとの朝の窓 */
+  /**
+   * 1日の終わりの暗転：画面が暗くなって「○日目」と出て、明ける。飛んでいる補給のロケットがあれば、
+   * 地球と月のあいだのどこにいて、あと何日で届くかを見せる。arrived は夜のうちに届いた数
+   */
+  showDayTransition(info: { day: number; launch: SimView['launch']; arrived: number }): void;
   showMorning(summary: MorningSummary): void;
   /** 太陽フレアの警報。退避するか作業を続けるかを選ばせる。出典（過去の実際のイベントと日付）を必ず見せる */
   showFlareAlert(event: ActiveEvent, donki: DonkiEvent | null): void;
