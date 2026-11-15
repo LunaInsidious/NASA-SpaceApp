@@ -32,6 +32,7 @@ import { SOUND_MODES } from './fx.ts';
 import { getLang, onLangChange, setLang, t, tPlain } from './i18n.ts';
 import { type MinigameOutcome, openMinigame } from './minigame.ts';
 import { type NasaImages, photoFigureHtml } from './photo.ts';
+import { valueAt, valueText } from './valueText.ts';
 import './ui.css';
 
 const FACILITY_KINDS: readonly FacilityKind[] = [
@@ -143,56 +144,48 @@ export const SOURCE_KEYS = {
     'crew.waterKgPerDay',
     'crew.foodKgPerDay',
     'facilities.lifeSupport.oxygenKgPerDay',
+    'facilities.lifeSupport.waterPerOxygen',
+    'facilities.greenhouse.foodKgPerDay',
+    'facilities.iceDrill.waterKgPerDay',
   ],
   power: [
     'facilities.solar.generationKw',
     'facilities.battery.capacityKwh',
     'facilities.habitat.powerKw',
     'moon.sunPeriodDays',
+    'moon.sunElevationDeg',
+    'facilities.greenhouse.powerKw',
+    'facilities.iceDrill.powerKw',
   ],
   shielding: [
     'moon.radiationMsvPerDay',
     'crew.doseLimitMsv',
     'facilities.habitat.indoorProtection',
     'events.flareMultiplierX',
+    'facilities.shield.regolithProtection',
+    'protection.regolithCoverBonus',
   ],
   development: ['development.clearThreshold', 'development.scalePerCrew'],
-  comm: ['comm.earthPeriodDays', 'moon.commDelaySec'],
+  comm: ['comm.earthPeriodDays', 'moon.commDelaySec', 'comm.relayOrbitHours'],
   // X級フレアの倍率と、ふだん浴びる放射線は「遮蔽と放射線」に出しているので、ここには重ねない
-  flare: ['events.flareMultiplierM', 'events.sepMultiplier', 'events.flareDurationHours'],
+  flare: [
+    'events.flareMultiplierM',
+    'events.sepMultiplier',
+    'events.flareDurationHours',
+    'events.sepDurationHours',
+  ],
+  moon: ['moon.gravity'],
+  supply: ['launch.capacityKg', 'launch.items.food.massKg', 'launch.items.relaySatellite.massKg'],
 } as const;
 type SourceSection = keyof typeof SOURCE_KEYS;
 const SOURCE_SECTIONS = Object.keys(SOURCE_KEYS) as SourceSection[];
 
-interface ValueEntryLike {
-  value: number;
-  unit: string;
-  source: string;
-  url?: string;
-}
-
-/** values の中の "a.b.c" の値。なければ作りの誤りなので例外 */
-function valueAt(values: Values, path: string): ValueEntryLike {
-  let node: unknown = values;
-  for (const part of path.split('.')) {
-    if (typeof node !== 'object' || node === null || !(part in node)) {
-      throw new Error(`values に ${path} がない`);
-    }
-    node = (node as Record<string, unknown>)[part];
-  }
-  return node as ValueEntryLike;
-}
-
-/** 数と単位を、子どもに読める形で（ratio は % にする）。単位の言葉は i18n の unit.* */
-function valueText(entry: ValueEntryLike): string {
-  if (entry.unit === 'ratio') {
-    return `${fmt(entry.value * PERCENT)}%`;
-  }
-  return t(`unit.${entry.unit}`, { value: String(entry.value) });
-}
-
 /** 数値と、その出典（リンクつき）の一覧。出典が決まっていなければそう書く */
-function sourceListHtml(values: Values, section: SourceSection): string {
+function sourceListHtml(
+  values: Values,
+  section: SourceSection,
+  cardLinks: (path: string) => { id: string; title: string; owned: boolean }[],
+): string {
   const rows = SOURCE_KEYS[section].map((path) => {
     const entry = valueAt(values, path);
     const source =
@@ -203,7 +196,14 @@ function sourceListHtml(values: Values, section: SourceSection): string {
           : entry.url !== undefined
             ? `<a href="${esc(entry.url)}" target="_blank" rel="noopener noreferrer">${esc(entry.source)}</a>`
             : esc(entry.source);
-    return `<li><b>${t(`valueName.${path}`)}</b>：${valueText(entry)}<br><span class="ui-small">${t('source.label')} ${source}</span></li>`;
+    const cards = cardLinks(path)
+      .map((card) =>
+        card.owned
+          ? `<button class="card-link" data-action="openCard" data-card="${esc(card.id)}">🃏 ${card.title}</button>`
+          : `<span class="card-link locked">${t('data.cardLocked')}</span>`,
+      )
+      .join('');
+    return `<li><b>${t(`valueName.${path}`)}</b>：${valueText(entry)}<br><span class="ui-small">${t('source.label')} ${source}</span>${cards === '' ? '' : `<div class="card-links">${cards}</div>`}</li>`;
   });
   return `<ul class="ui-src-list">${rows.join('')}</ul>`;
 }
@@ -1266,7 +1266,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <p class="ui-small">${t('data.spaceWeatherNote')}</p>
       <ul class="ui-list">${events}</ul>
       <h3>${t('source.title')}</h3>
-      ${SOURCE_SECTIONS.map((section) => `<h4>${t(`source.section.${section}`)}</h4>${sourceListHtml(values, section)}`).join('')}
+      ${SOURCE_SECTIONS.map((section) => `<h4>${t(`source.section.${section}`)}</h4>${sourceListHtml(values, section, callbacks.cardsForValue)}`).join('')}
       <h3>${t('data.values')}</h3>
       <ul class="ui-list">${sources}</ul>
       <p class="ui-small">${t('data.valuesGameTuning', { count: fmt(collected.gameTuning) })}</p>
@@ -1769,6 +1769,23 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           throw new Error('ui の言葉がない');
         }
         callbacks.onOpenTerm(term);
+        break;
+      }
+      case 'openCard': {
+        const cardId = target.dataset.card;
+        if (cardId === undefined) {
+          throw new Error('ui のカードの ID がない');
+        }
+        pauseView = 'cards';
+        cardsPulse = false;
+        renderPauseOverlay();
+        renderTopButtons();
+        const card = pauseEl.querySelector<HTMLElement>(`[data-card-id="${CSS.escape(cardId)}"]`);
+        if (card === null) {
+          throw new Error(`豆知識カード ${cardId} が一覧にない`);
+        }
+        card.scrollIntoView({ block: 'center' });
+        card.classList.add('card-flash');
         break;
       }
       case 'nightView':

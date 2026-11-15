@@ -204,7 +204,7 @@ const tutorial = createTutorial(
 const title = createTitle(document.body, {
   saves: () => saves.list(),
   onNew: () => tutorial.startNew(),
-  cardsHtml: () => cardsHtml(cardStore.list(), nasaImages),
+  cardsHtml: () => cardsHtml(cardStore.list(), nasaImages, values),
   onOpenTerm: (term) => help.openTerm(asHelpTerm(term, '豆知識カード')),
   onContinue: (saveId) => {
     startFrom(saves.load(saveId), true);
@@ -283,7 +283,16 @@ const ui = createUi(
       const list = cardStore.list();
       return { owned: list.filter((entry) => entry.owned).length, total: list.length };
     },
-    cardsHtml: () => cardsHtml(cardStore.list(), nasaImages),
+    cardsHtml: () => cardsHtml(cardStore.list(), nasaImages, values),
+    cardsForValue: (path) =>
+      cardStore
+        .list()
+        .filter((entry) => entry.card.values.includes(path))
+        .map((entry) => ({
+          id: entry.card.id,
+          title: t(`${entry.card.textKey}.title`),
+          owned: entry.owned,
+        })),
     onOpenTerm: (term) => help.openTerm(asHelpTerm(term, '豆知識カード')),
     onMinigameSound: (name) => {
       fx.sound(name === 'hit' ? 'pop' : name === 'miss' ? 'land' : 'star');

@@ -45,6 +45,8 @@ export type Card = CardCondition & {
   photo: string | null;
   source: string;
   url: string;
+  /** このカードの本物のデータ（data/values.json の "a.b.c"）。カードに数と出典を出し、データの窓からはこのカードへ行ける */
+  values: readonly string[];
 };
 
 const STORAGE_KEY = 'lunar-outpost-cards';
@@ -55,7 +57,7 @@ export function parseCards(json: unknown, photoKeys: readonly string[]): Card[] 
     throw new Error('data/cards.json が配列ではない');
   }
   const cards = json.map((entry: Record<string, unknown>, i): Card => {
-    const { id, condition, kind, threshold, textKey, terms, photo, source, url } = entry;
+    const { id, condition, kind, threshold, textKey, terms, photo, source, url, values } = entry;
     const bad = () => new Error(`data/cards.json の ${i} 件目の形が違う`);
     if (
       typeof id !== 'string' ||
@@ -63,7 +65,9 @@ export function parseCards(json: unknown, photoKeys: readonly string[]): Card[] 
       !Array.isArray(terms) ||
       (photo !== null && (typeof photo !== 'string' || !photoKeys.includes(photo))) ||
       typeof source !== 'string' ||
-      typeof url !== 'string'
+      typeof url !== 'string' ||
+      !Array.isArray(values) ||
+      !values.every((path) => typeof path === 'string')
     ) {
       throw bad();
     }
@@ -74,6 +78,7 @@ export function parseCards(json: unknown, photoKeys: readonly string[]): Card[] 
       photo,
       source,
       url,
+      values: values as string[],
     };
     const event = ACHIEVEMENT_CONDITIONS.find((c) => c === condition);
     if (event !== undefined) {
