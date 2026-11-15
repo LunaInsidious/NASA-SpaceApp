@@ -24,6 +24,10 @@ NASA ゴダード宇宙飛行センターの Planetary Geodynamics Data Archive�
 - `illumination.png` — ゲームと同じ計算で求めた平均の日照率（上が地球の向き）。PGDA の日照の画像と見比べる用
 - `site.json` — 出典、範囲、縮尺、緯度、着陸船の位置、氷の場所（永久影）
 
+## 地球の写真（public/textures/）
+
+- `earth-bluemarble-2048.jpg` — NASA Earth Observatory の「Blue Marble: Next Generation」の、地形と海底の地形が入った版（雲なし）を 2048×1024 に縮めたもの — NASA Earth Observatory（NASA images by Reto Stöckli）— https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/ 。NASA の画像は原則として著作権の対象外。どの月の画像から作ったかと、ダウンロードした URL は記録がない（2026-11-15 に別の作業で足されたもの。見た目から、この版だと判断した）
+
 ## 音
 
 効果音は WebAudio でその場で作る（`src/ui/fx.ts`。このリポジトリのオリジナル）。
