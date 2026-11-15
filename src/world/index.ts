@@ -4,6 +4,8 @@ import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera';
 import { CreatePickingRay } from '@babylonjs/core/Culling/ray.pure';
 // 地面を指す（scene.pick）のに要る副作用を読み込む（ないと Babylon が起動時に警告を出す）
 import '@babylonjs/core/Culling/ray';
+// 石を一度にたくさん描く（thin instance）。読み込まないと thinInstanceSetBuffer が何もしない
+import '@babylonjs/core/Meshes/thinInstanceMesh';
 import type { IPointerEvent } from '@babylonjs/core/Events/deviceInputEvents';
 import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
@@ -24,7 +26,7 @@ import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import type { Facility, FacilityKind, Values } from '../contracts/index.ts';
-import type { TerrainEnv } from '../env/api.ts';
+import type { OuterTerrain, TerrainEnv } from '../env/api.ts';
 import type { PadInput, PlayerPose, World } from './api.ts';
 import {
   applyFacilityState,
@@ -47,6 +49,8 @@ import {
   CAMERA_TARGET_HEIGHT_M,
   CELESTIAL_DISTANCE_M,
   CLICK_SLOP_PX,
+  DETAIL_TEXTURE_SIZE,
+  DETAIL_TILE_M,
   EARTH_DIAMETER_M,
   GUIDE_ALPHA,
   GUIDE_COLOR,
@@ -60,6 +64,9 @@ import {
   ICON_GAP_M,
   ICON_SIZE_M,
   ICON_TEXTURE_PX,
+  OUTER_HIDE_DEPTH_M,
+  OUTER_SHADE_BASE,
+  OUTER_SHADE_SLOPE_GAIN,
   PHONE_LAYOUT_QUERY,
   PHONE_PLAYER_SCREEN_SHIFT,
   PICK_MAX_DISTANCE_M,
@@ -74,9 +81,15 @@ import {
   PREVIEW_BAD,
   PREVIEW_GOOD,
   PREVIEW_WARN,
+  ROCK_CLEAR_RADIUS_M,
+  ROCK_COUNT,
+  ROCK_EMISSIVE,
+  ROCK_MAX_SIZE_M,
+  ROCK_MIN_SIZE_M,
   SHADE_LIT_BASE,
   SHADE_LIT_SLOPE_GAIN,
   SHADE_SHADOW,
+  SHADE_SHADOW_RELIEF,
   SHADOW_CHECK_INTERVAL_SEC,
   SHADOW_LIFT_M,
   SKY_DIAMETER_M,
@@ -100,8 +113,195 @@ function toVector(v: Vec3, scale = 1): Vector3 {
   return new Vector3(v.x * scale, v.y * scale, v.z * scale);
 }
 
+/** 決まった並びの乱数（見た目だけ。毎回同じ模様と石の置き方にする） */
+function seededRandom(seed: number): () => number {
+  let a = seed;
+  return () => {
+    a = (a * 16807) % 2147483647;
+    return a / 2147483647;
+  };
+}
+
+/**
+ * レゴリスの細かい模様（明るさの粒と小さなくぼみ）。頂点の明るさに掛ける。
+ * 地形の形は実データのまま。模様は歩いたときに足元が流れて、進んでいるのが分かるようにする見た目だけのもの
+ */
+function createRegolithTexture(scene: Scene): DynamicTexture {
+  const size = DETAIL_TEXTURE_SIZE;
+  const texture = new DynamicTexture('regolith', { width: size, height: size }, scene, true);
+  const ctx = texture.getContext();
+  const random = seededRandom(11);
+  ctx.fillStyle = 'rgb(215,215,215)';
+  ctx.fillRect(0, 0, size, size);
+  // 粒：明るさの少し違う点を散らす
+  for (let i = 0; i < size * 40; i++) {
+    const v = 150 + Math.floor(random() * 105);
+    ctx.fillStyle = `rgb(${v},${v},${v})`;
+    ctx.fillRect(random() * size, random() * size, 1 + random() * 2, 1 + random() * 2);
+  }
+  // 小さなくぼみ：暗い縁と明るい縁の輪
+  for (let i = 0; i < 18; i++) {
+    const x = random() * size;
+    const y = random() * size;
+    const r = 3 + random() * 16;
+    ctx.lineWidth = 1 + r * 0.1;
+    ctx.strokeStyle = 'rgba(110,110,110,0.3)';
+    ctx.beginPath();
+    ctx.arc(x, y, r, Math.PI * 0.15, Math.PI * 1.15);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    ctx.beginPath();
+    ctx.arc(x, y, r, Math.PI * 1.15, Math.PI * 2.15);
+    ctx.stroke();
+  }
+  texture.update();
+  texture.wrapU = DynamicTexture.WRAP_ADDRESSMODE;
+  texture.wrapV = DynamicTexture.WRAP_ADDRESSMODE;
+  return texture;
+}
+
+/** 地面の模様の UV：x, z の m を DETAIL_TILE_M ごとにくり返す（歩く範囲と外でつながる） */
+function worldUvs(positions: Float32Array): Float32Array {
+  const uvs = new Float32Array((positions.length / 3) * 2);
+  for (let i = 0; i < positions.length / 3; i++) {
+    uvs[i * 2] = positions[i * 3] / DETAIL_TILE_M;
+    uvs[i * 2 + 1] = positions[i * 3 + 2] / DETAIL_TILE_M;
+  }
+  return uvs;
+}
+
+/**
+ * 歩く範囲の外の地形（実データ。見るだけで歩けない）。歩く範囲と重なる所は下にしまう。
+ * 影は作らず、太陽を向いた斜面ほど明るくする（太陽が動いたら塗り直す）
+ */
+function createOuterTerrain(
+  scene: Scene,
+  outer: OuterTerrain,
+  innerHalf: number,
+  detail: DynamicTexture,
+) {
+  const n = outer.resolution;
+  const half = outer.sizeMeters / 2;
+  const cell = outer.sizeMeters / (n - 1);
+  const positions = new Float32Array(n * n * 3);
+  const normals = new Float32Array(n * n * 3);
+  for (let iz = 0; iz < n; iz++) {
+    for (let ix = 0; ix < n; ix++) {
+      const i = iz * n + ix;
+      const x = -half + ix * cell;
+      const z = -half + iz * cell;
+      // 歩く範囲の内側（1マス分の余白を残す）は、歩く範囲の地形の下にしまう
+      const inside = Math.abs(x) < innerHalf - cell && Math.abs(z) < innerHalf - cell;
+      positions[i * 3] = x;
+      positions[i * 3 + 1] = outer.heights[i] - (inside ? OUTER_HIDE_DEPTH_M : 0);
+      positions[i * 3 + 2] = z;
+      const hx0 = outer.heights[iz * n + Math.max(0, ix - 1)];
+      const hx1 = outer.heights[iz * n + Math.min(n - 1, ix + 1)];
+      const hz0 = outer.heights[Math.max(0, iz - 1) * n + ix];
+      const hz1 = outer.heights[Math.min(n - 1, iz + 1) * n + ix];
+      const dx = (hx1 - hx0) / (2 * cell);
+      const dz = (hz1 - hz0) / (2 * cell);
+      const len = Math.hypot(dx, 1, dz);
+      normals[i * 3] = -dx / len;
+      normals[i * 3 + 1] = 1 / len;
+      normals[i * 3 + 2] = -dz / len;
+    }
+  }
+  const indices = new Uint32Array((n - 1) * (n - 1) * 6);
+  let k = 0;
+  for (let iz = 0; iz < n - 1; iz++) {
+    for (let ix = 0; ix < n - 1; ix++) {
+      const a = iz * n + ix;
+      indices.set([a, a + n, a + 1, a + 1, a + n, a + n + 1], k);
+      k += 6;
+    }
+  }
+  const colors = new Float32Array(n * n * 4);
+  const vertexData = new VertexData();
+  vertexData.positions = positions;
+  vertexData.indices = indices;
+  vertexData.normals = normals;
+  vertexData.colors = colors;
+  vertexData.uvs = worldUvs(positions);
+  const mesh = new Mesh('terrain-outer', scene);
+  vertexData.applyToMesh(mesh, true);
+  mesh.isPickable = false;
+  const mat = new StandardMaterial('terrain-outer-mat', scene);
+  mat.disableLighting = true;
+  mat.emissiveColor = Color3.White();
+  mat.diffuseTexture = detail;
+  mat.backFaceCulling = false;
+  mesh.material = mat;
+  return {
+    shade(sun: { x: number; y: number; z: number }) {
+      for (let i = 0; i < n * n; i++) {
+        const facing =
+          normals[i * 3] * sun.x + normals[i * 3 + 1] * sun.y + normals[i * 3 + 2] * sun.z;
+        const b =
+          OUTER_SHADE_BASE + OUTER_SHADE_SLOPE_GAIN * Math.min(1, Math.max(0, facing / 0.5));
+        colors.set([b, b * 0.98, b * 0.95, 1], i * 4);
+      }
+      mesh.updateVerticesData(VertexBuffer.ColorKind, colors);
+    },
+  };
+}
+
+/** 地面に散らばる石（見た目だけ）。着陸船のまわりと氷の場所には置かない */
+function createRocks(scene: Scene, env: TerrainEnv) {
+  const rock = CreateSphere('rock', { diameter: 1, segments: 3 }, scene);
+  const mat = new StandardMaterial('rock-mat', scene);
+  mat.diffuseColor = new Color3(0.5, 0.49, 0.47);
+  // 地面は焼き込んだ明るさで光るので、石も少し光らせて地面となじませる（太陽が低くて影の面ばかり見えるため）
+  mat.emissiveColor = new Color3(ROCK_EMISSIVE, ROCK_EMISSIVE, ROCK_EMISSIVE * 0.97);
+  mat.specularColor = Color3.Black();
+  rock.material = mat;
+  rock.isPickable = false;
+  const random = seededRandom(7);
+  const half = env.sizeMeters / 2;
+  const [landerX, landerZ] = env.landerPosition;
+  const matrices: number[] = [];
+  const m = new Float32Array(16);
+  for (let placed = 0, tries = 0; placed < ROCK_COUNT && tries < ROCK_COUNT * 4; tries++) {
+    const x = (random() * 2 - 1) * half;
+    const z = (random() * 2 - 1) * half;
+    if (Math.hypot(x - landerX, z - landerZ) < ROCK_CLEAR_RADIUS_M || env.isIceAt(x, z)) {
+      continue;
+    }
+    // 小さい石ほど多く
+    const s = ROCK_MIN_SIZE_M + (ROCK_MAX_SIZE_M - ROCK_MIN_SIZE_M) * random() ** 2;
+    const sy = s * (0.45 + random() * 0.35);
+    const yaw = random() * Math.PI * 2;
+    const c = Math.cos(yaw);
+    const sn = Math.sin(yaw);
+    // 回転（y 軸）と大きさ（少しつぶす）と位置。半分ほど地面に埋める
+    m.set([
+      c * s,
+      0,
+      -sn * s,
+      0,
+      0,
+      sy,
+      0,
+      0,
+      sn * s,
+      0,
+      c * s,
+      0,
+      x,
+      env.heightAt(x, z) + sy * 0.15,
+      z,
+      1,
+    ]);
+    matrices.push(...m);
+    placed++;
+  }
+  rock.thinInstanceSetBuffer('matrix', new Float32Array(matrices), 16);
+  // 石は地図全体に散らばるので、画面の外かどうかで消さない（元の石1つの大きさで判定されると、全部消える）
+  rock.alwaysSelectAsActiveMesh = true;
+}
+
 /** 地形のメッシュと、頂点の明るさへの影の焼き込み */
-function createTerrain(scene: Scene, env: TerrainEnv) {
+function createTerrain(scene: Scene, env: TerrainEnv, detail: DynamicTexture) {
   const n = env.resolution;
   const half = env.sizeMeters / 2;
   const cell = env.sizeMeters / (n - 1);
@@ -139,6 +339,8 @@ function createTerrain(scene: Scene, env: TerrainEnv) {
     }
   }
 
+  // 影の中は、地球の照り返しで地球のほうを向いた斜面を少し明るくする（形が分かるように）
+  const earth = env.earthDirection();
   const bakeRows = (sunAzimuthRad: number, fromRow: number, toRow: number, out: Float32Array) => {
     const sun = env.sunDirection(sunAzimuthRad);
     for (let iz = fromRow; iz < toRow; iz++) {
@@ -156,9 +358,13 @@ function createTerrain(scene: Scene, env: TerrainEnv) {
           slopeNormals[i * 3] * sun.x +
           slopeNormals[i * 3 + 1] * sun.y +
           slopeNormals[i * 3 + 2] * sun.z;
+        const towardEarth =
+          slopeNormals[i * 3] * earth.x +
+          slopeNormals[i * 3 + 1] * earth.y +
+          slopeNormals[i * 3 + 2] * earth.z;
         const b = lit
           ? SHADE_LIT_BASE + SHADE_LIT_SLOPE_GAIN * Math.min(1, Math.max(0, facing / 0.5))
-          : SHADE_SHADOW;
+          : SHADE_SHADOW + SHADE_SHADOW_RELIEF * Math.max(0, towardEarth);
         if (env.isIceAt(x, z)) {
           const ib = Math.max(b, ICE_BRIGHTNESS);
           out.set([ICE_COLOR[0] * ib, ICE_COLOR[1] * ib, ICE_COLOR[2] * ib, 1], i * 4);
@@ -180,6 +386,7 @@ function createTerrain(scene: Scene, env: TerrainEnv) {
   VertexData.ComputeNormals(positions, indices, normals);
   vertexData.normals = normals;
   vertexData.colors = colors;
+  vertexData.uvs = worldUvs(positions);
   const mesh = new Mesh('terrain', scene);
   vertexData.applyToMesh(mesh, true);
   mesh.isPickable = false;
@@ -187,6 +394,7 @@ function createTerrain(scene: Scene, env: TerrainEnv) {
   // 明るさは焼き込んだ頂点の色だけで決める（太陽が低いので光源の陰影では暗すぎる）
   mat.disableLighting = true;
   mat.emissiveColor = Color3.White();
+  mat.diffuseTexture = detail;
   mat.backFaceCulling = false;
   mesh.material = mat;
 
@@ -318,12 +526,18 @@ function createAstronaut(scene: Scene): { root: TransformNode; meshes: Mesh[] } 
   return { root, meshes };
 }
 
-export function createWorld(scene: Scene, env: TerrainEnv, values: Values): World {
+export function createWorld(
+  scene: Scene,
+  env: TerrainEnv,
+  values: Values,
+  outer: OuterTerrain,
+): World {
   const gravity = values.moon.gravity.value;
   const walkSpeed = values.player.walkSpeedMps.value;
   const buildDistance = values.player.buildDistanceMeters.value;
   const limit = env.sizeMeters / 2 - PLAYER_BOUNDS_MARGIN_M;
   const clampToMap = (v: number) => Math.min(limit, Math.max(-limit, v));
+  let atMapEdge = false;
 
   scene.clearColor = new Color4(0, 0, 0, 1);
 
@@ -353,7 +567,11 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
   earth.position = toVector(env.earthDirection(), CELESTIAL_DISTANCE_M);
   const sunDisc = emissiveSphere(scene, 'sun', SUN_DIAMETER_M, new Color3(1, 0.96, 0.85));
 
-  const terrain = createTerrain(scene, env);
+  const detail = createRegolithTexture(scene);
+  const terrain = createTerrain(scene, env, detail);
+  const outerTerrain = createOuterTerrain(scene, outer, env.sizeMeters / 2, detail);
+  outerTerrain.shade(env.sunDirection(0));
+  createRocks(scene, env);
   createLander(scene, env);
   const astronaut = createAstronaut(scene);
 
@@ -476,8 +694,12 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
       mz /= magnitude;
     }
     const moving = magnitude > 0.05;
-    player.x = clampToMap(player.x + mx * walkSpeed * dt);
-    player.z = clampToMap(player.z + mz * walkSpeed * dt);
+    const wantX = player.x + mx * walkSpeed * dt;
+    const wantZ = player.z + mz * walkSpeed * dt;
+    player.x = clampToMap(wantX);
+    player.z = clampToMap(wantZ);
+    // 歩く範囲の端で、外へ進もうとしているか（見えない壁）
+    atMapEdge = moving && (player.x !== wantX || player.z !== wantZ);
     if (moving) {
       const targetHeading = Math.atan2(mx, mz);
       player.heading += angleDelta(targetHeading, player.heading) * (1 - Math.exp(-TURN_RATE * dt));
@@ -663,10 +885,14 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
     setMovementEnabled(enabled) {
       movementEnabled = enabled;
     },
+    isAtMapEdge() {
+      return atMapEdge;
+    },
     setSunAzimuth(sunAzimuthRad) {
       sunAzimuth = sunAzimuthRad;
       applySun();
       terrain.requestBake(sunAzimuthRad);
+      outerTerrain.shade(env.sunDirection(sunAzimuthRad));
     },
     syncFacilities(facilities: Facility[], working: Record<string, boolean>) {
       const seen = new Set<string>();

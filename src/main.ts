@@ -23,7 +23,7 @@ import type {
   SimState,
   Values,
 } from './contracts/index.ts';
-import { createTerrainEnv, terrainFromSite } from './env/index.ts';
+import { createTerrainEnv, outerFromSite, terrainFromSite } from './env/index.ts';
 import { parseSite } from './env/site.ts';
 import { createHelp } from './help/index.ts';
 import { asHelpTerm } from './help/terms.ts';
@@ -73,6 +73,9 @@ const SITE_DIR = `${import.meta.env.BASE_URL}terrain/site01/`;
 // 足音を鳴らす間隔（歩いた距離、m）。見た目と音だけの値
 const STEP_SOUND_METERS = 1.6;
 const MINUTES_PER_HOUR = 60;
+// 歩く範囲の端で「これ以上は行けない」を出す間隔（ミリ秒。見せ方の値）
+const MAP_EDGE_NOTICE_MS = 4000;
+let lastMapEdgeNotice = Number.NEGATIVE_INFINITY;
 // 朝の窓に出す物資（増減があったものだけ）
 const MORNING_STOCKS = ['oxygen', 'water', 'food', 'spareParts', 'materials'] as const;
 // 休むときに1つずつ順に見せる、休む理由（文言は rest.reason.<キー>、数は values.json）
@@ -139,7 +142,12 @@ const env = createTerrainEnv(
 function realMeters(gameMeters: number): number {
   return gameMeters * site.scale;
 }
-const world = createWorld(scene, env, values);
+// 歩く範囲のまわりの、見えるだけの地形
+const outer = outerFromSite(
+  site,
+  await (await fetchOk(`${SITE_DIR}${site.outerHeightFile}`)).arrayBuffer(),
+);
+const world = createWorld(scene, env, values, outer);
 // 建設モードの間、PC で地面をクリックしたらそこに置く（confirmBuild は下で定義。呼ばれるのは起動のあと）
 world.onGroundClick(() => confirmBuild());
 
@@ -1471,6 +1479,11 @@ engine.runRenderLoop(() => {
   }
   ui.setTaskList(todayPlan.map((task) => ({ label: taskLabel(task), done: task.done })));
   ui.setTutorialLimits(tutorial.limits());
+  // 見えない壁：外の地形は見えるが、ボンベの酸素では行って帰れないので、ここまで
+  if (world.isAtMapEdge() && performance.now() - lastMapEdgeNotice > MAP_EDGE_NOTICE_MS) {
+    lastMapEdgeNotice = performance.now();
+    ui.notify(t('map.edge'), true);
+  }
   const actionsKey = actions.join(',');
   if (actionsKey !== lastActionsKey) {
     lastActionsKey = actionsKey;

@@ -8,21 +8,24 @@
   "centerY": -13070,
   "cropMeters": 1500,
   "sizeMeters": 300,
-  "resolution": 201,
+  "resolution": 301,
   "baseHeightMeters": 1776.63,
   "latitudeDeg": -89.4265,
-  "landerPosition": [-15, 115.5],
+  "landerPosition": [-15, 115],
   "iceSpots": [
     {
-      "x": 51.07,
-      "z": -66.65,
-      "radius": 6.93
+      "x": 51.01,
+      "z": -66.41,
+      "radius": 6.75
     },
     {
-      "x": -96.2,
-      "z": -141.1,
-      "radius": 3.28
+      "x": -96.16,
+      "z": -141.25,
+      "radius": 3.19
     }
   ],
-  "heightFile": "height.bin"
+  "heightFile": "height.bin",
+  "outerSizeMeters": 1200,
+  "outerResolution": 241,
+  "outerHeightFile": "outer.bin"
 }

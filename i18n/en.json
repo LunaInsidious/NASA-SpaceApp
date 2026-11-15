@@ -904,5 +904,6 @@
   "unit.deg": "{value}°",
   "unit.kg/kg": "{value} kg",
   "unit.kg": "{value} kg",
-  "unit.kg/unit": "{value} kg"
+  "unit.kg/unit": "{value} kg",
+  "map.edge": "You can't go any farther. Your oxygen tank can't get you that far and back to the base."
 }

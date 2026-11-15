@@ -904,5 +904,6 @@
   "unit.deg": "{value}°（｜度《ど》）",
   "unit.kg/kg": "{value}kg",
   "unit.kg": "{value}kg",
-  "unit.kg/unit": "{value}kg"
+  "unit.kg/unit": "{value}kg",
+  "map.edge": "ここから ｜先《さき》へは ｜行《い》けないよ。ボンベの ｜酸素《さんそ》では、これより ｜遠《とお》くへ ｜行《い》って ｜基地《きち》まで ｜帰《かえ》って こられないからね。"
 }

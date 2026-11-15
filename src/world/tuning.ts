@@ -20,6 +20,24 @@ export const SUNLIT_SAMPLE_OFFSET_M = 0.3;
 
 /** 歩くときに自動で跳ねる速さ（月面の跳ねる歩き方） */
 export const HOP_SPEED_MPS = 1.1;
+/** 影の中でも、地球の照り返しで斜面の形が分かるようにする明るさ（地球のほうを向いた斜面ほど明るい） */
+export const SHADE_SHADOW_RELIEF = 0.1;
+/** 歩く範囲の外の地形（見るだけ）の明るさ。日なたは BASE + 太陽を向いた斜面ほど SLOPE_GAIN、影は作らない */
+export const OUTER_SHADE_BASE = 0.32;
+export const OUTER_SHADE_SLOPE_GAIN = 0.5;
+/** 歩く範囲の外の地形を、歩く範囲の下にしまう深さ（重ならないように） */
+export const OUTER_HIDE_DEPTH_M = 80;
+/** 地面の細かい模様（レゴリスの粒やでこぼこ）がくり返す長さ。歩くと模様が流れて、進んでいるのが分かる */
+export const DETAIL_TILE_M = 6;
+export const DETAIL_TEXTURE_SIZE = 512;
+/** 地面に散らばる石（見た目だけ。歩くのはじゃましない） */
+export const ROCK_COUNT = 3500;
+export const ROCK_MIN_SIZE_M = 0.15;
+export const ROCK_MAX_SIZE_M = 1.2;
+/** 着陸船のまわりのこの距離には石を置かない（建てる場所） */
+export const ROCK_CLEAR_RADIUS_M = 25;
+/** 石の自分の明るさ（地面の明るさになじませる） */
+export const ROCK_EMISSIVE = 0.22;
 /** 地図の端から、これより外に出ない */
 export const PLAYER_BOUNDS_MARGIN_M = 2;
 /** 向きを変える速さ（大きいほど早く向く） */

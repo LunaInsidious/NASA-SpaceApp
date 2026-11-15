@@ -23,6 +23,8 @@ export interface World {
   setPadInput(input: PadInput): void;
   /** false の間は宇宙飛行士が動かない（メニュー、屋内、一時停止） */
   setMovementEnabled(enabled: boolean): void;
+  /** 歩く範囲の端（見えない壁）で、外へ進もうとしているか。外の地形は見えるが歩けない */
+  isAtMapEdge(): boolean;
   setSunAzimuth(sunAzimuthRad: number): void;
   /** 施設の上に出すアイコン（文言と同じく i18n から main が渡す）。syncFacilities の前に1回呼ぶ */
   setFacilityIcons(icons: Record<FacilityKind, string>): void;
