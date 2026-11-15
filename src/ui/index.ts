@@ -330,6 +330,12 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   let padPointer: number | null = null;
 
   const pauseEl = part('pauseOverlay');
+  // メニュー（一時停止）の窓も、外の暗いところをクリックしたら閉じる
+  pauseEl.addEventListener('click', (e) => {
+    if (e.target === pauseEl) {
+      closePause();
+    }
+  });
   /** 一時停止のボタンで止めている間は、画面全体を暗くして大きく知らせる（メニューや窓で止まっているときは出さない） */
   // メニューの窓の中：いつもの選ぶところか、豆知識カードを読んでいるところか
   let pauseView: PauseView = 'main';
@@ -1336,6 +1342,20 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     renderStatus();
   };
 
+  // メニュー（一時停止）の窓を閉じて、ゲームに戻る（「再開する」と同じ）
+  const closePause = (): boolean => {
+    if (!userPaused) {
+      return false;
+    }
+    userPaused = false;
+    pauseView = 'main';
+    renderPauseOverlay();
+    renderTopButtons();
+    updatePause();
+    renderStatus();
+    return true;
+  };
+
   const closeMenus = () => {
     if (menu === null) {
       return;
@@ -1805,6 +1825,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     },
     openMenu,
     closeMenus,
+    closePause,
     notify: toast,
     setNasaImages(images) {
       nasaImages = images;
