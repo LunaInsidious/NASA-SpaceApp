@@ -15,12 +15,13 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Matrix, Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder';
 import { CreateCapsule } from '@babylonjs/core/Meshes/Builders/capsuleBuilder';
 import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder';
 import { CreateDisc } from '@babylonjs/core/Meshes/Builders/discBuilder';
+import { CreateIcoSphere } from '@babylonjs/core/Meshes/Builders/icoSphereBuilder';
 import { CreatePlane } from '@babylonjs/core/Meshes/Builders/planeBuilder';
 import { CreateSphere } from '@babylonjs/core/Meshes/Builders/sphereBuilder';
 import { Mesh } from '@babylonjs/core/Meshes/mesh';
@@ -36,6 +37,7 @@ import {
   createFacilityVisual,
   type FacilityVisual,
 } from './facilities.ts';
+import { createMicroRelief, type MicroRelief, seededRandom } from './microrelief.ts';
 import {
   AMBIENT_LIGHT_INTENSITY,
   BAKE_ROWS_PER_FRAME,
@@ -70,6 +72,7 @@ import {
   ICON_GAP_M,
   ICON_SIZE_M,
   ICON_TEXTURE_PX,
+  MICRO_RELIEF_SEED,
   OUTER_HIDE_DEPTH_M,
   OUTER_SHADE_BASE,
   OUTER_SHADE_SLOPE_GAIN,
@@ -87,12 +90,17 @@ import {
   PREVIEW_BAD,
   PREVIEW_GOOD,
   PREVIEW_WARN,
+  ROCK_BUMP_MIN,
   ROCK_CLEAR_RADIUS_M,
   ROCK_COUNT,
+  ROCK_EJECTA_MIN_CRATER_RADIUS_M,
+  ROCK_EJECTA_PER_RADIUS_M,
   ROCK_EMISSIVE,
+  ROCK_FLATTEN,
   ROCK_MAX_SIZE_M,
   ROCK_MIN_SIZE_M,
   ROCK_SHADOW_BRIGHTNESS,
+  ROCK_VARIANTS,
   SHADE_LIT_BASE,
   SHADE_LIT_SLOPE_GAIN,
   SHADE_SHADOW,
@@ -118,15 +126,6 @@ function angleDelta(a: number, b: number): number {
 
 function toVector(v: Vec3, scale = 1): Vector3 {
   return new Vector3(v.x * scale, v.y * scale, v.z * scale);
-}
-
-/** 決まった並びの乱数（見た目だけ。毎回同じ模様と石の置き方にする） */
-function seededRandom(seed: number): () => number {
-  let a = seed;
-  return () => {
-    a = (a * 16807) % 2147483647;
-    return a / 2147483647;
-  };
 }
 
 /**
@@ -253,91 +252,140 @@ function createOuterTerrain(
   };
 }
 
-/** 地面に散らばる石（見た目だけ）。着陸船のまわりと氷の場所には置かない */
-function createRocks(scene: Scene, env: TerrainEnv) {
-  const rock = CreateSphere('rock', { diameter: 1, segments: 3 }, scene);
+/** 角ばった石の形（球の頂点を、決まった乱数で出したりへこませたりして、面ごとに平らに塗る） */
+function createRockVariant(scene: Scene, name: string, random: () => number): Mesh {
+  const mesh = CreateIcoSphere(name, { radius: 0.5, subdivisions: 1 }, scene);
+  const positions = mesh.getVerticesData(VertexBuffer.PositionKind);
+  if (positions === null) {
+    throw new Error('石の形の頂点がない');
+  }
+  // 同じ場所の頂点には同じ量を掛ける（面がちぎれないように）
+  const bumps = new Map<string, number>();
+  for (let i = 0; i < positions.length; i += 3) {
+    const k = `${positions[i].toFixed(3)},${positions[i + 1].toFixed(3)},${positions[i + 2].toFixed(3)}`;
+    let f = bumps.get(k);
+    if (f === undefined) {
+      f = ROCK_BUMP_MIN + random() * (1 - ROCK_BUMP_MIN);
+      bumps.set(k, f);
+    }
+    positions[i] *= f;
+    positions[i + 1] *= f * ROCK_FLATTEN;
+    positions[i + 2] *= f;
+  }
+  mesh.updateVerticesData(VertexBuffer.PositionKind, positions);
+  mesh.convertToFlatShadedMesh();
+  return mesh;
+}
+
+/**
+ * 地面に散らばる石（見た目だけ）。何種類かの角ばった形を、大きさ・向き・埋まり方・色をばらつかせて置く。
+ * 大きなクレーターの縁には、ぶつかったときに飛び散った石を多めに。着陸船のまわりと氷の場所には置かない
+ */
+function createRocks(scene: Scene, env: TerrainEnv, relief: MicroRelief) {
+  const random = seededRandom(7);
   const mat = new StandardMaterial('rock-mat', scene);
   mat.diffuseColor = new Color3(0.5, 0.49, 0.47);
   // 地面は焼き込んだ明るさで光るので、石も少し光らせて地面となじませる（太陽が低くて影の面ばかり見えるため）
   mat.emissiveColor = new Color3(ROCK_EMISSIVE, ROCK_EMISSIVE, ROCK_EMISSIVE * 0.97);
   mat.specularColor = Color3.Black();
-  rock.material = mat;
-  rock.isPickable = false;
-  const random = seededRandom(7);
+  const variants = Array.from({ length: ROCK_VARIANTS }, (_, v) => {
+    const mesh = createRockVariant(scene, `rock-${v}`, random);
+    mesh.material = mat;
+    mesh.isPickable = false;
+    // 石は地図全体に散らばるので、画面の外かどうかで消さない（元の石1つの大きさで判定されると、全部消える）
+    mesh.alwaysSelectAsActiveMesh = true;
+    return {
+      mesh,
+      matrices: [] as number[],
+      spots: [] as { x: number; y: number; z: number; tone: number }[],
+    };
+  });
   const half = env.sizeMeters / 2;
   const [landerX, landerZ] = env.landerPosition;
-  const matrices: number[] = [];
-  const spots: { x: number; y: number; z: number }[] = [];
-  const m = new Float32Array(16);
-  for (let placed = 0, tries = 0; placed < ROCK_COUNT && tries < ROCK_COUNT * 4; tries++) {
-    const x = (random() * 2 - 1) * half;
-    const z = (random() * 2 - 1) * half;
-    if (Math.hypot(x - landerX, z - landerZ) < ROCK_CLEAR_RADIUS_M || env.isIceAt(x, z)) {
-      continue;
-    }
-    // 小さい石ほど多く
-    const s = ROCK_MIN_SIZE_M + (ROCK_MAX_SIZE_M - ROCK_MIN_SIZE_M) * random() ** 2;
-    const sy = s * (0.45 + random() * 0.35);
-    const yaw = random() * Math.PI * 2;
-    const c = Math.cos(yaw);
-    const sn = Math.sin(yaw);
-    // 回転（y 軸）と大きさ（少しつぶす）と位置。半分ほど地面に埋める
-    m.set([
-      c * s,
-      0,
-      -sn * s,
-      0,
-      0,
-      sy,
-      0,
-      0,
-      sn * s,
-      0,
-      c * s,
-      0,
-      x,
-      env.heightAt(x, z) + sy * 0.15,
-      z,
-      1,
-    ]);
-    matrices.push(...m);
-    spots.push({ x, y: env.heightAt(x, z) + sy, z });
-    placed++;
+  const matrix = new Matrix();
+  const place = (x: number, z: number, size: number) => {
+    if (Math.abs(x) > half || Math.abs(z) > half) return;
+    if (Math.hypot(x - landerX, z - landerZ) < ROCK_CLEAR_RADIUS_M || env.isIceAt(x, z)) return;
+    const variant = variants[Math.floor(random() * variants.length)];
+    const ground = relief.groundAt(x, z);
+    // 3つの向きにばらばらに回し、大きさの 2〜4 割を地面に埋める
+    const rotation = Quaternion.RotationYawPitchRoll(
+      random() * Math.PI * 2,
+      (random() - 0.5) * 0.9,
+      (random() - 0.5) * 0.9,
+    );
+    const scale = new Vector3(
+      size * (0.8 + random() * 0.4),
+      size * (0.6 + random() * 0.5),
+      size * (0.8 + random() * 0.4),
+    );
+    // 石の高さの半分（形は半径 0.5 で、上下を ROCK_FLATTEN でつぶしてある）。その 2〜4 割を地面に埋める
+    const halfHeight = 0.5 * ROCK_FLATTEN * scale.y;
+    const sink = halfHeight * 2 * (0.2 + random() * 0.2);
+    Matrix.ComposeToRef(scale, rotation, new Vector3(x, ground + halfHeight - sink, z), matrix);
+    variant.matrices.push(...matrix.asArray());
+    variant.spots.push({ x, y: ground + scale.y * 0.5, z, tone: 0.82 + random() * 0.3 });
+  };
+  // 小さい石ほど多い
+  const sizeAt = (u: number) => ROCK_MIN_SIZE_M + (ROCK_MAX_SIZE_M - ROCK_MIN_SIZE_M) * u ** 2.2;
+  for (let i = 0; i < ROCK_COUNT; i++) {
+    place((random() * 2 - 1) * half, (random() * 2 - 1) * half, sizeAt(random()));
   }
-  rock.thinInstanceSetBuffer('matrix', new Float32Array(matrices), 16);
-  // 石は地図全体に散らばるので、画面の外かどうかで消さない（元の石1つの大きさで判定されると、全部消える）
-  rock.alwaysSelectAsActiveMesh = true;
-  // 石の明るさ：地面と同じ日照の計算で、影の中の石は暗くする（光源だけだと影の中でも明るく見える）
-  const colors = new Float32Array(spots.length * 4);
+  // 大きなクレーターの縁のまわりに飛び散った石
+  for (const crater of relief.craters) {
+    if (crater.radius < ROCK_EJECTA_MIN_CRATER_RADIUS_M) continue;
+    const count = Math.round(crater.radius * ROCK_EJECTA_PER_RADIUS_M);
+    for (let i = 0; i < count; i++) {
+      const a = random() * Math.PI * 2;
+      const d = crater.radius * (0.95 + random() ** 1.5 * 1.1);
+      place(crater.x + Math.cos(a) * d, crater.z + Math.sin(a) * d, sizeAt(random()) * 1.2);
+    }
+  }
+  for (const variant of variants) {
+    variant.mesh.thinInstanceSetBuffer('matrix', new Float32Array(variant.matrices), 16);
+  }
+  // 石の明るさ：地面と同じ日照の計算で、影の中の石は暗くする（光源だけだと影の中でも明るく見える）。石ごとに色を少し変える
   return {
     shade(sunAzimuthRad: number) {
-      spots.forEach((spot, i) => {
-        const b = env.isSunlit(spot.x, spot.z, spot.y, sunAzimuthRad) ? 1 : ROCK_SHADOW_BRIGHTNESS;
-        colors.set([b, b, b, 1], i * 4);
-      });
-      rock.thinInstanceSetBuffer('color', colors, 4);
+      for (const variant of variants) {
+        const colors = new Float32Array(variant.spots.length * 4);
+        variant.spots.forEach((spot, i) => {
+          const b =
+            (relief.sunlitAt(spot.x, spot.z, spot.y, sunAzimuthRad) ? 1 : ROCK_SHADOW_BRIGHTNESS) *
+            spot.tone;
+          colors.set([b, b * 0.99, b * 0.96, 1], i * 4);
+        });
+        variant.mesh.thinInstanceSetBuffer('color', colors, 4);
+      }
     },
   };
 }
 
 /** 地形のメッシュと、頂点の明るさへの影の焼き込み */
-function createTerrain(scene: Scene, env: TerrainEnv, detail: DynamicTexture) {
+function createTerrain(scene: Scene, env: TerrainEnv, detail: DynamicTexture, relief: MicroRelief) {
   const n = env.resolution;
   const half = env.sizeMeters / 2;
   const cell = env.sizeMeters / (n - 1);
   const positions = new Float32Array(n * n * 3);
   const slopeNormals = new Float32Array(n * n * 3);
+  // 見た目の地面の高さ（実データの地形＋小さなクレーター）
+  const ground = new Float32Array(n * n);
+  for (let iz = 0; iz < n; iz++) {
+    for (let ix = 0; ix < n; ix++) {
+      ground[iz * n + ix] = relief.groundAt(-half + ix * cell, -half + iz * cell);
+    }
+  }
   for (let iz = 0; iz < n; iz++) {
     for (let ix = 0; ix < n; ix++) {
       const i = iz * n + ix;
       positions[i * 3] = -half + ix * cell;
-      positions[i * 3 + 1] = env.heights[i];
+      positions[i * 3 + 1] = ground[i];
       positions[i * 3 + 2] = -half + iz * cell;
       // 斜面の向き（陰影用）。端は片側の差で求める
-      const hx0 = env.heights[iz * n + Math.max(0, ix - 1)];
-      const hx1 = env.heights[iz * n + Math.min(n - 1, ix + 1)];
-      const hz0 = env.heights[Math.max(0, iz - 1) * n + ix];
-      const hz1 = env.heights[Math.min(n - 1, iz + 1) * n + ix];
+      const hx0 = ground[iz * n + Math.max(0, ix - 1)];
+      const hx1 = ground[iz * n + Math.min(n - 1, ix + 1)];
+      const hz0 = ground[Math.max(0, iz - 1) * n + ix];
+      const hz1 = ground[Math.min(n - 1, iz + 1) * n + ix];
       const dx = (hx1 - hx0) / (2 * cell);
       const dz = (hz1 - hz0) / (2 * cell);
       const len = Math.hypot(dx, 1, dz);
@@ -368,7 +416,7 @@ function createTerrain(scene: Scene, env: TerrainEnv, detail: DynamicTexture) {
         const i = iz * n + ix;
         const x = positions[i * 3];
         const z = positions[i * 3 + 2];
-        const lit = env.isSunlit(
+        const lit = relief.sunlitAt(
           x,
           z,
           positions[i * 3 + 1] + SUNLIT_SAMPLE_OFFSET_M,
@@ -625,11 +673,12 @@ export function createWorld(
   ambient.excludedMeshes.push(earth.globe, earth.atmosphere);
   const sunDisc = emissiveSphere(scene, 'sun', SUN_DIAMETER_M, new Color3(1, 0.96, 0.85));
 
+  const relief = createMicroRelief(env, MICRO_RELIEF_SEED);
   const detail = createRegolithTexture(scene);
-  const terrain = createTerrain(scene, env, detail);
+  const terrain = createTerrain(scene, env, detail, relief);
   const outerTerrain = createOuterTerrain(scene, outer, env.sizeMeters / 2, detail);
   outerTerrain.shade(env.sunDirection(0));
-  const rocks = createRocks(scene, env);
+  const rocks = createRocks(scene, env, relief);
   rocks.shade(0);
   createLander(scene, env);
   const astronaut = createAstronaut(scene);
@@ -658,7 +707,7 @@ export function createWorld(
 
   // 宇宙飛行士の状態
   const [startX, startZ] = env.landerPosition;
-  const player = { x: startX, y: env.heightAt(startX, startZ), z: startZ, vy: 0, heading: 0 };
+  const player = { x: startX, y: relief.groundAt(startX, startZ), z: startZ, vy: 0, heading: 0 };
   let grounded = true;
   let movementEnabled = true;
   let pad: PadInput = { x: 0, y: 0 };
@@ -684,7 +733,7 @@ export function createWorld(
   let ghost: { visual: FacilityVisual; material: StandardMaterial } | null = null;
 
   const placeOnGround = (node: TransformNode, x: number, z: number) => {
-    node.position.set(x, env.heightAt(x, z), z);
+    node.position.set(x, relief.groundAt(x, z), z);
   };
 
   // 影に入っているものは太陽の光を受けない（地形の焼き込みと見た目をそろえる）
@@ -692,12 +741,15 @@ export function createWorld(
   let excludedKey = '';
   const updateShadowExclusion = () => {
     const excluded: AbstractMesh[] = [];
-    if (!env.isSunlit(player.x, player.z, player.y + 1, sunAzimuth)) {
+    if (!relief.sunlitAt(player.x, player.z, player.y + 1, sunAzimuth)) {
       excluded.push(...astronaut.meshes);
     }
     for (const [id, visual] of facilityVisuals) {
       const p = facilityPositions.get(id);
-      if (p !== undefined && !env.isSunlit(p.x, p.z, env.heightAt(p.x, p.z) + 1, sunAzimuth)) {
+      if (
+        p !== undefined &&
+        !relief.sunlitAt(p.x, p.z, relief.groundAt(p.x, p.z) + 1, sunAzimuth)
+      ) {
         excluded.push(...visual.meshes());
       }
     }
@@ -725,7 +777,7 @@ export function createWorld(
     const sinB = Math.sin(camera.beta);
     const cx = t.x + camera.radius * Math.cos(camera.alpha) * sinB;
     const cz = t.z + camera.radius * Math.sin(camera.alpha) * sinB;
-    const ground = env.heightAt(clampToMap(cx), clampToMap(cz)) + CAMERA_GROUND_MARGIN_M;
+    const ground = relief.groundAt(clampToMap(cx), clampToMap(cz)) + CAMERA_GROUND_MARGIN_M;
     const cy = t.y + camera.radius * Math.cos(camera.beta);
     if (cy < ground) {
       const needed = Math.min(1, Math.max(-1, (ground - t.y) / camera.radius));
@@ -763,7 +815,7 @@ export function createWorld(
       const targetHeading = Math.atan2(mx, mz);
       player.heading += angleDelta(targetHeading, player.heading) * (1 - Math.exp(-TURN_RATE * dt));
     }
-    const ground = env.heightAt(player.x, player.z);
+    const ground = relief.groundAt(player.x, player.z);
     if (grounded && moving) player.vy = HOP_SPEED_MPS; // 歩くと小さく跳ねる
     player.vy -= gravity * dt;
     player.y += player.vy * dt;
@@ -790,7 +842,7 @@ export function createWorld(
   blob.rotation.x = Math.PI / 2;
   blob.isPickable = false;
   function placePlayerShadow(): void {
-    blob.position.set(player.x, env.heightAt(player.x, player.z) + SHADOW_LIFT_M, player.z);
+    blob.position.set(player.x, relief.groundAt(player.x, player.z) + SHADOW_LIFT_M, player.z);
   }
 
   // 施設の上に浮かぶアイコン（種類ごとに1枚の絵を作って使い回す）
@@ -874,14 +926,14 @@ export function createWorld(
     });
     for (let d = PICK_STEP_M; d <= PICK_MAX_DISTANCE_M; d += PICK_STEP_M) {
       const p = at(d);
-      if (p.y <= env.heightAt(p.x, p.z)) {
+      if (p.y <= relief.groundAt(p.x, p.z)) {
         // 1歩前と今のあいだを細かくして、地面との交わりを求める
         let lo = d - PICK_STEP_M;
         let hi = d;
         for (let i = 0; i < PICK_REFINE_STEPS; i++) {
           const mid = (lo + hi) / 2;
           const q = at(mid);
-          if (q.y <= env.heightAt(q.x, q.z)) hi = mid;
+          if (q.y <= relief.groundAt(q.x, q.z)) hi = mid;
           else lo = mid;
         }
         const hit = at(hi);
@@ -1038,7 +1090,7 @@ export function createWorld(
     teleportPlayer(x, z) {
       player.x = clampToMap(x);
       player.z = clampToMap(z);
-      player.y = env.heightAt(player.x, player.z);
+      player.y = relief.groundAt(player.x, player.z);
       player.vy = 0;
       grounded = true;
       astronaut.root.position.set(player.x, player.y, player.z);
@@ -1062,7 +1114,7 @@ export function createWorld(
       if (target !== null) {
         guide.position.set(
           target.x,
-          env.heightAt(target.x, target.z) + GUIDE_HEIGHT_M / 2,
+          relief.groundAt(target.x, target.z) + GUIDE_HEIGHT_M / 2,
           target.z,
         );
       }

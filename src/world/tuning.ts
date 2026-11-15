@@ -31,7 +31,7 @@ export const OUTER_HIDE_DEPTH_M = 80;
 export const DETAIL_TILE_M = 6;
 export const DETAIL_TEXTURE_SIZE = 512;
 /** 地面に散らばる石（見た目だけ。歩くのはじゃましない） */
-export const ROCK_COUNT = 3500;
+export const ROCK_COUNT = 2600;
 export const ROCK_MIN_SIZE_M = 0.15;
 export const ROCK_MAX_SIZE_M = 1.2;
 /** 着陸船のまわりのこの距離には石を置かない（建てる場所） */
@@ -40,6 +40,15 @@ export const ROCK_CLEAR_RADIUS_M = 25;
 export const ROCK_EMISSIVE = 0.22;
 /** 影の中の石の明るさ（日なたを 1 として） */
 export const ROCK_SHADOW_BRIGHTNESS = 0.18;
+/** 石の形の種類と、角ばらせ方（頂点を 1〜この割合に縮める）、上下のつぶし方 */
+export const ROCK_VARIANTS = 5;
+export const ROCK_BUMP_MIN = 0.62;
+export const ROCK_FLATTEN = 0.8;
+/** この半径より大きなクレーターの縁に、飛び散った石を置く（半径 1 m あたりの数） */
+export const ROCK_EJECTA_MIN_CRATER_RADIUS_M = 3;
+export const ROCK_EJECTA_PER_RADIUS_M = 4;
+/** 小さなクレーターの置き方を決める乱数の種（見た目だけ。いつも同じ置き方） */
+export const MICRO_RELIEF_SEED = 21;
 /** 地図の端から、これより外に出ない */
 export const PLAYER_BOUNDS_MARGIN_M = 2;
 /** 向きを変える速さ（大きいほど早く向く） */
@@ -115,3 +124,21 @@ export const ICON_BORDER = '#ffd27a';
 // 建った施設がポンと出てくる動き（見た目）
 export const POP_SECONDS = 0.45;
 export const POP_OVERSHOOT = 2.2;
+
+/**
+ * 見た目だけの小さなクレーター（元のデータの 5 m より小さいもの）。半径はゲームの m。
+ * 深さと縁の高さは直径に対する割合（月の新しい小さなクレーターは深さが直径の約 0.2 倍）
+ */
+export const MICRO_CRATER_COUNT = 500;
+export const MICRO_CRATER_MIN_RADIUS_M = 2;
+export const MICRO_CRATER_MAX_RADIUS_M = 9;
+export const MICRO_CRATER_DEPTH_RATIO = 0.18;
+export const MICRO_CRATER_RIM_RATIO = 0.035;
+/** 縁の外へなだらかに戻るところまで（半径の何倍か） */
+export const MICRO_CRATER_OUTER = 1.6;
+/** 着陸船のまわりのこの距離にはクレーターを置かない（建てる場所） */
+export const MICRO_CRATER_CLEAR_RADIUS_M = 15;
+/** クレーターをすぐ探すためのマス目の大きさ */
+export const MICRO_CRATER_BUCKET_M = 10;
+/** クレーターの中の影を調べる刻み */
+export const MICRO_SHADOW_STEP_M = 0.35;
