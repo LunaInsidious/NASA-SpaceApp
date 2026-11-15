@@ -37,6 +37,10 @@ export const CAMERA_TARGET_HEIGHT_M = 1.3;
 export const CAMERA_GROUND_MARGIN_M = 1;
 export const CAMERA_FOLLOW_RATE = 8;
 export const CAMERA_MAX_Z_M = 4000;
+/** スマホの幅（CSS の @media (max-width: 640px) と同じ）。博士の吹き出しが上に出る */
+export const PHONE_LAYOUT_QUERY = '(max-width: 640px)';
+/** スマホでは宇宙飛行士を画面の真ん中からこれだけ下に見せる（画面の高さの半分を 1 とした割合） */
+export const PHONE_PLAYER_SCREEN_SHIFT = 0.34;
 
 export const SKY_DIAMETER_M = 1800;
 export const STAR_COUNT = 1400;

@@ -60,6 +60,8 @@ import {
   ICON_GAP_M,
   ICON_SIZE_M,
   ICON_TEXTURE_PX,
+  PHONE_LAYOUT_QUERY,
+  PHONE_PLAYER_SCREEN_SHIFT,
   PICK_MAX_DISTANCE_M,
   PICK_REFINE_STEPS,
   PICK_STEP_M,
@@ -436,7 +438,12 @@ export function createWorld(scene: Scene, env: TerrainEnv, values: Values): Worl
 
   applySun();
 
+  // スマホの縦長の画面では上に博士の吹き出しが出るので、宇宙飛行士を下のほうに見せる
+  const phoneLayout = window.matchMedia(PHONE_LAYOUT_QUERY);
   const updateCamera = (dt: number) => {
+    const shift = phoneLayout.matches ? PHONE_PLAYER_SCREEN_SHIFT : 0;
+    // ビューの座標で下にずらす。目標の距離での画面の高さの半分は radius × tan(fov / 2)
+    camera.targetScreenOffset.y = -shift * camera.radius * Math.tan(camera.fov / 2);
     const target = new Vector3(player.x, player.y + CAMERA_TARGET_HEIGHT_M, player.z);
     const follow = 1 - Math.exp(-CAMERA_FOLLOW_RATE * dt);
     camera.target.copyFrom(Vector3.Lerp(camera.target, target, follow));
