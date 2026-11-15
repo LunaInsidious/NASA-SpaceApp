@@ -10,7 +10,6 @@ import type { IPointerEvent } from '@babylonjs/core/Events/deviceInputEvents';
 import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
-import { FresnelParameters } from '@babylonjs/core/Materials/fresnelParameters';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
@@ -55,6 +54,7 @@ import {
   CLICK_SLOP_PX,
   DETAIL_TEXTURE_SIZE,
   DETAIL_TILE_M,
+  EARTH_ATMOSPHERE_ALPHA,
   EARTH_ATMOSPHERE_SCALE,
   EARTH_DIAMETER_M,
   EARTH_NIGHT_GLOW,
@@ -527,27 +527,28 @@ function createEarth(scene: Scene, position: Vector3): { globe: Mesh; atmosphere
   const mat = new StandardMaterial('earth-mat', scene);
   mat.diffuseTexture = new Texture(EARTH_TEXTURE_URL, scene);
   mat.specularColor = Color3.Black();
-  // 夜の側も真っ黒にはしない（星空の中で形が分かるように）
-  mat.emissiveColor = new Color3(EARTH_NIGHT_GLOW, EARTH_NIGHT_GLOW, EARTH_NIGHT_GLOW * 1.5);
+  // 夜の側も真っ黒にはしない：写真がうっすら見えるようにする（星空の中で地球だと分かるように）
+  mat.emissiveTexture = mat.diffuseTexture;
+  mat.emissiveColor = new Color3(EARTH_NIGHT_GLOW, EARTH_NIGHT_GLOW, EARTH_NIGHT_GLOW);
   globe.material = mat;
   globe.position = position;
   // 歩いても近づかない（空の遠くにある）
   globe.infiniteDistance = true;
   globe.isPickable = false;
+  // 大気：少し大きな球の裏側だけを、うすい青で重ねる。地球の前は地球に隠れ、まわりの縁だけが光って見える
   const atmosphere = CreateSphere(
     'earth-atmosphere',
-    { diameter: EARTH_DIAMETER_M * EARTH_ATMOSPHERE_SCALE, segments: 32 },
+    {
+      diameter: EARTH_DIAMETER_M * EARTH_ATMOSPHERE_SCALE,
+      segments: 32,
+      sideOrientation: Mesh.BACKSIDE,
+    },
     scene,
   );
   const air = new StandardMaterial('earth-atmosphere-mat', scene);
   air.disableLighting = true;
   air.emissiveColor = new Color3(0.35, 0.6, 1);
-  air.alpha = 0.9;
-  // 縁ほど濃く、真ん中は透明（宇宙から見た大気の層）
-  air.opacityFresnelParameters = new FresnelParameters();
-  air.opacityFresnelParameters.leftColor = Color3.White();
-  air.opacityFresnelParameters.rightColor = Color3.Black();
-  air.opacityFresnelParameters.power = 3;
+  air.alpha = EARTH_ATMOSPHERE_ALPHA;
   atmosphere.material = air;
   atmosphere.position = position;
   atmosphere.infiniteDistance = true;
