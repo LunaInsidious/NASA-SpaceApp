@@ -197,6 +197,9 @@ const INDOOR_STEPS: readonly Step[] = [
   'sleepAgain',
 ];
 const MS_PER_SECOND = 1000;
+// 「▼ 続きがあるよ」：これより下に残っていたら出す。押すと吹き出しの高さのこの割合だけ下へ（見た目）
+const MORE_THRESHOLD_PX = 6;
+const MORE_SCROLL_RATIO = 0.8;
 
 // 読んで「わかった」を押すと進む段
 const ACK_STEPS: readonly Step[] = ['power', 'comm', 'lifeLine'];
@@ -379,6 +382,23 @@ export function createTutorial(
 
   const panel = document.createElement('div');
   panel.className = 'tutorial';
+  // 吹き出しの中身が収まりきらないときの「▼ 続きがあるよ」。押すと下へ動く（いちばん下まで読んだら消す）
+  const moreHint = document.createElement('button');
+  moreHint.type = 'button';
+  moreHint.className = 'tutorial-more';
+  moreHint.hidden = true;
+  moreHint.addEventListener('click', () => {
+    panel.scrollBy({ top: panel.clientHeight * MORE_SCROLL_RATIO, behavior: 'smooth' });
+  });
+  const updateMoreHint = () => {
+    if (!panel.contains(moreHint)) {
+      panel.append(moreHint);
+    }
+    moreHint.innerHTML = t('tutorial.more');
+    const rest = panel.scrollHeight - panel.scrollTop - panel.clientHeight;
+    moreHint.hidden = panel.hidden || rest <= MORE_THRESHOLD_PX;
+  };
+  panel.addEventListener('scroll', updateMoreHint);
   // 吹き出しをクリック・タップすると、出している途中の文をすぐ全部出す
   panel.addEventListener('click', (e) => {
     if (!(e.target instanceof Element) || e.target.closest('button') === null) {
@@ -916,6 +936,9 @@ export function createTutorial(
   function update(progress: TutorialProgress): void {
     lastProgress = progress;
     placePointer();
+    // 置く場所を選んでいる間は、吹き出しを小さくして地面と下のバーを見せる（スマホ。CSS）
+    panel.classList.toggle('tutorial-compact', progress.placing !== null);
+    updateMoreHint();
     if (mode === 'tutorial') {
       // 氷を運ぶ途中で倒れて氷をなくしたら、氷を取りに行く段に戻る
       if (

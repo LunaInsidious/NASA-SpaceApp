@@ -839,3 +839,60 @@ body[data-tutorial-step="comm"] .ui-status::before {
     margin-top: 6px;
   }
 }
+
+/* 吹き出しの続き：下に読み残しがあるときだけ、吹き出しのいちばん下に貼りつけて出す */
+.tutorial .tutorial-more {
+  position: sticky;
+  bottom: -12px;
+  display: block;
+  width: calc(100% + 28px);
+  margin: 4px -14px -12px;
+  padding: 10px 0 8px;
+  border: none;
+  border-radius: 0 0 12px 12px;
+  background: linear-gradient(rgba(10, 14, 24, 0), rgba(10, 14, 24, 0.97) 45%);
+  color: #ffd27a;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  animation: tutorial-more-bob 0.9s ease-in-out infinite alternate;
+}
+
+.tutorial-more[hidden] {
+  display: none;
+}
+
+@keyframes tutorial-more-bob {
+  to {
+    padding-top: 14px;
+  }
+}
+
+@media (max-width: 640px) {
+  .tutorial .tutorial-more {
+    bottom: -8px;
+    width: calc(100% + 20px);
+    margin: 4px -10px -8px;
+  }
+
+  /* 置く場所を選んでいる間：吹き出しは上（ゲージの下）に小さく、やることの文だけ（博士の顔・見出し・どうして？は隠す）。
+     下は地面と「ここに置く」 */
+  .tutorial.tutorial-compact {
+    top: calc(146px + env(safe-area-inset-top));
+    bottom: auto;
+    max-height: 18vh;
+  }
+
+  .tutorial.tutorial-compact .tutorial-professor,
+  .tutorial.tutorial-compact .tutorial-head,
+  .tutorial.tutorial-compact .tutorial-why,
+  .tutorial.tutorial-compact .tutorial-label,
+  .tutorial.tutorial-compact .tutorial-frozen,
+  .tutorial.tutorial-compact .tutorial-skip {
+    display: none;
+  }
+
+  .tutorial.tutorial-compact .tutorial-text {
+    margin: 0;
+  }
+}

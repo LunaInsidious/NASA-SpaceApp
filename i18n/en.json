@@ -759,5 +759,6 @@
   "menu.save": "💾 Save",
   "menu.data": "📊 Data",
   "menu.language": "🌐 Language",
-  "menu.new": "NEW"
+  "menu.new": "NEW",
+  "tutorial.more": "▼ More below"
 }
