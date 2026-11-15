@@ -152,13 +152,15 @@ export function completeTask(
 
 /**
  * もう要らなくなったタスクに印をつける。点検：施設が直っている（隊員が直した、その場の「点検する」で直したなど）。
- * レゴリス：もう盛ってある。同じ施設をもう一度やらなくてよいように。施設がなくなっていても印をつける
+ * レゴリス：もう盛ってある。同じ施設をもう一度やらなくてよいように。施設がなくなっていても印をつける。
+ * crewFixed：まだの点検のタスクのうち、施設がもう直っていたもの（プレイヤーが直したものは、その場で印がつくので入らない。
+ * main が地球への報告に数える）
  */
 export function settleTasks(
   plan: readonly PlannedTask[],
   state: SimState,
   values: Values,
-): readonly PlannedTask[] {
+): { plan: readonly PlannedTask[]; crewFixed: PlannedTask[] } {
   const settled = (task: PlannedTask): boolean => {
     if (task.done || task.kind === 'ice') {
       return false;
@@ -172,9 +174,15 @@ export function settleTasks(
       : facility.regolithCover === true;
   };
   if (!plan.some(settled)) {
-    return plan;
+    return { plan, crewFixed: [] };
   }
-  return plan.map((task) => (settled(task) ? { ...task, done: true } : task));
+  const crewFixed = plan.filter(
+    (task) =>
+      settled(task) &&
+      task.kind === 'repair' &&
+      state.facilities.some((f) => f.id === task.facilityId),
+  );
+  return { plan: plan.map((task) => (settled(task) ? { ...task, done: true } : task)), crewFixed };
 }
 
 /** 次に行くタスク（選んだ順で、まだのもの） */

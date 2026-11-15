@@ -764,5 +764,6 @@
   "tutorial.collapseIcon": "▲",
   "tutorial.expandIcon": "▼",
   "tutorial.collapseLabel": "ルナ｜博士《はかせ》の お｜話《はなし》を たたむ",
-  "tutorial.expandLabel": "ルナ｜博士《はかせ》の お｜話《はなし》を ひらく"
+  "tutorial.expandLabel": "ルナ｜博士《はかせ》の お｜話《はなし》を ひらく",
+  "task.crewFixed": "｜隊員《たいいん》が「{task}」を やって くれたよ。｜地球《ちきゅう》への ｜報告《ほうこく》に 1つ ｜数《かぞ》えるね。"
 }

@@ -460,6 +460,10 @@ function applyCommand(
       state.tasksSinceLaunch += 1;
       return;
     }
+    case 'reportTask':
+      // 今日のタスクに選んだ施設を、隊員が先に直した（main が送る）。プレイヤーがこなしたのと同じに数える
+      state.tasksSinceLaunch += 1;
+      return;
   }
 }
 

@@ -139,6 +139,7 @@ export type SimCommand =
   | { type: 'assignCrew'; crewId: string; task: CrewTask }
   | { type: 'orderLaunch'; items: LaunchItem[] }
   | { type: 'collectIce'; x: number; z: number }
+  | { type: 'reportTask' } // 今日のタスクに選んだ施設を、隊員が先に直した。地球への報告に1回数える（人間が承認して足した）
   | { type: 'setPlayer'; x: number; z: number; indoors: boolean };
 
 export interface ActiveEvent {

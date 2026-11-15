@@ -83,18 +83,24 @@ describe('タスク', () => {
         f.id === habitat.id ? { ...f, condition: 0, regolithCover: false } : f,
       ),
     };
-    // 傷んでいて、まだ盛っていない：なくなった施設のタスクだけに印
-    expect(settleTasks(plan, worn, values).map((t) => t.done)).toEqual([false, false, false, true]);
+    // 傷んでいて、まだ盛っていない：なくなった施設のタスクだけに印（報告には数えない）
+    const wornResult = settleTasks(plan, worn, values);
+    expect(wornResult.plan.map((t) => t.done)).toEqual([false, false, false, true]);
+    expect(wornResult.crewFixed).toEqual([]);
     const fixed = {
       ...initial,
       facilities: initial.facilities.map((f) =>
         f.id === habitat.id ? { ...f, condition: 1, regolithCover: true } : f,
       ),
     };
-    expect(settleTasks(plan, fixed, values).map((t) => t.done)).toEqual([false, true, true, true]);
-    // 変わるものがなければ、同じ配列を返す
-    const done = settleTasks(plan, fixed, values);
-    expect(settleTasks(done, fixed, values)).toBe(done);
+    const fixedResult = settleTasks(plan, fixed, values);
+    expect(fixedResult.plan.map((t) => t.done)).toEqual([false, true, true, true]);
+    // 隊員が直した点検だけを、地球への報告に数える
+    expect(fixedResult.crewFixed.map((t) => t.id)).toEqual(['repair']);
+    // 一度印をつけたら、もう数えない。変わるものがなければ、同じ配列を返す
+    const again = settleTasks(fixedResult.plan, fixed, values);
+    expect(again.plan).toBe(fixedResult.plan);
+    expect(again.crewFixed).toEqual([]);
   });
 });
 
