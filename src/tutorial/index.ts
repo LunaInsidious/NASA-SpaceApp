@@ -11,6 +11,25 @@ import { deathAdviceHtml } from './deathView.ts';
 import { PROFESSOR_SVG, type Typing, typeText } from './professor.ts';
 import './tutorial.css';
 
+/**
+ * 開発のときだけ：URL の ?step=段の名前 で、くんれんをその段から始める（tools/screens.ts で画面を撮るため）。
+ * 本番のビルドでは使わない。名前が違えば止める
+ */
+function devStartIndex(): number {
+  if (!import.meta.env.DEV) {
+    return 0;
+  }
+  const name = new URLSearchParams(location.search).get('step');
+  if (name === null) {
+    return 0;
+  }
+  const found = STEPS.indexOf(name as Step);
+  if (found < 0) {
+    throw new Error(`?step=${name} という くんれんの段はない`);
+  }
+  return found;
+}
+
 export const STEPS = [
   'move',
   'look',
@@ -303,6 +322,8 @@ export interface TutorialProgress {
 }
 
 export interface Tutorial {
+  /** 博士の吹き出しを入れている場所。スマホでは困りごとのカードもここに入れ、上から順に並べる */
+  readonly guideStack: HTMLElement;
   /** 毎フレーム呼ぶ。段が変わったときだけ描き直す */
   update(progress: TutorialProgress): void;
   /** 光の柱を立てる場所 */
@@ -444,7 +465,10 @@ export function createTutorial(
   root.append(reopen);
   const modal = document.createElement('div');
   modal.className = 'tutorial-modal-layer';
-  root.append(panel, modal);
+  const guideStack = document.createElement('div');
+  guideStack.className = 'guide-stack';
+  guideStack.append(panel);
+  root.append(guideStack, modal);
   // 外でやる段なのに中にいるときの、ひとこと
   const outdoorNote = document.createElement('p');
   outdoorNote.className = 'tutorial-note';
@@ -733,7 +757,7 @@ export function createTutorial(
 
   function resetTo(next: Mode): void {
     mode = next;
-    index = 0;
+    index = next === 'tutorial' ? devStartIndex() : 0;
     stepYaw = null;
     stepOrigin = null;
     stepRest = null;
@@ -1003,6 +1027,7 @@ export function createTutorial(
   render();
 
   return {
+    guideStack,
     update,
     toTitle() {
       // タイトル画面に戻るときは、吹き出しも窓も出さない
