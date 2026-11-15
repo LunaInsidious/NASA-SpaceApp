@@ -844,5 +844,6 @@
   "route.moon": "Moon",
   "dayFade.day": "Day {day}",
   "dayFade.rocket": "The supply rocket arrives in {days} day(s)",
-  "dayFade.arrived": "🚀 The supply rocket has arrived!"
+  "dayFade.arrived": "🚀 The supply rocket has arrived!",
+  "route.idle": "Waiting on Earth"
 }

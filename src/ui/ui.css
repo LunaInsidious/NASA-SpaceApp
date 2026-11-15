@@ -2440,3 +2440,8 @@ body.nb-open .advice-card {
   padding: 8px 18px;
   font-size: 17px;
 }
+
+/* 地球で待っているロケット：少し上下にゆれる */
+.route-idle {
+  animation: cr-blink 2s ease-in-out infinite;
+}

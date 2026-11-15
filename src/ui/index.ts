@@ -230,12 +230,19 @@ function stars(value: number, max: number): string {
 const ROUTE_FROM = { x: 38, y: 60 };
 const ROUTE_BEND = { x: 100, y: 4 };
 const ROUTE_TO = { x: 168, y: 58 };
+// 管制室の小さなモニターでは、ロケットを大きめに描く（見た目）
+const MONITOR_ROCKET_SCALE = 1.8;
 
 /**
  * 地球と月のあいだの道に、飛んでいるロケットを今いる場所に置いた絵。
  * 場所は「届くまでの残り時間」から決める（注文した直後は地球のそば、届く直前は月のそば）
  */
-function routeSvg(launch: SimView['launch'], withLabels: boolean): string {
+function routeSvg(
+  launch: SimView['launch'],
+  withLabels: boolean,
+  idleAtEarth = false,
+  rocketScale = 1,
+): string {
   const point = (k: number) => ({
     x: (1 - k) ** 2 * ROUTE_FROM.x + 2 * (1 - k) * k * ROUTE_BEND.x + k ** 2 * ROUTE_TO.x,
     y: (1 - k) ** 2 * ROUTE_FROM.y + 2 * (1 - k) * k * ROUTE_BEND.y + k ** 2 * ROUTE_TO.y,
@@ -252,18 +259,25 @@ function routeSvg(launch: SimView['launch'], withLabels: boolean): string {
       const label = withLabels
         ? `<text x="${fmt(at.x, 1)}" y="${fmt(at.y + 16, 1)}" class="route-label">${esc(tPlain('route.daysLeft', { days }))}</text>`
         : '';
-      return `<g class="route-rocket" transform="translate(${fmt(at.x, 1)} ${fmt(at.y, 1)}) rotate(${fmt(deg, 1)})">
+      return `<g class="route-rocket" transform="translate(${fmt(at.x, 1)} ${fmt(at.y, 1)}) rotate(${fmt(deg, 1)}) scale(${rocketScale})">
           <path d="M-6 -2.2 L-11 0 L-6 2.2 Z" fill="#ff8a3c" class="route-flame"/>
           <path d="M9 0 L-5 -4.5 L-3 0 L-5 4.5 Z" fill="#ffd27a" stroke="#fff3c4" stroke-width="0.6"/>
         </g>${label}`;
     })
     .join('');
+  // 飛んでいないときは、地球の上で上を向いて待っているロケット（管制室のモニター。どこにもいないと何の画面か分からないので）
+  const idle =
+    idleAtEarth && launch.inFlight.length === 0
+      ? `<g class="route-rocket route-idle" transform="translate(22 ${fmt(46 - 6 * rocketScale, 1)}) rotate(-90) scale(${rocketScale})">
+          <path d="M9 0 L-5 -4.5 L-3 0 L-5 4.5 Z" fill="#ffd27a" stroke="#fff3c4" stroke-width="0.6"/>
+        </g>${withLabels ? `<text x="62" y="40" class="route-label">${esc(tPlain('route.idle'))}</text>` : ''}`
+      : '';
   return `<svg class="route" viewBox="0 0 200 84" role="img" aria-label="${esc(tPlain('route.label'))}">
       <path d="M${ROUTE_FROM.x} ${ROUTE_FROM.y} Q${ROUTE_BEND.x} ${ROUTE_BEND.y} ${ROUTE_TO.x} ${ROUTE_TO.y}" fill="none" stroke="#3f6f99" stroke-width="1.5" stroke-dasharray="4 4"/>
       <circle cx="22" cy="64" r="15" fill="#2f7fd0"/><path d="M14 58 q6 -4 10 2 q-2 6 -8 4 z M22 70 q6 -2 8 3 q-6 3 -8 -3z" fill="#5fbf6a"/>
       <circle cx="182" cy="62" r="9" fill="#cfd6df"/><circle cx="179" cy="60" r="1.8" fill="#aab3bf"/><circle cx="185" cy="65" r="1.3" fill="#aab3bf"/>
       ${withLabels ? `<text x="22" y="82" class="route-label">${esc(tPlain('route.earth'))}</text><text x="182" y="82" class="route-label">${esc(tPlain('route.moon'))}</text>` : ''}
-      ${rockets}
+      ${rockets}${idle}
     </svg>`;
 }
 
@@ -1296,7 +1310,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const linked = currentView.comm.linked;
     return `
       <div class="cr-screen cr-screen-tall"><div class="cr-screen-title">${t('cr.rocket')}</div>
-        ${routeSvg(l, true)}<div class="ui-small">${rocket}</div></div>
+        ${routeSvg(l, true, true, MONITOR_ROCKET_SCALE)}<div class="ui-small">${rocket}</div></div>
       <div class="cr-screen ${linked ? '' : 'cr-danger'}"><div class="cr-screen-title">${t('cr.earth')}</div>
         <div class="cr-big">${linked ? '🌍' : '📵'}</div><div class="ui-small">${t(linked ? 'hud.commLinked' : 'hud.commLost')}</div></div>`;
   };
