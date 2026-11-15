@@ -27,6 +27,10 @@ export interface Site {
   iceSpots: { x: number; z: number; radius: number }[];
   /** 高さのファイルの名前（同じフォルダ。Float32 のリトルエンディアン、行が z、列が x） */
   heightFile: string;
+  /** まわりの見える範囲（歩けない）の一辺（ゲームの m）・一辺の頂点の数・高さのファイル。中心と高さの基準は同じ */
+  outerSizeMeters: number;
+  outerResolution: number;
+  outerHeightFile: string;
 }
 
 function num(json: Record<string, unknown>, key: string): number {
@@ -83,5 +87,8 @@ export function parseSite(json: unknown): Site {
     landerPosition: [lander[0], lander[1]],
     iceSpots,
     heightFile: str(o, 'heightFile'),
+    outerSizeMeters: num(o, 'outerSizeMeters'),
+    outerResolution: num(o, 'outerResolution'),
+    outerHeightFile: str(o, 'outerHeightFile'),
   };
 }

@@ -938,6 +938,7 @@
   "tutorial.story.earth": "Look, that is Earth, where your family and friends live. Let’s build a base here so everyone can come to the Moon someday.",
   "landingDust.notify": "The rocket landed and kicked up dust: {count} facilities near the lander got damaged. Build farther from the lander, or add dust covers.",
   "landingDust.morning": "Dust kicked up by the rocket damaged {count} facilities near the lander.",
+  "map.edge": "You can't go any farther. Your oxygen tank can't get you that far and back to the base.",
   "data.valuesReal": "Numbers taken from real sources",
   "data.valuesTable.name": "What",
   "data.valuesTable.value": "Value",
