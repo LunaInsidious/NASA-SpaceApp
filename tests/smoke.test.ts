@@ -1,0 +1,87 @@
+// 結合の確認：本物の env（実データの地形 public/terrain/site01）と sim で、画面なしに何十日か回す
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import donki from '../data/donki-events.json';
+import values from '../data/values.json';
+import type { DonkiTimeline } from '../src/contracts/index.ts';
+import { createTerrainEnv, terrainFromSite } from '../src/env/index.ts';
+import { parseSite } from '../src/env/site.ts';
+import { createInitialState, describe as describeView, step } from '../src/sim/index.ts';
+
+const timeline = donki as DonkiTimeline;
+const SEED = 1;
+const SITE_DIR = 'public/terrain/site01/';
+
+function loadEnv() {
+  const site = parseSite(JSON.parse(readFileSync(`${SITE_DIR}site.json`, 'utf8')));
+  const file = readFileSync(`${SITE_DIR}${site.heightFile}`);
+  const heights = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+  return createTerrainEnv(terrainFromSite(site, heights), values);
+}
+const DAYS = 60;
+
+function seededRandom(seed: number): () => number {
+  let a = seed;
+  return () => {
+    a = (a * 16807) % 2147483647;
+    return a / 2147483647;
+  };
+}
+
+describe('sim と env の結合', () => {
+  it('着陸直後：宇宙飛行士は決めた位置に出て、生命維持の日数がある', () => {
+    const env = loadEnv();
+    const state = createInitialState(values, env, env.landerPosition);
+    expect(state.phase).toBe('main');
+    expect(state.player.x).toBeCloseTo(env.landerPosition[0] + values.start.playerOffsetX.value);
+    expect(state.player.z).toBeCloseTo(env.landerPosition[1] + values.start.playerOffsetZ.value);
+    const view = describeView(state, values, env);
+    expect(view.lifeSupportDays.min).toBeGreaterThan(0);
+  });
+
+  it('実データの地形：着陸船・最初の居住モジュール・宇宙飛行士の場所は、どの向きの太陽でも日なた。氷の場所は永久影', () => {
+    const env = loadEnv();
+    const state = createInitialState(values, env, env.landerPosition);
+    const places = [
+      env.landerPosition,
+      [state.player.x, state.player.z],
+      ...state.facilities.map((f) => [f.x, f.z]),
+    ];
+    const directions = 16;
+    for (const [x, z] of places) {
+      for (let a = 0; a < directions; a++) {
+        const az = (a / directions) * Math.PI * 2;
+        expect(env.isSunlit(x, z, env.heightAt(x, z) + 1, az)).toBe(true);
+      }
+    }
+    expect(env.iceSpots.length).toBeGreaterThan(0);
+    for (const spot of env.iceSpots) {
+      expect(env.isIceAt(spot.x, spot.z)).toBe(true);
+      for (let a = 0; a < directions; a++) {
+        const az = (a / directions) * Math.PI * 2;
+        expect(env.isSunlit(spot.x, spot.z, env.heightAt(spot.x, spot.z) + 0.3, az)).toBe(false);
+      }
+    }
+  });
+
+  it(`何もしなくても ${DAYS} 日分を例外なく回せる`, () => {
+    const env = loadEnv();
+    let state = createInitialState(values, env, env.landerPosition);
+    const rng = seededRandom(SEED);
+    const stepHours = values.time.stepHours.value;
+    for (let h = 0; h < DAYS * 24 && state.phase !== 'gameOver'; h += stepHours) {
+      const result = step(
+        state,
+        stepHours,
+        env,
+        [{ type: 'setPlayer', x: state.player.x, z: state.player.z, indoors: true }],
+        values,
+        timeline,
+        rng,
+      );
+      state = result.state;
+    }
+    expect(state.timeHours).toBeGreaterThan(0);
+    expect(Number.isFinite(state.development.total)).toBe(true);
+  });
+});

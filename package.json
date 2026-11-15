@@ -1,0 +1,30 @@
+{
+  "name": "junior-astronaut-mission-trainer",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@11.6.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "pnpm typecheck && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc && tsc -p tsconfig.pure.json",
+    "test": "vitest run",
+    "lint": "biome check",
+    "format": "biome check --write",
+    "screens": "node tools/screens.ts",
+    "terrain": "node tools/make-terrain.ts --input .scratch/terrain/Site01_final_adj_5mpp_surf.tif --out public/terrain/site01 --name \"Site01 Connecting ridge\" --center -11470,-13070 --crop 1500 --scale 5 --resolution 201 --azimuths 72 --ice-min-radius 2 --lander-search 150 --lander-flat-radius 8 --lander-max-slope-deg 5 --lander-lit-radius 20",
+    "worker:dev": "wrangler dev --config worker/wrangler.jsonc",
+    "worker:deploy": "wrangler deploy --config worker/wrangler.jsonc"
+  },
+  "dependencies": {
+    "@babylonjs/core": "^9.36.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.7",
+    "typescript": "~7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0",
+    "wrangler": "^4.161.0"
+  }
+}

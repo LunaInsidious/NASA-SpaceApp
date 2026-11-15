@@ -1,0 +1,16 @@
+[
+  {
+    "kind": "solarFlare",
+    "donkiId": "2024-05-10T13:58:00-FLR-001",
+    "eventTime": "2024-05-10T14:11Z",
+    "classOrIntensity": "M5.9",
+    "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/FLR/30680/2"
+  },
+  {
+    "kind": "solarFlare",
+    "donkiId": "2024-05-14T16:46:00-FLR-001",
+    "eventTime": "2024-05-14T16:51Z",
+    "classOrIntensity": "X8.7",
+    "link": "https://webtools.ccmc.gsfc.nasa.gov/DONKI/view/FLR/30849/-1"
+  }
+]

@@ -1,0 +1,56 @@
+[
+  {
+    "id": "antenna",
+    "condition": "hasFacility",
+    "kind": "antenna",
+    "textKey": "mission.antenna",
+    "terms": ["antenna", "horizon"]
+  },
+  {
+    "id": "lifeSupport",
+    "condition": "hasFacility",
+    "kind": "lifeSupport",
+    "textKey": "mission.lifeSupport",
+    "terms": ["lifeSupport"]
+  },
+  {
+    "id": "greenhouse",
+    "condition": "farmingRunning",
+    "textKey": "mission.greenhouse",
+    "terms": ["greenhouse"]
+  },
+  {
+    "id": "crew3",
+    "condition": "crewAtLeast",
+    "threshold": 3,
+    "textKey": "mission.crew3",
+    "terms": []
+  },
+  {
+    "id": "relay",
+    "condition": "relayAtLeast",
+    "threshold": 1,
+    "textKey": "mission.relay",
+    "terms": ["relay"]
+  },
+  {
+    "id": "shield",
+    "condition": "hasFacility",
+    "kind": "shield",
+    "textKey": "mission.shield",
+    "terms": ["shield"]
+  },
+  {
+    "id": "development40",
+    "condition": "developmentAtLeast",
+    "threshold": 40,
+    "textKey": "mission.development40",
+    "terms": ["development"]
+  },
+  {
+    "id": "complete",
+    "condition": "cleared",
+    "textKey": "mission.complete",
+    "terms": []
+  }
+]

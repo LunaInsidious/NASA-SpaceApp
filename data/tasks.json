@@ -1,0 +1,26 @@
+[
+  {
+    "id": "ice",
+    "target": "ice",
+    "minigame": "timing",
+    "command": "collectIce",
+    "textKey": "task.ice",
+    "terms": ["ice"]
+  },
+  {
+    "id": "repair",
+    "target": "facilityNeedsRepair",
+    "minigame": "drag",
+    "command": "repair",
+    "textKey": "task.repair",
+    "terms": ["repair"]
+  },
+  {
+    "id": "regolith",
+    "target": "habitatWithoutCover",
+    "minigame": "trace",
+    "command": "coverWithRegolith",
+    "textKey": "task.regolith",
+    "terms": ["regolith"]
+  }
+]

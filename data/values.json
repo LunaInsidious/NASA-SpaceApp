@@ -1,0 +1,946 @@
+{
+  "time": {
+    "evaSecondsPerHour": {
+      "value": 20,
+      "unit": "s",
+      "source": "ゲームの調整値：外での1時間を20秒にして、1回の外出を数分で遊べるようにした"
+    },
+    "stepHours": {
+      "value": 0.125,
+      "unit": "h",
+      "source": "ゲームの調整値：シミュレーションを進める刻み（細かいほど正確、重くなる）"
+    }
+  },
+  "eva": {
+    "maxHours": {
+      "value": 8,
+      "unit": "h",
+      "source": "NASA: Exploration EVA System Concept of Operations Summary for Artemis Phase 1（6±2 h）",
+      "url": "https://www.nasa.gov/wp-content/uploads/2020/01/topic_1-_eva_lunar_surface_concept_of_operations.pdf"
+    },
+    "weeklyHoursPerPerson": {
+      "value": 24,
+      "unit": "h/week",
+      "source": "NASA: Human Performance in Surface EVA Operations (2024)",
+      "url": "https://ntrs.nasa.gov/api/citations/20240004073/downloads/Estep%20-%20Human%20Perf%20in%20SSEO%20-%20SHOP%20-%202024-04-17_v2.pdf"
+    },
+    "warnHoursFirst": {
+      "value": 1,
+      "unit": "h",
+      "source": "docs/SPEC.md 追加の仕様（活動フェーズと休息フェーズ）"
+    },
+    "warnHoursSecond": {
+      "value": 0.5,
+      "unit": "h",
+      "source": "docs/SPEC.md 追加の仕様（活動フェーズと休息フェーズ）"
+    }
+  },
+  "minigame": {
+    "timingTimeLimitSec": {
+      "value": 20,
+      "unit": "s",
+      "source": "docs/SPEC.md 追加の仕様（ミニゲームは10〜30秒、タップかなぞるだけ）"
+    },
+    "timingPeriodSec": {
+      "value": 1.6,
+      "unit": "s",
+      "source": "ゲームの調整値：子どもが押せる速さ（docs/SPEC.md：ミニゲームは10〜30秒）"
+    },
+    "timingZoneRatio": {
+      "value": 0.24,
+      "unit": "ratio",
+      "source": "ゲームの調整値：子どもが当てられる広さ"
+    },
+    "timingHits": {
+      "value": 3,
+      "unit": "count",
+      "source": "ゲームの調整値：短く終わる回数"
+    },
+    "dragTimeLimitSec": {
+      "value": 15,
+      "unit": "s",
+      "source": "docs/SPEC.md 追加の仕様（ミニゲームは10〜30秒、タップかなぞるだけ）"
+    },
+    "dragSnapRatio": {
+      "value": 0.12,
+      "unit": "ratio",
+      "source": "ゲームの調整値：指で合わせやすい近さ"
+    },
+    "traceTimeLimitSec": {
+      "value": 15,
+      "unit": "s",
+      "source": "docs/SPEC.md 追加の仕様（ミニゲームは10〜30秒、タップかなぞるだけ）"
+    },
+    "tracePoints": {
+      "value": 6,
+      "unit": "count",
+      "source": "ゲームの調整値：なぞる点の数（短く終わるように）"
+    },
+    "traceHitRatio": {
+      "value": 0.08,
+      "unit": "ratio",
+      "source": "ゲームの調整値：指で通りやすい広さ"
+    },
+    "traceMarginRatio": {
+      "value": 0.1,
+      "unit": "ratio",
+      "source": "ゲームの調整値：画面の端に点を置かないための余白"
+    }
+  },
+  "moon": {
+    "gravity": {
+      "value": 1.62,
+      "unit": "m/s^2",
+      "source": "NASA Moon Fact Sheet",
+      "url": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html"
+    },
+    "sunElevationDeg": {
+      "value": 1.5,
+      "unit": "deg",
+      "source": "NASA SVS「月の緯度ごとの太陽の通り道」：月の傾きは 1.5° だけなので、南極では太陽が地平線のすぐそばを回る",
+      "url": "https://svs.gsfc.nasa.gov/5038"
+    },
+    "sunPeriodDays": {
+      "value": 29.53,
+      "unit": "day",
+      "source": "NASA Moon Fact Sheet（synodic period）",
+      "url": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html"
+    },
+    "commDelaySec": {
+      "value": 1.28,
+      "unit": "s",
+      "source": "NASA Moon Fact Sheet（semimajor axis 384,400 km ÷ 光の速さ）",
+      "url": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html"
+    },
+    "radiationMsvPerDay": {
+      "value": 1.4,
+      "unit": "mSv/day",
+      "source": "嫦娥4号の月面での測定（Zhang ほか 2020、Science Advances）：1日 1.369 mSv",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7518862/"
+    },
+    "earthElevationDeg": {
+      "value": 3,
+      "unit": "deg",
+      "source": "ゲームの調整値（NASA SVS：月の赤道と軌道は 6.68° 傾いていて、南極から見た地球は地平線の上下を行き来する。見えているときの高さを 3° とした）",
+      "url": "https://svs.gsfc.nasa.gov/5199"
+    }
+  },
+  "crew": {
+    "oxygenKgPerDay": {
+      "value": 0.84,
+      "unit": "kg/person/day",
+      "source": "NASA BVAD 2022（生命維持の基準の値）：1人1日 0.84 kg",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf"
+    },
+    "waterKgPerDay": {
+      "value": 2.5,
+      "unit": "kg/person/day",
+      "source": "NASA BVAD 2022：飲み水 2.00 kg ＋ 食事を戻す水 0.50 kg",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf"
+    },
+    "foodKgPerDay": {
+      "value": 1.8,
+      "unit": "kg/person/day",
+      "source": "NASA BVAD 2022：包装を入れて1人1日 1.83 kg",
+      "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf"
+    },
+    "doseLimitMsv": {
+      "value": 600,
+      "unit": "mSv",
+      "source": "NASA-STD-3001 Vol.1 Rev C：宇宙飛行士の一生の被ばくの上限 600 mSv",
+      "url": "https://standards.nasa.gov/sites/default/files/standards/NASA/C//nasa-std-3001-vol-1-rev-c-signature.pdf"
+    },
+    "maxCount": {
+      "value": 10,
+      "unit": "person",
+      "source": "ゲームの調整値：居住モジュールの数と画面の見やすさから決めた上限（docs/SPEC.md 未決事項の案の10人）"
+    },
+    "sleepHours": {
+      "value": 8.5,
+      "unit": "h",
+      "source": "NASA-STD-3001 6.0 Medical Operations",
+      "url": "https://www.nasa.gov/reference/6-0-medical-operations/"
+    }
+  },
+  "development": {
+    "elementMin": {
+      "value": 5,
+      "unit": "pt",
+      "source": "docs/SPEC.md 発展度"
+    },
+    "elementMax": {
+      "value": 100,
+      "unit": "pt",
+      "source": "docs/SPEC.md 発展度"
+    },
+    "clearThreshold": {
+      "value": 60,
+      "unit": "pt",
+      "source": "docs/SPEC.md クリアとその後"
+    },
+    "selfSufficiencyWindowDays": {
+      "value": 7,
+      "unit": "day",
+      "source": "docs/SPEC.md 発展度"
+    },
+    "stabilityBatteryWindowDays": {
+      "value": 3,
+      "unit": "day",
+      "source": "docs/SPEC.md 発展度"
+    },
+    "stabilityFullSupplyDays": {
+      "value": 14,
+      "unit": "day",
+      "source": "docs/SPEC.md 発展度"
+    },
+    "safetyCommWindowDays": {
+      "value": 7,
+      "unit": "day",
+      "source": "docs/SPEC.md 発展度"
+    },
+    "scalePerCrew": {
+      "value": 20,
+      "unit": "pt/person",
+      "source": "docs/SPEC.md 発展度"
+    },
+    "scalePerResearch": {
+      "value": 10,
+      "unit": "pt/(research/day)",
+      "source": "docs/SPEC.md 発展度"
+    },
+    "scaleResearchWindowDays": {
+      "value": 7,
+      "unit": "day",
+      "source": "docs/SPEC.md 発展度"
+    }
+  },
+  "terrain": {
+    "landerClearanceMeters": {
+      "value": 6,
+      "unit": "m",
+      "source": "ゲームの調整値：着陸船に施設が重ならない距離"
+    },
+    "antennaHeightMeters": {
+      "value": 3,
+      "unit": "m",
+      "source": "ゲームの調整値：地球が見えるかを調べるアンテナの高さ"
+    },
+    "landerDustPeak": {
+      "value": 2,
+      "unit": "x",
+      "source": "ゲームの調整値：着陸船のそばでは、ロケットが巻き上げたほこりで傷みが（1＋この数）倍になる"
+    },
+    "landerDustRadiusMeters": {
+      "value": 40,
+      "unit": "m",
+      "source": "ゲームの調整値：着陸船のほこりが届く広さ（この距離で増える分が約 1/3 になる）"
+    },
+    "polarLatitudeDeg": {
+      "value": 80,
+      "unit": "deg",
+      "source": "ゲームの調整値：これより極に近い場所では、太陽が地平線すれすれを一周するとして計算する"
+    }
+  },
+  "player": {
+    "walkSpeedMps": {
+      "value": 5,
+      "unit": "m/s",
+      "source": "ゲームの調整値（実際のアポロの宇宙飛行士は約1 m/秒。地形を1/5に縮めたので、遊びやすい速さにした）",
+      "url": "https://www.nasa.gov/wp-content/uploads/static/history/alsj/a11/a11.gaits.html"
+    },
+    "buildDistanceMeters": {
+      "value": 6,
+      "unit": "m",
+      "source": "ゲームの調整値：宇宙飛行士の前に建てる距離（見やすさ）"
+    },
+    "interactRadiusMeters": {
+      "value": 8,
+      "unit": "m",
+      "source": "ゲームの調整値：近づいたと分かる距離（操作しやすさ）"
+    },
+    "exitDistanceMeters": {
+      "value": 5,
+      "unit": "m",
+      "source": "ゲームの調整値：居住モジュールの入口から出る場所"
+    },
+    "iceKgPerTrip": {
+      "value": 10,
+      "unit": "kg",
+      "source": "ゲームの調整値：1回の氷運びで取れる量（2026-11-15 バランス調整：資源がたまるだけにならないように）"
+    },
+    "repairDoseHours": {
+      "value": 3,
+      "unit": "h",
+      "source": "ゲームの調整値：点検に外で使う時間（被ばくの計算用）"
+    },
+    "regolithCoverDoseHours": {
+      "value": 6,
+      "unit": "h",
+      "source": "ゲームの調整値：レゴリスを盛るのに外で使う時間（被ばくの計算用）"
+    },
+    "acuteDoseMsv": {
+      "value": 50,
+      "unit": "mSv",
+      "source": "ゲームの調整値（NASA の基準は太陽の嵐1回あたり 250 mSv。危なさに気づけるよう低くした）",
+      "url": "https://standards.nasa.gov/sites/default/files/standards/NASA/C//nasa-std-3001-vol-1-rev-c-signature.pdf"
+    },
+    "repairPromptBelowCondition": {
+      "value": 0.8,
+      "unit": "ratio",
+      "source": "ゲームの調整値：「点検する」を出す傷み具合"
+    }
+  },
+  "start": {
+    "oxygenKg": {
+      "value": 20,
+      "unit": "kg",
+      "source": "ゲームの調整値：最初の物資（2026-11-15 バランス調整：資源がたまるだけにならないように）"
+    },
+    "waterKg": {
+      "value": 45,
+      "unit": "kg",
+      "source": "ゲームの調整値：最初の物資（2026-11-15 バランス調整）"
+    },
+    "foodKg": {
+      "value": 40,
+      "unit": "kg",
+      "source": "ゲームの調整値：最初の物資（2026-11-15 バランス調整）"
+    },
+    "spareParts": {
+      "value": 5,
+      "unit": "unit",
+      "source": "ゲームの調整値：最初の物資（2026-11-15 バランス調整）"
+    },
+    "materialsKg": {
+      "value": 650,
+      "unit": "kg",
+      "source": "ゲームの調整値：最初の物資（2026-11-15 バランス調整）"
+    },
+    "habitatOffsetX": {
+      "value": 10,
+      "unit": "m",
+      "source": "ゲームの調整値：最初の居住モジュールの置き場所（着陸船の横）"
+    },
+    "habitatOffsetZ": {
+      "value": 0,
+      "unit": "m",
+      "source": "ゲームの調整値：最初の居住モジュールの置き場所（着陸船の横）"
+    },
+    "playerOffsetX": {
+      "value": -14,
+      "unit": "m",
+      "source": "ゲームの調整値：宇宙飛行士が最初に立つ場所"
+    },
+    "playerOffsetZ": {
+      "value": -8,
+      "unit": "m",
+      "source": "ゲームの調整値：宇宙飛行士が最初に立つ場所"
+    }
+  },
+  "facilities": {
+    "common": {
+      "stopBelowCondition": {
+        "value": 0.3,
+        "unit": "ratio",
+        "source": "ゲームの調整値：傷んで止まる境目"
+      },
+      "minSpacingMeters": {
+        "value": 4,
+        "unit": "m",
+        "source": "ゲームの調整値：施設どうしが重ならない間隔"
+      },
+      "sunlitCheckHeightMeters": {
+        "value": 1.5,
+        "unit": "m",
+        "source": "ゲームの調整値：日なたかを調べる高さ（太陽電池の板の高さ）"
+      },
+      "demolishRefundRatio": {
+        "value": 0.5,
+        "unit": "ratio",
+        "source": "ゲームの調整値：壊したときに戻る資材の割合"
+      }
+    },
+    "dustCover": {
+      "materialsMultiplier": {
+        "value": 1.3,
+        "unit": "x",
+        "source": "ゲームの調整値：ほこりよけを付けると資材が増える"
+      },
+      "extraEnergyKwh": {
+        "value": 5,
+        "unit": "kWh",
+        "source": "ゲームの調整値：ほこりよけを付けると電気が余分にかかる"
+      },
+      "degradationMultiplier": {
+        "value": 0.4,
+        "unit": "x",
+        "source": "ゲームの調整値（アポロのころの実験では、ほこりで太陽電池の力が約16%下がった。ほこりよけで傷みを減らすことにした）",
+        "url": "https://ntrs.nasa.gov/api/citations/20230004439/downloads/SPW%202023%20R%20Campos%20final_no%20video_edit.pdf"
+      }
+    },
+    "habitat": {
+      "buildMaterialsKg": {
+        "value": 300,
+        "unit": "kg",
+        "source": "ゲームの調整値（実際の ISS の膨らむ部屋 BEAM は約1,413 kg）",
+        "url": "https://www.nasa.gov/mission_pages/station/structure/elements/bigelow-expandable-activity-module.html"
+      },
+      "buildEnergyKwh": {
+        "value": 0,
+        "unit": "kWh",
+        "source": "ゲームの調整値：建てるのに電気は使わないことにした（かんたんにするため）"
+      },
+      "powerKw": {
+        "value": 1,
+        "unit": "kW",
+        "source": "ゲームの調整値（実際の月面の居住モジュールは人がいると約20 kW、いないと約2 kW：NASA GRC 2023）",
+        "url": "https://ntrs.nasa.gov/api/citations/20230002896/downloads/Csank_CP_20230002896_CURENT_Knoxville_TN_2023_04_18.pdf"
+      },
+      "crewCapacity": {
+        "value": 1,
+        "unit": "person",
+        "source": "docs/SPEC.md（ゲームデザイン：隊員1人に居住モジュール1つ）"
+      },
+      "indoorProtection": {
+        "value": 0.5,
+        "unit": "ratio",
+        "source": "NASA OCHMO（放射線から守る設計の資料 2022）：宇宙船の壁は太陽の嵐の被ばくを平均約50%減らす",
+        "url": "https://www.nasa.gov/wp-content/uploads/2023/03/radiation-protection-technical-brief-ochmo.pdf"
+      },
+      "degradationPerDay": {
+        "value": 0.004,
+        "unit": "1/day",
+        "source": "ゲームの調整値（実際の月のほこりによる低下は1日に約0.015%以下。点検に意味があるよう速く傷むことにした）",
+        "url": "https://ismse16.sciencesconf.org/534407"
+      }
+    },
+    "solar": {
+      "buildMaterialsKg": {
+        "value": 80,
+        "unit": "kg",
+        "source": "ゲームの調整値（4 kW の太陽電池。実際の宇宙用の翼は約130 W/kg）",
+        "url": "https://ntrs.nasa.gov/api/citations/20160000702/downloads/20160000702.pdf"
+      },
+      "buildEnergyKwh": {
+        "value": 0,
+        "unit": "kWh",
+        "source": "ゲームの調整値：建てるのに電気は使わないことにした（かんたんにするため）"
+      },
+      "generationKw": {
+        "value": 4,
+        "unit": "kW",
+        "source": "NASA GRC（Kerslake ほか 2016）：宇宙用の太陽電池の翼は約130 W/kg。月面では高い柱と向きを変える仕組みも要るので、80 kg で 4 kW（50 W/kg）とした",
+        "url": "https://ntrs.nasa.gov/api/citations/20160000702/downloads/20160000702.pdf"
+      },
+      "degradationPerDay": {
+        "value": 0.01,
+        "unit": "1/day",
+        "source": "ゲームの調整値（実際の月のほこりによる低下は1日に約0.015%以下。点検に意味があるよう速く傷むことにした）",
+        "url": "https://ismse16.sciencesconf.org/534407"
+      }
+    },
+    "battery": {
+      "buildMaterialsKg": {
+        "value": 60,
+        "unit": "kg",
+        "source": "ゲームの調整値（ISS のリチウムイオン電池は1台 約195 kg）",
+        "url": "https://ntrs.nasa.gov/api/citations/20170004112/downloads/20170004112.pdf"
+      },
+      "buildEnergyKwh": {
+        "value": 0,
+        "unit": "kWh",
+        "source": "ゲームの調整値：建てるのに電気は使わないことにした（かんたんにするため）"
+      },
+      "capacityKwh": {
+        "value": 40,
+        "unit": "kWh",
+        "source": "ゲームの調整値（実際は 60 kg で約5 kWh：ISS のリチウムイオン電池は1台 約15 kWh・約195 kg。月の夜を越せるよう大きくした）",
+        "url": "https://ntrs.nasa.gov/api/citations/20170004112/downloads/20170004112.pdf"
+      },
+      "degradationPerDay": {
+        "value": 0.003,
+        "unit": "1/day",
+        "source": "ゲームの調整値（実際の月のほこりによる低下は1日に約0.015%以下。点検に意味があるよう速く傷むことにした）",
+        "url": "https://ismse16.sciencesconf.org/534407"
+      }
+    },
+    "antenna": {
+      "buildMaterialsKg": {
+        "value": 50,
+        "unit": "kg",
+        "source": "ゲームの調整値：アンテナの資材（確かめられる資料が見つからなかった）"
+      },
+      "buildEnergyKwh": {
+        "value": 0,
+        "unit": "kWh",
+        "source": "ゲームの調整値：建てるのに電気は使わないことにした（かんたんにするため）"
+      },
+      "powerKw": {
+        "value": 0.2,
+        "unit": "kW",
+        "source": "ゲームの調整値：アンテナの電力（確かめられる資料が見つからなかった）"
+      },
+      "degradationPerDay": {
+        "value": 0.005,
+        "unit": "1/day",
+        "source": "ゲームの調整値（実際の月のほこりによる低下は1日に約0.015%以下。点検に意味があるよう速く傷むことにした）",
+        "url": "https://ismse16.sciencesconf.org/534407"
+      }
+    },
+    "greenhouse": {
+      "buildMaterialsKg": {
+        "value": 150,
+        "unit": "kg",
+        "source": "ゲームの調整値：温室の資材（バランス）"
+      },
+      "buildEnergyKwh": {
+        "value": 0,
+        "unit": "kWh",
+        "source": "ゲームの調整値：建てるのに電気は使わないことにした（かんたんにするため）"
+      },
+      "powerKw": {
+        "value": 1.5,
+        "unit": "kW",
+        "source": "NASA の植物を育てる装置 Advanced Plant Habitat は約735 W。その2台分とした",
+        "url": "https://www.militaryaerospace.com/articles/2013/04/NASA-space-garden.html"
+      },
+      "foodKgPerDay": {
+        "value": 4,
+        "unit": "kg/day",
+        "source": "NASA BVAD 2022：レタスは1 m² で1日 131 g 育つ。約30 m² の温室で1日 4 kg とした",
+        "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf"
+      },
+      "waterKgPerDay": {
+        "value": 1,
+        "unit": "kg/day",
+        "source": "ゲームの調整値（植物が出す水の大部分は集めて使い直せるとして、なくなる分だけにした。NASA BVAD 2022 ではレタスは1 m² で1日 2.1 kg の水を出す）",
+        "url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf"
+      },
+      "farmersNeeded": {
+        "value": 1,
+        "unit": "person",
+        "source": "ゲームの調整値：温室1つを世話する隊員の数"
+      },
+      "degradationPerDay": {
+        "value": 0.006,
+        "unit": "1/day",
+        "source": "ゲームの調整値（実際の月のほこりによる低下は1日に約0.015%以下。点検に意味があるよう速く傷むことにした）",
+        "url": "https://ismse16.sciencesconf.org/534407"
+      }
+    },
+    "lifeSupport": {
+      "buildMaterialsKg": {
+        "value": 120,
+        "unit": "kg",
+        "source": "ゲームの調整値：生命維持装置の資材（バランス）"
+      },
+      "buildEnergyKwh": {
+        "value": 0,
+        "unit": "kWh",
+        "source": "ゲームの調整値：建てるのに電気は使わないことにした（かんたんにするため）"
+      },
+      "powerKw": {
+        "value": 1.2,
+        "unit": "kW",
+        "source": "ゲームの調整値（実際は ISS の酸素を作る装置だけで4人分に約2 kW：NASA MSFC 2019）",
+        "url": "https://ntrs.nasa.gov/api/citations/20190030425/downloads/20190030425.pdf"
+      },
+      "oxygenKgPerDay": {
+        "value": 2,
+        "unit": "kg/day",
+        "source": "ISS の酸素を作る装置（NASA MSFC 2024）は1日最大 9.25 kg（約11人分）。ゲームでは小さな装置で2人分の 2 kg とした",
+        "url": "https://ntrs.nasa.gov/api/citations/20240006776/downloads/ICES%202024%20101%20AOGA%20final.pdf"
+      },
+      "waterPerOxygen": {
+        "value": 1.125,
+        "unit": "kg/kg",
+        "source": "ISS の酸素を作る装置の実績（NASA MSFC 2025）：水を分けて酸素 14,598 kg と水素 1,825 kg。水 1.125 kg で酸素 1 kg",
+        "url": "https://ntrs.nasa.gov/api/citations/20250005808/downloads/ICES_2025_345%20AOGA%20Status%205%2022%2025.pdf"
+      },
+      "degradationPerDay": {
+        "value": 0.02,
+        "unit": "1/day",
+        "source": "ゲームの調整値（実際の月のほこりによる低下は1日に約0.015%以下。点検に意味があるよう速く傷むことにした）（2026-11-15 バランス調整：資源がたまるだけにならないように）",
+        "url": "https://ismse16.sciencesconf.org/534407"
+      },
+      "waterRecoveryRatio": {
+        "value": 0.85,
+        "unit": "ratio",
+        "source": "ゲームの調整値（実際の ISS は水の93〜98%を使い直せる。最初の小さな装置なので低めにした）",
+        "url": "https://www.nasa.gov/missions/station/iss-research/nasa-achieves-water-recovery-milestone-on-international-space-station/"
+      }
+    },
+    "iceDrill": {
+      "buildMaterialsKg": {
+        "value": 100,
+        "unit": "kg",
+        "source": "ゲームの調整値（NASA の氷を掘るドリル TRIDENT は20 kg 未満。水を取り出す装置まで入れて100 kg とした）",
+        "url": "https://ntrs.nasa.gov/citations/20240000585"
+      },
+      "buildEnergyKwh": {
+        "value": 0,
+        "unit": "kWh",
+        "source": "ゲームの調整値：建てるのに電気は使わないことにした（かんたんにするため）"
+      },
+      "powerKw": {
+        "value": 2.5,
+        "unit": "kW",
+        "source": "NASA JSC（Kleinhenz・Paz 2021）：月の氷を掘る部分の電力は水1 kg あたり約10 kWh。2.5 kW で1日6 kg はこれと同じ",
+        "url": "https://ntrs.nasa.gov/api/citations/20210016820/downloads/WaterMiningArchitecture_PTMSS2021_Kleinhenz.pdf"
+      },
+      "waterKgPerDay": {
+        "value": 6,
+        "unit": "kg/day",
+        "source": "NASA JSC（Kleinhenz・Paz 2021）：月の氷を掘る部分の電力は水1 kg あたり約10 kWh。2.5 kW で1日6 kg はこれと同じ",
+        "url": "https://ntrs.nasa.gov/api/citations/20210016820/downloads/WaterMiningArchitecture_PTMSS2021_Kleinhenz.pdf"
+      },
+      "degradationPerDay": {
+        "value": 0.02,
+        "unit": "1/day",
+        "source": "ゲームの調整値（実際の月のほこりによる低下は1日に約0.015%以下。点検に意味があるよう速く傷むことにした）",
+        "url": "https://ismse16.sciencesconf.org/534407"
+      }
+    },
+    "shield": {
+      "regolithMaterialsKg": {
+        "value": 200,
+        "unit": "kg",
+        "source": "ゲームの調整値：遮蔽を建てる資材（バランス）"
+      },
+      "waterFrameMaterialsKg": {
+        "value": 40,
+        "unit": "kg",
+        "source": "ゲームの調整値：水の遮蔽の枠の資材（バランス）"
+      },
+      "buildEnergyKwh": {
+        "value": 0,
+        "unit": "kWh",
+        "source": "ゲームの調整値：建てるのに電気は使わないことにした（かんたんにするため）"
+      },
+      "waterKg": {
+        "value": 30,
+        "unit": "kg",
+        "source": "ゲームの調整値：水の遮蔽に入れる水（バランス）"
+      },
+      "regolithProtection": {
+        "value": 0.15,
+        "unit": "ratio",
+        "source": "Matthiä・Berger 2024（Space Weather）：月面でレゴリスをかぶると、宇宙線の被ばくは2〜3割ほど減る",
+        "url": "https://elib.dlr.de/210448/1/ME-SBA-2024-Matthi%C3%A4-Berger%20Radiation%20Exposure%20and%20Shielding%20Effects%20on%20the%20Lunar%20Surface-SPACE%20WEATHER.pdf"
+      },
+      "waterProtection": {
+        "value": 0.25,
+        "unit": "ratio",
+        "source": "ゲームの調整値（NASA の資料では、水の袋で囲んだ避難場所は太陽の嵐の被ばくを約7割減らす。宇宙線にはあまり効かないので、まとめて 25% とした）",
+        "url": "https://www.nasa.gov/wp-content/uploads/2023/03/radiation-protection-technical-brief-ochmo.pdf"
+      },
+      "degradationPerDay": {
+        "value": 0.001,
+        "unit": "1/day",
+        "source": "ゲームの調整値：遮蔽の傷み（ほとんど傷まない）"
+      },
+      "waterReserveDays": {
+        "value": 7,
+        "unit": "day",
+        "source": "ゲームの調整値：水の遮蔽の水を飲み水に回す目安の日数"
+      }
+    }
+  },
+  "protection": {
+    "regolithCoverBonus": {
+      "value": 0.25,
+      "unit": "ratio",
+      "source": "Matthiä・Berger 2024（Space Weather）：月面でレゴリスをかぶると、宇宙線の被ばくは2〜3割ほど減る",
+      "url": "https://elib.dlr.de/210448/1/ME-SBA-2024-Matthi%C3%A4-Berger%20Radiation%20Exposure%20and%20Shielding%20Effects%20on%20the%20Lunar%20Surface-SPACE%20WEATHER.pdf"
+    },
+    "max": {
+      "value": 0.9,
+      "unit": "ratio",
+      "source": "ゲームの調整値：遮蔽を重ねても被ばくが0にはならないようにする上限"
+    }
+  },
+  "maintenance": {
+    "conditionPerPersonDay": {
+      "value": 0.05,
+      "unit": "1/person/day",
+      "source": "ゲームの調整値：点検の係1人が1日に直せる量（バランス）"
+    },
+    "sparePartsPerFullRepair": {
+      "value": 1,
+      "unit": "unit",
+      "source": "ゲームの調整値：傷みを全部直すのに使う交換部品の数（バランス）"
+    }
+  },
+  "research": {
+    "perPersonDay": {
+      "value": 1,
+      "unit": "research/person/day",
+      "source": "ゲームの調整値：研究係1人が1日に進める研究（バランス）"
+    }
+  },
+  "comm": {
+    "earthPeriodDays": {
+      "value": 27.21,
+      "unit": "day",
+      "source": "NASA 日食のサイト：月が軌道の交点を回る周期（交点月）は 27.21222 日。南極から地球が見える・見えないは、この周期でくり返す",
+      "url": "https://eclipse.gsfc.nasa.gov/SEhelp/moonorbit.html"
+    },
+    "relayOrbitHours": {
+      "value": 12,
+      "unit": "h",
+      "source": "Planetary Society：中国の中継衛星 鵲橋2号は、南極の探査のために 12 時間で回る軌道に移る予定",
+      "url": "https://www.planetary.org/space-missions/queqiao-2-chinas-bridge-for-lunar-exploration"
+    },
+    "relayOneCoverage": {
+      "value": 0.8,
+      "unit": "ratio",
+      "source": "ゲームの調整値：中継衛星1機で地球が沈む時期の大半をつなげる（docs/SPEC.md 通信と中継衛星。確かめられる数の資料は見つからなかった）"
+    },
+    "maxRelaySatellites": {
+      "value": 2,
+      "unit": "unit",
+      "source": "docs/SPEC.md 通信と中継衛星"
+    }
+  },
+  "launch": {
+    "intervalDays": {
+      "value": 10,
+      "unit": "day",
+      "source": "ゲームの調整値：補給を頼める間隔の日数（バランス）"
+    },
+    "deliveryDays": {
+      "value": 3,
+      "unit": "day",
+      "source": "ゲームの調整値：注文から届くまでの日数（バランス）"
+    },
+    "capacityKg": {
+      "value": 600,
+      "unit": "kg",
+      "source": "Astrobotic：月着陸船 Griffin が運べる荷物は 625 kg。ゲームでは切りのよい 600 kg とした",
+      "url": "https://www.astrobotic.com/lunar-delivery/landers/griffin-lander/"
+    },
+    "costRoundTo": {
+      "value": 10,
+      "unit": "kg",
+      "source": "docs/SPEC.md（ゲームデザイン：子どもに分かりやすい数にする）"
+    },
+    "volumetricKgPerM3": {
+      "value": 167,
+      "unit": "kg/m^3",
+      "source": "航空貨物の容積重量（IATA の基準 6,000 cm³ を 1 kg とみなす ＝ 166.7 kg/m³）",
+      "url": "https://cargolinked.com/glossary/chargeable-weight"
+    },
+    "items": {
+      "oxygen": {
+        "massKg": {
+          "value": 1.5,
+          "unit": "kg/unit",
+          "source": "ゲームの調整値（実際の ISS の酸素タンクは酸素 1 kg に入れ物を入れて約 2.45 kg：NASA Ames 2017）",
+          "url": "https://ntrs.nasa.gov/api/citations/20200001084/downloads/20200001084.pdf"
+        },
+        "volumeM3": {
+          "value": 0.002,
+          "unit": "m^3/unit",
+          "source": "NASA Ames（Jones 2017）：ISS の酸素タンクは 68.8 L に酸素 36.3 kg（酸素 1 kg あたり約 0.002 m³）",
+          "url": "https://ntrs.nasa.gov/api/citations/20200001084/downloads/20200001084.pdf"
+        }
+      },
+      "water": {
+        "massKg": {
+          "value": 1.05,
+          "unit": "kg/unit",
+          "source": "NASA Langley（ASCEND 2023）：ISS の水の袋は空で 1.22 kg、水 21.7 kg が入る（水 1 kg あたり 1.056 kg）",
+          "url": "https://ntrs.nasa.gov/api/citations/20230013896/downloads/Logistics_BeyondLEO-ASCEND2023-Pres.pdf"
+        },
+        "volumeM3": {
+          "value": 0.001,
+          "unit": "m^3/unit",
+          "source": "水 1 kg は 1 L（0.001 m³）"
+        }
+      },
+      "food": {
+        "massKg": {
+          "value": 1.2,
+          "unit": "kg/unit",
+          "source": "NASA Langley（ASCEND 2023）：食料 1.96 kg を包むと 2.36 kg（約 1.2 倍）",
+          "url": "https://ntrs.nasa.gov/api/citations/20230013896/downloads/Logistics_BeyondLEO-ASCEND2023-Pres.pdf"
+        },
+        "volumeM3": {
+          "value": 0.0026,
+          "unit": "m^3/unit",
+          "source": "NASA Langley（ASCEND 2023）：包んだ食料は 1 m³ あたり 388 kg（1 kg あたり約 0.0026 m³）",
+          "url": "https://ntrs.nasa.gov/api/citations/20230013896/downloads/Logistics_BeyondLEO-ASCEND2023-Pres.pdf"
+        }
+      },
+      "spareParts": {
+        "massKg": {
+          "value": 5,
+          "unit": "kg/unit",
+          "source": "ゲームの調整値：交換部品1つの重さ（NASA の資料でも決まった値はない：ASCEND 2023）",
+          "url": "https://ntrs.nasa.gov/api/citations/20230013896/downloads/Logistics_BeyondLEO-ASCEND2023-Pres.pdf"
+        },
+        "volumeM3": {
+          "value": 0.03,
+          "unit": "m^3/unit",
+          "source": "ゲームの調整値：交換部品1つの大きさ（NASA ASCEND 2023 では、まとめた交換部品は 1 m³ あたり 557 kg）",
+          "url": "https://ntrs.nasa.gov/api/citations/20230013896/downloads/Logistics_BeyondLEO-ASCEND2023-Pres.pdf"
+        }
+      },
+      "materials": {
+        "massKg": {
+          "value": 1,
+          "unit": "kg/unit",
+          "source": "ゲームの調整値：資材は「何にでも使える材料 1 kg」とした（かんたんにするため）"
+        },
+        "volumeM3": {
+          "value": 0.0005,
+          "unit": "m^3/unit",
+          "source": "ゲームの調整値：資材 1 kg の大きさ（金属の板などをまとめた目安。バランス）"
+        }
+      },
+      "crew": {
+        "massKg": {
+          "value": 500,
+          "unit": "kg/person",
+          "source": "ゲームの調整値：隊員1人を送るのに要る重さ（宇宙服・座席・帰りの分までまとめた目安。確かめられる資料は見つからなかった）"
+        },
+        "volumeM3": {
+          "value": 3,
+          "unit": "m^3/person",
+          "source": "ゲームの調整値：隊員1人を送るのに要る大きさ（確かめられる資料は見つからなかった）"
+        }
+      },
+      "relaySatellite": {
+        "massKg": {
+          "value": 300,
+          "unit": "kg/unit",
+          "source": "SSTL の月の中継衛星 Lunar Pathfinder は 280 kg",
+          "url": "https://smallsatnews.com/2020/02/05/sstl-enters-the-implementation-phase-for-the-lunar-pathfinder-mission/"
+        },
+        "volumeM3": {
+          "value": 3,
+          "unit": "m^3/unit",
+          "source": "ゲームの調整値：中継衛星の大きさ（確かめられる資料は見つからなかった）"
+        }
+      }
+    },
+    "bulkOrderStep": {
+      "value": 50,
+      "unit": "kg",
+      "source": "ゲームの調整値：補給の画面で1回に増やす量（選びやすさ）"
+    },
+    "tasksPerLaunch": {
+      "value": 3,
+      "unit": "count",
+      "source": "ゲームの調整値：補給を頼むのに必要なタスクの数（タスクをする理由を作るため）"
+    }
+  },
+  "events": {
+    "flareDurationHours": {
+      "value": 12,
+      "unit": "h",
+      "source": "ゲームの調整値（NOAA：フレアは数分から数時間。粒子の嵐が続く時間とまとめて長めにした）",
+      "url": "https://www.spaceweather.gov/phenomena/solar-flares-radio-blackouts"
+    },
+    "sepDurationHours": {
+      "value": 36,
+      "unit": "h",
+      "source": "NOAA：太陽の放射線の嵐（SEP）は数時間から数日続く",
+      "url": "https://www.spaceweather.gov/phenomena/solar-radiation-storm"
+    },
+    "meanIntervalDays": {
+      "value": 10,
+      "unit": "day",
+      "source": "ゲームの調整値：宇宙天気が起きる平均の間隔（遊びの中で何度か出会えるように）"
+    },
+    "flareMultiplierC": {
+      "value": 5,
+      "unit": "x",
+      "source": "ゲームの調整値（フレアの光そのものは月面の被ばくをほとんど増やさない。大きなフレアのあとに来る粒子の嵐の強さをまとめて表した）",
+      "url": "https://www.spaceweather.gov/phenomena/solar-flares-radio-blackouts"
+    },
+    "flareMultiplierM": {
+      "value": 20,
+      "unit": "x",
+      "source": "ゲームの調整値（フレアの光そのものは月面の被ばくをほとんど増やさない。大きなフレアのあとに来る粒子の嵐の強さをまとめて表した）",
+      "url": "https://www.spaceweather.gov/phenomena/solar-flares-radio-blackouts"
+    },
+    "flareMultiplierX": {
+      "value": 120,
+      "unit": "x",
+      "source": "ゲームの調整値（フレアの光そのものは月面の被ばくをほとんど増やさない。大きなフレアのあとに来る粒子の嵐の強さをまとめて表した）",
+      "url": "https://www.spaceweather.gov/phenomena/solar-flares-radio-blackouts"
+    },
+    "sepMultiplier": {
+      "value": 150,
+      "unit": "x",
+      "source": "NASA アポロ月面ジャーナル：1972年8月の大きな太陽の嵐は月面で血を作る器官に 1.3 Sv（3日で、ふだんの約300倍）。150倍はその半分ほどの強い嵐",
+      "url": "https://www.nasa.gov/wp-content/uploads/static/history/alsj/WOTM/WOTM-Radiation.html"
+    }
+  },
+  "display": {
+    "maxLifeSupportDays": {
+      "value": 999,
+      "unit": "day",
+      "source": "ゲームの調整値：画面に出す生存日数の上限"
+    },
+    "lifeGaugeFullDays": {
+      "value": 30,
+      "unit": "day",
+      "source": "ゲームの調整値：生存日数のゲージが満タンになる日数"
+    }
+  },
+  "save": {
+    "autoSaveDays": {
+      "value": 7,
+      "unit": "day",
+      "source": "ゲームの調整値：自動セーブの間隔"
+    },
+    "manualSlots": {
+      "value": 3,
+      "unit": "slot",
+      "source": "ゲームの調整値：手動セーブの枠の数"
+    }
+  },
+  "tutorial": {
+    "moveMeters": {
+      "value": 3,
+      "unit": "m",
+      "source": "ゲームの調整値：くんれんで「歩いた」とする距離"
+    },
+    "lookTurnRad": {
+      "value": 0.6,
+      "unit": "rad",
+      "source": "ゲームの調整値：くんれんで「見回した」とする角度"
+    },
+    "minStepSeconds": {
+      "value": 1.5,
+      "unit": "s",
+      "source": "ゲームの調整値：くんれんの段を読む前に進まないための最短の時間"
+    }
+  },
+  "build": {
+    "gridMeters": {
+      "value": 2,
+      "unit": "m",
+      "source": "ゲームの調整値：建てる場所をそろえるマス目の大きさ"
+    }
+  },
+  "advice": {
+    "tankLowRatio": {
+      "value": 0.35,
+      "unit": "ratio",
+      "source": "ゲームの調整値：ボンベが少ないと知らせる境目"
+    },
+    "lifeSupportLowDays": {
+      "value": 5,
+      "unit": "day",
+      "source": "ゲームの調整値：生存日数が少ないと知らせる境目"
+    },
+    "brokenCondition": {
+      "value": 0.5,
+      "unit": "ratio",
+      "source": "ゲームの調整値：施設が壊れかけと知らせる境目"
+    }
+  }
+}

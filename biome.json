@@ -1,0 +1,119 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": ["**", "!docs/SPEC.md", "!.claude"]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "linter": {
+    "rules": {
+      "correctness": {
+        "useImportExtensions": "error"
+      }
+    }
+  },
+  "plugins": [
+    {
+      "path": "./biome-plugins/no-math-random.grit",
+      "includes": ["src/sim/**/*.ts", "src/contracts/**/*.ts", "!**/*.test.ts"]
+    }
+  ],
+  "overrides": [
+    {
+      "includes": ["src/contracts/**/*.ts", "!**/*.test.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@babylonjs/**"],
+                    "message": "src/contracts/ は Babylon.js を使わない（docs/SPEC.md 共通ルール3）"
+                  },
+                  {
+                    "group": [
+                      "**/world/**",
+                      "**/env/**",
+                      "**/ui/**",
+                      "**/tutorial/**",
+                      "**/save/**",
+                      "**/sim/**"
+                    ],
+                    "message": "src/contracts/ は型だけを置き、ほかの層を読み込まない"
+                  }
+                ]
+              }
+            },
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "Date": "ゲーム内の時刻は SimState.timeHours を使う。実際の時計を読まない"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/sim/**/*.ts", "!**/*.test.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@babylonjs/**"],
+                    "message": "src/sim/ は Babylon.js を使わない（docs/SPEC.md 共通ルール3）"
+                  },
+                  {
+                    "group": [
+                      "**/world/**",
+                      "**/env/**",
+                      "**/ui/**",
+                      "**/tutorial/**",
+                      "**/save/**",
+                      "**/i18n/**"
+                    ],
+                    "message": "src/sim/ は世界を step の env 引数だけを通して知る。画面・文言・保存の層を読み込まない"
+                  },
+                  {
+                    "group": ["**/data/**"],
+                    "message": "数値は step の values 引数から読む。data/ の JSON を直接読み込まない"
+                  }
+                ]
+              }
+            },
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "Date": "ゲーム内の時刻は SimState.timeHours を使う。実際の時計を読まない"
+                }
+              }
+            },
+            "noMagicNumbers": "error"
+          }
+        }
+      }
+    }
+  ]
+}

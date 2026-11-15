@@ -1,0 +1,2191 @@
+// HUD、メニュー、説明の窓、仮想パッド。素の DOM で作り、文言はすべて t() から出す
+import type {
+  ActiveEvent,
+  CrewTask,
+  DonkiEvent,
+  FacilityKind,
+  GameEvent,
+  LaunchItem,
+  LaunchItemKind,
+  SimState,
+  Values,
+} from '../contracts/index.ts';
+import type { SaveSummary } from '../save/api.ts';
+import type { BuildOptions, Placement, SimView } from '../sim/api.ts';
+import { buildCost, commLostReason, launchItemCost, outdoorDoseMsvPerHour } from '../sim/index.ts';
+import { powerKw } from '../sim/model.ts';
+import type { DeathAdvice } from '../tutorial/death.ts';
+import { professorDeathAdviceHtml } from '../tutorial/deathView.ts';
+import { PROFESSOR_SVG } from '../tutorial/professor.ts';
+import type { PadInput } from '../world/api.ts';
+import type {
+  ContextAction,
+  MorningSummary,
+  RestInfo,
+  TerrainSource,
+  TutorialLimits,
+  Ui,
+  UiCallbacks,
+} from './api.ts';
+import { CONTROLLER_SVG, TERMINAL_SVG } from './avatars.ts';
+import { SOUND_MODES } from './fx.ts';
+import { getLang, onLangChange, setLang, t, tPlain } from './i18n.ts';
+import { type MinigameOutcome, openMinigame } from './minigame.ts';
+import { type NasaImages, photoFigureHtml } from './photo.ts';
+import './ui.css';
+
+const FACILITY_KINDS: readonly FacilityKind[] = [
+  'habitat',
+  'solar',
+  'battery',
+  'antenna',
+  'lifeSupport',
+  'greenhouse',
+  'iceDrill',
+  'shield',
+];
+// ほきゅうで頼める荷物。施設のキットは届くものが資材と同じなので出さず、資材を頼んでもらう（CLAUDE.md）
+const LAUNCH_ITEM_KINDS: readonly LaunchItemKind[] = [
+  'oxygen',
+  'water',
+  'food',
+  'spareParts',
+  'materials',
+  'crew',
+  'relaySatellite',
+];
+const BULK_LAUNCH_ITEMS: readonly LaunchItemKind[] = ['oxygen', 'water', 'food', 'materials'];
+const CREW_TASKS: readonly CrewTask[] = ['maintenance', 'research', 'farming'];
+const CONTEXT_ACTIONS: readonly ContextAction[] = [
+  'enterHabitat',
+  'exitHabitat',
+  'collectIce',
+  'repair',
+  'coverRegolith',
+  'nextDay',
+];
+const MENUS = ['build', 'status'] as const;
+// メニュー（一時停止）の窓の中の画面
+const PAUSE_VIEWS = ['main', 'cards', 'save', 'data'] as const;
+type PauseView = (typeof PAUSE_VIEWS)[number];
+// 夜（居住モジュールの中）の画面。まず地球管制からの通信（comm）を見せ、主なボタンは「翌朝へ」。
+// 補給の注文は「返信」（reply）、隊員・明日のタスク・くわしい様子は「管制モニター」（monitor）から、必要なときだけ開く
+const NIGHT_VIEWS = ['comm', 'reply', 'monitor', 'crew', 'tasks', 'details'] as const;
+type NightView = (typeof NIGHT_VIEWS)[number];
+// 管制モニターから開くもの
+const MONITOR_VIEWS = ['crew', 'tasks', 'details'] as const;
+// 通信が届いたときの演出の長さ（この間に描き直したときだけ、演出をつける）
+const COMM_ARRIVE_MS = 4200;
+// インベントリ画面に出す物資
+const INVENTORY_STOCKS = ['oxygen', 'water', 'food', 'spareParts', 'materials'] as const;
+const DEVELOPMENT_ELEMENTS = ['selfSufficiency', 'stability', 'safety', 'scale'] as const;
+const LIFE_SUPPORT_KEYS = ['oxygen', 'water', 'food'] as const;
+const SHIELD_MATERIALS = ['regolith', 'water'] as const;
+
+// 表示だけに使う値（ゲームの数値ではない）
+const STAR_COUNT = 5;
+const TOAST_MS = 4500;
+const TOAST_MAX = 2; // 一度に並べるお知らせの数（多いと子どもがこわがるので少なく）
+const HOURS_PER_DAY = 24;
+const PERCENT = 100;
+const MINUTES_PER_HOUR = 60;
+// 押せないボタンの吹き出し（見た目）
+const BUBBLE_MS = 3200;
+const BUBBLE_GAP_PX = 12;
+const BUBBLE_MARGIN_PX = 8;
+const LOW_BAR_RATIO = 0.25; // バーを赤くする残りの割合
+const LOW_DAYS = 7; // 生命維持の日数を赤くする
+const DOSE_WARN_RATIO = 0.5; // 被ばくが上限のこの割合を超えたら赤くする（ゲージは黄色）
+const DOSE_DANGER_RATIO = 0.8; // 被ばくのゲージを赤くする（表示だけ）
+const LIFE_WARN_DAYS = 14; // 生命維持のゲージを黄色にする（表示だけ）
+// いつも見せるゲージの種類と色
+const GAUGE_KEYS = ['tank', 'life', 'power', 'dose'] as const;
+type GaugeKey = (typeof GAUGE_KEYS)[number];
+type GaugeLevel = 'ok' | 'warn' | 'danger';
+const KNOB_TRAVEL = 0.6; // パッドのつまみが動ける範囲（半径に対する割合）
+const ISO_DATE_LENGTH = 10;
+const TANK_WARN_RATIO = 0.6; // ボンベのバーを黄色にする残り（表示だけ）
+const LIFE_GAIN_POP_DAYS = 0.5; // 生き延びられる日数がこれ以上ふえたら、お祝いの演出を出す（表示だけ）
+const POWER_EVEN_KW = 0.05;
+const SPARKLES = 8;
+const GAIN_MS = 1600; // これより差が小さければ「ちょうど」と出す（表示だけ） // "2024-05-14T..." の日付の部分
+
+type MenuKind = (typeof MENUS)[number];
+type Dialog =
+  | { type: 'flare'; event: ActiveEvent; donki: DonkiEvent | null }
+  | { type: 'downed'; advice: DeathAdvice }
+  | { type: 'cleared'; total: number }
+  | { type: 'gameOver'; advice: DeathAdvice }
+  | { type: 'morning'; summary: MorningSummary };
+
+function esc(text: string): string {
+  return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+function fmt(n: number, digits = 0): string {
+  return n.toFixed(digits);
+}
+
+/** data-* の値を、決まった候補のどれかとして読む。候補にない値は作りの誤りなので例外 */
+function pick<T extends string>(value: string | undefined, allowed: readonly T[], what: string): T {
+  const found = allowed.find((item) => item === value);
+  if (found === undefined) {
+    throw new Error(`ui の ${what} が不正: ${String(value)}`);
+  }
+  return found;
+}
+
+// 「データ」の窓で、出典と並べて見せる数値（HUD の項目ごと）
+export const SOURCE_KEYS = {
+  tank: ['eva.maxHours', 'crew.sleepHours', 'eva.weeklyHoursPerPerson'],
+  lifeSupport: [
+    'crew.oxygenKgPerDay',
+    'crew.waterKgPerDay',
+    'crew.foodKgPerDay',
+    'facilities.lifeSupport.oxygenKgPerDay',
+  ],
+  power: [
+    'facilities.solar.generationKw',
+    'facilities.battery.capacityKwh',
+    'facilities.habitat.powerKw',
+    'moon.sunPeriodDays',
+  ],
+  shielding: [
+    'moon.radiationMsvPerDay',
+    'crew.doseLimitMsv',
+    'facilities.habitat.indoorProtection',
+    'events.flareMultiplierX',
+  ],
+  development: ['development.clearThreshold', 'development.scalePerCrew'],
+  comm: ['comm.earthPeriodDays', 'moon.commDelaySec'],
+  // X級フレアの倍率と、ふだん浴びる放射線は「遮蔽と放射線」に出しているので、ここには重ねない
+  flare: ['events.flareMultiplierM', 'events.sepMultiplier', 'events.flareDurationHours'],
+} as const;
+type SourceSection = keyof typeof SOURCE_KEYS;
+const SOURCE_SECTIONS = Object.keys(SOURCE_KEYS) as SourceSection[];
+
+interface ValueEntryLike {
+  value: number;
+  unit: string;
+  source: string;
+  url?: string;
+}
+
+/** values の中の "a.b.c" の値。なければ作りの誤りなので例外 */
+function valueAt(values: Values, path: string): ValueEntryLike {
+  let node: unknown = values;
+  for (const part of path.split('.')) {
+    if (typeof node !== 'object' || node === null || !(part in node)) {
+      throw new Error(`values に ${path} がない`);
+    }
+    node = (node as Record<string, unknown>)[part];
+  }
+  return node as ValueEntryLike;
+}
+
+/** 数と単位を、子どもに読める形で（ratio は % にする）。単位の言葉は i18n の unit.* */
+function valueText(entry: ValueEntryLike): string {
+  if (entry.unit === 'ratio') {
+    return `${fmt(entry.value * PERCENT)}%`;
+  }
+  return t(`unit.${entry.unit}`, { value: String(entry.value) });
+}
+
+/** 数値と、その出典（リンクつき）の一覧。出典が決まっていなければそう書く */
+function sourceListHtml(values: Values, section: SourceSection): string {
+  const rows = SOURCE_KEYS[section].map((path) => {
+    const entry = valueAt(values, path);
+    const source =
+      entry.source === 'TBD'
+        ? `<span class="ui-src-tbd">${t('source.tbd')}</span>`
+        : entry.source.startsWith('docs/SPEC.md')
+          ? t('source.gameDesign')
+          : entry.url !== undefined
+            ? `<a href="${esc(entry.url)}" target="_blank" rel="noopener noreferrer">${esc(entry.source)}</a>`
+            : esc(entry.source);
+    return `<li><b>${t(`valueName.${path}`)}</b>：${valueText(entry)}<br><span class="ui-small">${t('source.label')} ${source}</span></li>`;
+  });
+  return `<ul class="ui-src-list">${rows.join('')}</ul>`;
+}
+
+/** 電力の差し引き。たまるか、へるかを＋と−、色、矢印で見せる */
+function powerNet(netKw: number): string {
+  if (Math.abs(netKw) < POWER_EVEN_KW) {
+    return `<div class="ui-net">${t('hud.powerNet.even')}</div>`;
+  }
+  return netKw > 0
+    ? `<div class="ui-net ui-ok">${t('hud.powerNet.plus', { kw: fmt(netKw, 1) })}</div>`
+    : `<div class="ui-net ui-bad">${t('hud.powerNet.minus', { kw: fmt(-netKw, 1) })}</div>`;
+}
+
+/** 3D で施設の上に出しているのと同じアイコン（建設の窓と置く場所を選ぶバーで、どれがどれか分かるように） */
+function facilityIconHtml(kind: FacilityKind): string {
+  return `<span class="ui-fac-icon" aria-hidden="true">${t(`facilityIcon.${kind}`)}</span>`;
+}
+
+function stars(value: number, max: number): string {
+  const count = Math.min(STAR_COUNT, Math.max(0, Math.round((value / max) * STAR_COUNT)));
+  return '★'.repeat(count) + '☆'.repeat(STAR_COUNT - count);
+}
+
+// 地球から月へのロケットの道（絵の座標）。2次ベジェ曲線：地球のそば → 上にふくらむ → 月のそば
+const ROUTE_FROM = { x: 38, y: 60 };
+const ROUTE_BEND = { x: 100, y: 4 };
+const ROUTE_TO = { x: 168, y: 58 };
+// 管制室の小さなモニターでは、ロケットを大きめに描く（見た目）
+const MONITOR_ROCKET_SCALE = 1.8;
+
+/**
+ * 地球と月のあいだの道に、飛んでいるロケットを今いる場所に置いた絵。
+ * 場所は「届くまでの残り時間」から決める（注文した直後は地球のそば、届く直前は月のそば）
+ */
+function routeSvg(
+  launch: SimView['launch'],
+  withLabels: boolean,
+  idleAtEarth = false,
+  rocketScale = 1,
+): string {
+  const point = (k: number) => ({
+    x: (1 - k) ** 2 * ROUTE_FROM.x + 2 * (1 - k) * k * ROUTE_BEND.x + k ** 2 * ROUTE_TO.x,
+    y: (1 - k) ** 2 * ROUTE_FROM.y + 2 * (1 - k) * k * ROUTE_BEND.y + k ** 2 * ROUTE_TO.y,
+  });
+  const rockets = launch.inFlight
+    .map((flight) => {
+      const k = Math.min(1, Math.max(0, 1 - flight.hoursUntilArrival / launch.deliveryHours));
+      const at = point(k);
+      // 進む向き（曲線の接線）にロケットの先を向ける
+      const dx = 2 * (1 - k) * (ROUTE_BEND.x - ROUTE_FROM.x) + 2 * k * (ROUTE_TO.x - ROUTE_BEND.x);
+      const dy = 2 * (1 - k) * (ROUTE_BEND.y - ROUTE_FROM.y) + 2 * k * (ROUTE_TO.y - ROUTE_BEND.y);
+      const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
+      const days = Math.max(1, Math.ceil(flight.hoursUntilArrival / HOURS_PER_DAY));
+      const label = withLabels
+        ? `<text x="${fmt(at.x, 1)}" y="${fmt(at.y + 16, 1)}" class="route-label">${esc(tPlain('route.daysLeft', { days }))}</text>`
+        : '';
+      return `<g class="route-rocket" transform="translate(${fmt(at.x, 1)} ${fmt(at.y, 1)}) rotate(${fmt(deg, 1)}) scale(${rocketScale})">
+          <path d="M-6 -2.2 L-11 0 L-6 2.2 Z" fill="#ff8a3c" class="route-flame"/>
+          <path d="M9 0 L-5 -4.5 L-3 0 L-5 4.5 Z" fill="#ffd27a" stroke="#fff3c4" stroke-width="0.6"/>
+        </g>${label}`;
+    })
+    .join('');
+  // 飛んでいないときは、地球の上で上を向いて待っているロケット（管制室のモニター。どこにもいないと何の画面か分からないので）
+  const idle =
+    idleAtEarth && launch.inFlight.length === 0
+      ? `<g class="route-rocket route-idle" transform="translate(22 ${fmt(46 - 6 * rocketScale, 1)}) rotate(-90) scale(${rocketScale})">
+          <path d="M9 0 L-5 -4.5 L-3 0 L-5 4.5 Z" fill="#ffd27a" stroke="#fff3c4" stroke-width="0.6"/>
+        </g>${withLabels ? `<text x="62" y="40" class="route-label">${esc(tPlain('route.idle'))}</text>` : ''}`
+      : '';
+  return `<svg class="route" viewBox="0 0 200 84" role="img" aria-label="${esc(tPlain('route.label'))}">
+      <path d="M${ROUTE_FROM.x} ${ROUTE_FROM.y} Q${ROUTE_BEND.x} ${ROUTE_BEND.y} ${ROUTE_TO.x} ${ROUTE_TO.y}" fill="none" stroke="#3f6f99" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <circle cx="22" cy="64" r="15" fill="#2f7fd0"/><path d="M14 58 q6 -4 10 2 q-2 6 -8 4 z M22 70 q6 -2 8 3 q-6 3 -8 -3z" fill="#5fbf6a"/>
+      <circle cx="182" cy="62" r="9" fill="#cfd6df"/><circle cx="179" cy="60" r="1.8" fill="#aab3bf"/><circle cx="185" cy="65" r="1.3" fill="#aab3bf"/>
+      ${withLabels ? `<text x="22" y="82" class="route-label">${esc(tPlain('route.earth'))}</text><text x="182" y="82" class="route-label">${esc(tPlain('route.moon'))}</text>` : ''}
+      ${rockets}${idle}
+    </svg>`;
+}
+
+/** ゲーム内の時刻（管制室の時計。着陸の日からの日数の小数から） */
+function gameClock(day: number): string {
+  const minutes = Math.floor((day - Math.floor(day)) * HOURS_PER_DAY * 60);
+  const hh = String(Math.floor(minutes / 60)).padStart(2, '0');
+  const mm = String(minutes % 60).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
+function bar(ratio: number, extraClass: string): string {
+  const clamped = Math.min(1, Math.max(0, ratio));
+  const low = clamped < LOW_BAR_RATIO ? 'low' : '';
+  return `<div class="ui-bar ${extraClass} ${low}"><div style="width:${fmt(clamped * PERCENT)}%"></div></div>`;
+}
+
+/** ゲームとして決めた値（本物の答えがない値）の出典の書き出し。data/values.json の source がこれで始まる */
+export const GAME_TUNING_SOURCE_PREFIX = 'ゲームの調整値';
+
+/**
+ * values をたどり、本物の資料の出典（ゲームの調整値でも docs/SPEC.md でもない）を重複なしで集める。
+ * gameTuning はゲームの調整値・docs/SPEC.md で決めた値の数。
+ * 値の形は tests/data.test.ts が確かめているので、形が違えば作りの誤りとして例外にする
+ */
+function collectValueSources(values: Values): {
+  sources: { source: string; url: string | undefined }[];
+  gameTuning: number;
+} {
+  let gameTuning = 0;
+  const found = new Map<string, { source: string; url: string | undefined }>();
+  const walk = (node: unknown) => {
+    if (typeof node !== 'object' || node === null) {
+      return;
+    }
+    if ('value' in node) {
+      const { source, url } = node as { source?: unknown; url?: unknown };
+      if (typeof source !== 'string' || (url !== undefined && typeof url !== 'string')) {
+        throw new Error('values の出典の形が違う');
+      }
+      if (source.startsWith(GAME_TUNING_SOURCE_PREFIX) || source.startsWith('docs/SPEC.md')) {
+        gameTuning++;
+      } else {
+        found.set(`${source}\n${url ?? ''}`, { source, url });
+      }
+      return;
+    }
+    for (const child of Object.values(node)) {
+      walk(child);
+    }
+  };
+  walk(values);
+  return { sources: [...found.values()], gameTuning };
+}
+
+export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Values): Ui {
+  const isTouch = window.matchMedia('(pointer: coarse)').matches;
+  root.classList.add('ui-root');
+  root.innerHTML = `
+    <div class="ui-hud" data-part="hud"></div>
+    <div class="ui-hud-tank" data-part="hudTank"></div>
+    <div class="ui-top">
+      <div class="ui-row" data-part="topButtons"></div>
+      <div class="ui-panel ui-status" data-part="status" hidden></div>
+    </div>
+    <div class="ui-toasts" data-part="toasts"></div>
+    <div class="ui-buildbar ui-panel" data-part="buildbar" hidden></div>
+    <div class="ui-buttons" data-part="buttons"></div>
+    <div class="ui-pad" data-part="pad" hidden><div class="ui-pad-knob" data-part="knob"></div></div>
+    <div class="ui-pause" data-part="pauseOverlay" hidden></div>
+    <div class="day-fade" data-part="dayFade" hidden></div>
+    <div class="nb-layer" data-part="notebook" hidden></div>
+    <div class="ui-modal-layer" data-part="modal" hidden></div>`;
+  const part = (name: string): HTMLElement => {
+    const el = root.querySelector<HTMLElement>(`[data-part="${name}"]`);
+    if (el === null) {
+      throw new Error(`ui の部品がない: ${name}`);
+    }
+    return el;
+  };
+  const hudEl = part('hud');
+  // ボンベと今日のタスク（PC は左下、スマホは左上）
+  const hudTankEl = part('hudTank');
+  const topButtonsEl = part('topButtons');
+  const statusEl = part('status');
+  const toastsEl = part('toasts');
+  const buildbarEl = part('buildbar');
+  const buttonsEl = part('buttons');
+  const padEl = part('pad');
+  const knobEl = part('knob');
+  const modalEl = part('modal');
+  // 1日の終わりの暗転（「○日目」と、飛んでいる補給のロケット）。押すとすぐ終わる
+  const dayFadeEl = part('dayFade');
+  const endDayFade = () => {
+    dayFadeEl.hidden = true;
+    dayFadeEl.innerHTML = '';
+  };
+  dayFadeEl.addEventListener('animationend', (e) => {
+    if (e.target === dayFadeEl) {
+      endDayFade();
+    }
+  });
+  dayFadeEl.addEventListener('click', endDayFade);
+  const notebookEl = part('notebook');
+  // メニューは、窓の外（暗いところ）をクリックしても閉じる。警報やゲームオーバーの窓は選んでもらうので閉じない
+  modalEl.addEventListener('click', (e) => {
+    if (e.target === modalEl && menu !== null && dialogs.length === 0) {
+      closeMenus();
+    }
+  });
+  padEl.hidden = !isTouch;
+
+  let state: SimState | null = null;
+  let view: SimView | null = null;
+  let userPaused = false;
+  let lastPaused = false;
+  let showBreakdown = false;
+  let menu: MenuKind | null = null;
+  // 休息フェーズの2D画面（居住モジュールの中）。main が setRest で開け閉めする
+  let rest: RestInfo | null = null;
+  let nightView: NightView = 'comm';
+  // 通信が届いた時刻（中に入ったとき）。少しの間だけ「届きました」の演出をつける
+  let commArrivedAt = 0;
+  // 外で今日こなすタスク（main が setTaskList で渡す）
+  let taskList: { label: string; done: boolean }[] = [];
+  // 開いているミニゲームを閉じる関数
+  let closeMinigame: (() => void) | null = null;
+  const dialogs: Dialog[] = [];
+  let saves: SaveSummary[] = [];
+  let donkiEvents: DonkiEvent[] = [];
+  // くんれんの間に建ててよいもの・頼んでよいもの（null なら制限なし）
+  let tutorialLimits: TutorialLimits = { build: null, order: null, orderRequires: null };
+  const buildAllowed = (kind: FacilityKind) =>
+    tutorialLimits.build === null || tutorialLimits.build.includes(kind);
+  const buildLockAttr = (kind: FacilityKind) =>
+    buildAllowed(kind) ? '' : 'aria-disabled="true" data-locked="tutorial.build"';
+  const orderAllowed = (kind: LaunchItemKind) =>
+    tutorialLimits.order === null || tutorialLimits.order.includes(kind);
+  let terrainSource: TerrainSource | null = null;
+  const buildOptions: { dustCover: boolean; shieldMaterial: 'regolith' | 'water' } = {
+    dustCover: false,
+    shieldMaterial: 'regolith',
+  };
+  const cart = Object.fromEntries(LAUNCH_ITEM_KINDS.map((kind) => [kind, 0])) as Record<
+    LaunchItemKind,
+    number
+  >;
+  // 割り当てを選んだが、時間が止まっていてまだ state に出ていないもの
+  const assigned = new Map<string, CrewTask>();
+  let contextActions: ContextAction[] = [];
+  let buildMode: { kind: FacilityKind; placement: Placement } | null = null;
+  const pad = { x: 0, y: 0 };
+  let padPointer: number | null = null;
+
+  const pauseEl = part('pauseOverlay');
+  // メニュー（一時停止）の窓も、外の暗いところをクリックしたら閉じる
+  pauseEl.addEventListener('click', (e) => {
+    if (e.target === pauseEl) {
+      closePause();
+    }
+  });
+  /** 一時停止のボタンで止めている間は、画面全体を暗くして大きく知らせる（メニューや窓で止まっているときは出さない） */
+  // メニューの窓の中：いつもの選ぶところか、豆知識カードを読んでいるところか
+  let pauseView: PauseView = 'main';
+  // 新しいカードを手に入れたら、カードのボタンを光らせる（開くまで）
+  let cardsPulse = false;
+  const pauseMainHtml = () => {
+    const mode = callbacks.soundMode();
+    const sound = SOUND_MODES.map(
+      (m) =>
+        `<button class="${m === mode ? 'on' : ''}" data-action="soundMode" data-mode="${m}">${t(`sound.${m}`)}</button>`,
+    ).join('');
+    const lang = getLang();
+    const langs = (['en', 'ja'] as const)
+      .map(
+        (l) =>
+          `<button class="${l === lang ? 'on' : ''}" data-action="lang" data-lang="${l}">${t(l === 'en' ? 'hud.langEn' : 'hud.langJa')}</button>`,
+      )
+      .join('');
+    const count = callbacks.cardsCount();
+    return `
+      <div class="ui-menu-grid">
+        <button data-action="openDictionary"><span>${t('menu.dictionary')}</span></button>
+        <button data-action="pauseView" data-view="cards" class="${cardsPulse ? 'ui-cards-new' : ''}"><span>${t('menu.cards')}</span><small>${t('hud.cardsCount', count)}${cardsPulse ? ` <b class="ui-new">${t('menu.new')}</b>` : ''}</small></button>
+        <button data-action="pauseView" data-view="save"><span>${t('menu.save')}</span></button>
+        <button data-action="pauseView" data-view="data"><span>${t('menu.data')}</span></button>
+        <button class="ui-menu-title" data-action="backToTitle"><span>${t('save.backToTitle')}</span></button>
+      </div>
+      <div class="ui-menu-sound"><span>${t('menu.sound')}</span><span class="ui-row">${sound}</span></div>
+      <div class="ui-menu-sound"><span>${t('menu.language')}</span><span class="ui-row">${langs}</span></div>`;
+  };
+  // メニューの中で開いた先（カード・セーブ・データ）。「← メニューに戻る」で選ぶところへ
+  const pauseSubHtml = (view: Exclude<PauseView, 'main'>) => {
+    const body =
+      view === 'cards' ? callbacks.cardsHtml() : view === 'save' ? saveMenuHtml() : dataMenuHtml();
+    return `
+    <div class="ui-pause-save">
+      <button data-action="pauseView" data-view="main">${t('menu.back')}</button>
+      ${body}
+    </div>`;
+  };
+
+  const renderPauseOverlay = () => {
+    pauseEl.hidden = !userPaused;
+    pauseEl.innerHTML = userPaused
+      ? `<div class="ui-pause-card">
+          <div class="ui-pause-title">${t('pause.title')}</div>
+          <p>${t('pause.body')}</p>
+          <button class="primary ui-pause-resume" data-action="pause">${t('pause.resume')}</button>
+          ${pauseView === 'main' ? pauseMainHtml() : pauseSubHtml(pauseView)}
+        </div>`
+      : '';
+  };
+
+  const updatePause = () => {
+    const paused = userPaused || menu !== null || dialogs.length > 0;
+    if (paused !== lastPaused) {
+      lastPaused = paused;
+      callbacks.onPauseChange(paused);
+    }
+  };
+
+  const toast = (text: string, bad: boolean) => {
+    // 同じお知らせが出ているあいだは重ねない。並ぶのは TOAST_MAX まで（古いものから消す）
+    if ([...toastsEl.children].some((child) => child.innerHTML === text)) {
+      return;
+    }
+    while (toastsEl.children.length >= TOAST_MAX) {
+      toastsEl.firstElementChild?.remove();
+    }
+    const el = document.createElement('div');
+    el.className = bad ? 'ui-toast bad' : 'ui-toast';
+    el.innerHTML = text;
+    toastsEl.append(el);
+    window.setTimeout(() => el.remove(), TOAST_MS);
+  };
+
+  const optionsFor = (kind: FacilityKind): BuildOptions =>
+    kind === 'shield'
+      ? { dustCover: buildOptions.dustCover, shieldMaterial: buildOptions.shieldMaterial }
+      : { dustCover: buildOptions.dustCover };
+
+  const cartItems = (): LaunchItem[] =>
+    LAUNCH_ITEM_KINDS.filter((kind) => cart[kind] > 0).map((kind) => ({
+      kind,
+      quantity: cart[kind],
+    }));
+
+  // ---- 右上：メニューのボタンだけ（カード・セーブ・データ・ことばじてん・音・言語はこの中） ----
+  const renderTopButtons = () => {
+    topButtonsEl.innerHTML = `
+      <button data-action="pause" class="${userPaused ? 'on' : ''} ${cardsPulse && !userPaused ? 'ui-cards-new' : ''}">${t(userPaused ? 'hud.resume' : 'hud.pause')}</button>`;
+  };
+
+  // ---- 右上：日数・屋内外・通信 ----
+  const renderStatus = () => {
+    if (state === null || view === null) {
+      statusEl.hidden = true;
+      return;
+    }
+    statusEl.hidden = false;
+    const lines = [
+      `<div>${t('hud.day', { day: Math.floor(view.day) + 1 })} · ${t(state.player.indoors ? 'hud.indoors' : 'hud.outdoors')}</div>`,
+      `<div class="${view.comm.linked ? 'ui-ok' : 'ui-bad'}">${t(view.comm.linked ? 'hud.commLinked' : 'hud.commLost')}</div>`,
+      ...(view.comm.linked
+        ? []
+        : [`<div class="ui-hint">${t(`commHint.${commLostReason(state, view)}`)}</div>`]),
+      `<div class="ui-long">${t('hud.relays', { count: view.comm.relaySatellites })}</div>`,
+    ];
+    if (view.comm.unsentResearch > 0) {
+      lines.push(
+        `<div class="ui-long">${t('hud.unsentResearch', { amount: fmt(view.comm.unsentResearch, 1) })}</div>`,
+      );
+    }
+    if (state.activeEvents.length > 0) {
+      const hours = Math.max(...state.activeEvents.map((e) => e.endsAtHours)) - state.timeHours;
+      lines.push(`<div class="ui-bad">${t('hud.flareActive', stormLeft(hours))}</div>`);
+    }
+    if (state.phase === 'cleared') {
+      lines.push(`<div class="ui-ok">${t('hud.cleared')}</div>`);
+    }
+    if (lastPaused) {
+      lines.push(`<div class="ui-long">${t('hud.paused')}</div>`);
+    }
+    statusEl.classList.toggle('emergency', state.activeEvents.length > 0);
+    statusEl.innerHTML = lines.join('');
+  };
+
+  // ---- 左上：資源と発展度 ----
+  let lastLifeMin: number | null = null;
+  /** 生き延びられる日数がふえた瞬間に、数字を弾ませ「＋N日」を飛ばして、きらきらを散らす */
+  const celebrateLifeGain = (gainDays: number) => {
+    const value = hudTankEl.querySelector<HTMLElement>('.ui-gauge-life .ui-gauge-bar');
+    if (value === null) {
+      return;
+    }
+    value.classList.remove('ui-pop');
+    // 付け直して、もう一度弾ませる（ゲージは作り直さないので、終わったら外す）
+    void value.offsetWidth;
+    value.classList.add('ui-pop');
+    value.addEventListener('animationend', () => value.classList.remove('ui-pop'), { once: true });
+    const rect = value.getBoundingClientRect();
+    const pop = document.createElement('div');
+    pop.className = 'ui-gain';
+    pop.style.left = `${rect.left}px`;
+    pop.style.top = `${rect.top}px`;
+    pop.innerHTML = t('hud.lifeGain', { days: fmt(gainDays, 1) });
+    for (let i = 0; i < SPARKLES; i++) {
+      const sparkle = document.createElement('span');
+      sparkle.className = 'ui-sparkle';
+      sparkle.textContent = '✨';
+      sparkle.style.setProperty('--angle', `${(i / SPARKLES) * 360}deg`);
+      pop.append(sparkle);
+    }
+    root.append(pop);
+    window.setTimeout(() => pop.remove(), GAIN_MS);
+  };
+
+  /** 外にいられる残りの時間（ゲームの中の時間）。ボンベの残り × 宇宙服でいられる時間 */
+  const timeLeft = (tankRatio: number) => {
+    const minutes = Math.max(
+      0,
+      Math.floor(tankRatio * values.eva.maxHours.value * MINUTES_PER_HOUR),
+    );
+    return { hours: Math.floor(minutes / MINUTES_PER_HOUR), minutes: minutes % MINUTES_PER_HOUR };
+  };
+
+  /**
+   * 電気が足りずに止まっている機械。止まった機械は電気を使わないので、上の差し引きは「たまる」に見えることがある。
+   * そのずれで迷わないよう、止まっている数と、動かすのに要る電気を並べる
+   */
+  const stoppedForPowerHtml = (current: SimState, currentView: SimView) => {
+    const stopped = current.facilities.filter(
+      (f) => currentView.facilityStatus[f.id]?.reason === 'noPower',
+    );
+    if (stopped.length === 0) {
+      return '';
+    }
+    const needKw = stopped.reduce((sum, f) => sum + powerKw(f.kind, values), 0);
+    return `<div class="ui-bad">${t('hud.powerStopped', { count: stopped.length, kw: fmt(needKw, 1) })}</div>`;
+  };
+
+  /** くわしい数字（生命維持・電力・被ばく・発展度）。3D の画面ではくんれんの段だけで見せ、ふだんはインベントリ画面に出す */
+  const detailPanelsHtml = (current: SimState, currentView: SimView): string => {
+    const life = currentView.lifeSupportDays;
+    // sim は減らないときに上限（display.maxLifeSupportDays）を返すので、上限なら「減っていない」と出す
+    // 減っていないとき（sim は上限を返す）は、作るのが止まったらあと何日もつかを「（減らない）」と並べて出す
+    const forever = (days: number) => days >= values.display.maxLifeSupportDays.value;
+    const ifStopped = currentView.lifeSupportDaysIfStopped;
+    const daysText = (days: number, stopped: number) =>
+      forever(days)
+        ? t('hud.daysSteady', { days: fmt(stopped, 1) })
+        : t('hud.daysLeft', { days: fmt(days, 1) });
+    const breakdown = showBreakdown
+      ? `<div class="ui-breakdown">${LIFE_SUPPORT_KEYS.map(
+          (key) =>
+            `<div>${t('hud.breakdown', { name: t(`resource.${key}`), days: daysText(life[key], ifStopped[key]) })}</div>`,
+        ).join('')}</div>`
+      : `<div class="ui-small">${t('hud.tapForDetails')}</div>`;
+    const power = currentView.power;
+    const battery =
+      power.batteryCapacityKwh > 0
+        ? `<div class="ui-small">${t('hud.battery', {
+            stored: fmt(power.batteryKwh),
+            capacity: fmt(power.batteryCapacityKwh),
+          })}</div>${bar(power.batteryKwh / power.batteryCapacityKwh, '')}`
+        : `<div class="ui-small">${t('hud.noBattery')}</div>`;
+    const shielding = currentView.shielding;
+    const doseWarn = shielding.playerDoseMsv > shielding.doseLimitMsv * DOSE_WARN_RATIO;
+    const development = current.development;
+    const elementMax = values.development.elementMax.value;
+    return `
+      <div class="ui-panel ui-detail">
+        <div class="ui-stat ui-life" data-action="toggleBreakdown">
+          <span class="ui-label">${t('hud.lifeSupport')}</span>
+          <span class="ui-value ui-life-value ${life.min < LOW_DAYS ? 'ui-bad' : ''}">${daysText(life.min, ifStopped.min)}</span>
+          ${breakdown}
+        </div>
+        <div class="ui-stat ui-power">
+          <span class="ui-label">${t('hud.power')}</span>
+          <div><span class="ui-ok">${t('hud.powerGen', { kw: fmt(power.generationKw, 1) })}</span>　<span class="ui-bad">${t('hud.powerUse', { kw: fmt(power.consumptionKw, 1) })}</span></div>
+          ${powerNet(power.generationKw - power.consumptionKw)}
+          ${stoppedForPowerHtml(current, currentView)}
+          ${battery}
+        </div>
+        <div class="ui-stat">
+          <span class="ui-label">${t('hud.shielding')}</span>
+          <div class="${doseWarn ? 'ui-bad' : ''}">${t('hud.dose', {
+            dose: fmt(shielding.playerDoseMsv, 1),
+            limit: fmt(shielding.doseLimitMsv),
+          })}</div>
+          <div>${t('hud.protection', { pct: fmt(shielding.indoorProtection * PERCENT) })}</div>
+        </div>
+      </div>
+      <div class="ui-panel ui-detail ui-development">
+        <div class="ui-stat">
+          <span class="ui-label">${t('development.total')}</span>
+          <span class="ui-value">${fmt(development.total)}</span>
+        </div>
+        ${DEVELOPMENT_ELEMENTS.map(
+          (key) =>
+            `<div class="ui-small">${t(`development.${key}`)} <span class="ui-stars">${stars(development[key], elementMax)}</span></div>`,
+        ).join('')}
+      </div>`;
+  };
+
+  /**
+   * いつも見せるゲージ（アイコンと横のバー）：ボンベ・生命維持・電力・被ばく。数字は出さない。
+   * 色は ok（緑）・warn（黄）・danger（赤）。右の「？」にマウスを重ねるか押すと、今の数と意味を出す。
+   * HUD は時間が進むたびに描き直すので、ゲージは1回だけ作り、数・色・説明だけを変える（開いた説明が消えないように）
+   */
+  const tasksEl = document.createElement('div');
+  tasksEl.className = 'ui-contents';
+  const gaugesEl = document.createElement('div');
+  hudTankEl.append(tasksEl, gaugesEl);
+  let gaugesLang: string | null = null;
+  const buildGauges = () => {
+    gaugesEl.innerHTML = GAUGE_KEYS.map(
+      (key) => `<div class="ui-gauge ui-gauge-${key}" data-gauge="${key}">
+        <span class="ui-gauge-icon" aria-hidden="true">${t(`gauge.icon.${key}`)}</span>
+        <span class="ui-gauge-bar" role="meter" aria-label="${tPlain(`gauge.${key}`)}" aria-valuemin="0" aria-valuemax="100"><span></span></span>
+        <button type="button" class="ui-why" aria-label="${tPlain('gauge.whyLabel', { name: tPlain(`gauge.name.${key}`) })}">?</button>
+        <span class="ui-why-tip" role="tooltip"></span>
+      </div>`,
+    ).join('');
+    gaugesLang = getLang();
+  };
+  const gaugePart = (row: Element, selector: string): HTMLElement => {
+    const el = row.querySelector<HTMLElement>(selector);
+    if (el === null) {
+      throw new Error(`ゲージに ${selector} がない`);
+    }
+    return el;
+  };
+  const renderGauges = (current: SimState, currentView: SimView, tankLevel: GaugeLevel) => {
+    if (gaugesLang !== getLang()) {
+      buildGauges();
+    }
+    gaugesEl.className = `ui-panel ui-gauges ui-tank ui-tank-${tankLevel} ${current.player.indoors ? 'indoors' : ''}`;
+    const gauge = (key: GaugeKey, ratio: number, now: string, level: GaugeLevel) => {
+      const row = gaugesEl.querySelector(`[data-gauge="${key}"]`);
+      if (row === null) {
+        throw new Error(`ゲージ ${key} がない`);
+      }
+      const pct = Math.round(Math.min(1, Math.max(0, ratio)) * PERCENT);
+      row.className = `ui-gauge ui-gauge-${key} ui-gauge-${level}`;
+      const bar = gaugePart(row, '.ui-gauge-bar');
+      bar.setAttribute('aria-valuenow', String(pct));
+      gaugePart(bar, 'span').style.width = `${pct}%`;
+      // 説明：名前・今の数・意味（変わったときだけ書き換える）
+      const tip = gaugePart(row, '.ui-why-tip');
+      const html = `<b>${t(`gauge.name.${key}`)}</b><br>${now}<br>${t(`gauge.help.${key}`)}`;
+      if (tip.dataset.html !== html) {
+        tip.innerHTML = html;
+        tip.dataset.html = html;
+      }
+    };
+    // ボンベ：中では満タンに戻る。外では、あと何時間何分いられるか
+    const left = timeLeft(currentView.tankRatio);
+    gauge(
+      'tank',
+      currentView.tankRatio,
+      current.player.indoors
+        ? t('gauge.now.tankInside')
+        : t('gauge.now.tank', { hours: left.hours, minutes: left.minutes }),
+      current.player.indoors ? 'ok' : tankLevel,
+    );
+    // 生命維持：酸素・水・食料のうち、いちばん早くなくなるものが、あと何日もつか
+    const days = currentView.lifeSupportDays.min;
+    const steady = days >= values.display.maxLifeSupportDays.value;
+    gauge(
+      'life',
+      steady ? 1 : days / values.display.lifeGaugeFullDays.value,
+      steady ? t('gauge.now.lifeSteady') : t('gauge.now.life', { days: fmt(days) }),
+      days < LOW_DAYS ? 'danger' : days < LIFE_WARN_DAYS ? 'warn' : 'ok',
+    );
+    // 電力：蓄電池があればたまり具合。なければ、作る電気が使う電気にどれだけ足りているか
+    const power = currentView.power;
+    const net = power.generationKw - power.consumptionKw;
+    // 止まった機械は電気を使わないので、動かすのに要る分も足して「足りているか」を見る
+    const stoppedNeedKw = current.facilities
+      .filter((f) => currentView.facilityStatus[f.id]?.reason === 'noPower')
+      .reduce((sum, f) => sum + powerKw(f.kind, values), 0);
+    const demandKw = power.consumptionKw + stoppedNeedKw;
+    const powerRatio =
+      power.batteryCapacityKwh > 0
+        ? power.batteryKwh / power.batteryCapacityKwh
+        : demandKw > 0
+          ? power.generationKw / demandKw
+          : 1;
+    const trend = t(
+      Math.abs(net) < POWER_EVEN_KW
+        ? 'gauge.trend.even'
+        : net > 0
+          ? 'gauge.trend.up'
+          : 'gauge.trend.down',
+    );
+    gauge(
+      'power',
+      powerRatio,
+      power.batteryCapacityKwh > 0
+        ? t('gauge.now.power', { pct: fmt(powerRatio * PERCENT), trend })
+        : t('gauge.now.powerNoBattery', { pct: fmt(Math.min(1, powerRatio) * PERCENT), trend }),
+      stoppedNeedKw > 0 ? 'danger' : net < -POWER_EVEN_KW ? 'warn' : 'ok',
+    );
+    // 被ばく：これまでに浴びた量が、上限のどれだけか
+    const doseRatio = currentView.shielding.playerDoseMsv / currentView.shielding.doseLimitMsv;
+    gauge(
+      'dose',
+      doseRatio,
+      t('gauge.now.dose', {
+        msv: fmt(currentView.shielding.playerDoseMsv, 1),
+        limit: fmt(currentView.shielding.doseLimitMsv),
+        pct: fmt(doseRatio * PERCENT),
+      }),
+      doseRatio >= DOSE_DANGER_RATIO ? 'danger' : doseRatio >= DOSE_WARN_RATIO ? 'warn' : 'ok',
+    );
+  };
+
+  const renderHud = () => {
+    if (state === null || view === null) {
+      hudEl.innerHTML = '';
+      tasksEl.innerHTML = '';
+      gaugesEl.hidden = true;
+      return;
+    }
+    const life = view.lifeSupportDays;
+    const tankLevel: GaugeLevel =
+      view.tankRatio < values.advice.tankLowRatio.value
+        ? 'danger'
+        : view.tankRatio < TANK_WARN_RATIO
+          ? 'warn'
+          : 'ok';
+    tasksEl.innerHTML = `
+      ${
+        !state.player.indoors && taskList.length > 0
+          ? `<div class="ui-panel ui-tasks"><div class="ui-label">${t('tasks.today')}</div>${taskList
+              .map(
+                (task) =>
+                  `<div class="${task.done ? 'ui-ok' : ''}">${task.done ? '✅' : '⬜'} ${task.label}</div>`,
+              )
+              .join('')}</div>`
+          : ''
+      }`;
+    gaugesEl.hidden = false;
+    renderGauges(state, view, tankLevel);
+    hudEl.innerHTML = detailPanelsHtml(state, view);
+    const maxDays = values.display.maxLifeSupportDays.value;
+    if (
+      lastLifeMin !== null &&
+      life.min < maxDays &&
+      life.min - lastLifeMin >= LIFE_GAIN_POP_DAYS
+    ) {
+      celebrateLifeGain(life.min - lastLifeMin);
+    }
+    lastLifeMin = life.min;
+  };
+
+  // ---- 右下：メニューとその場の行動 ----
+  const renderButtons = () => {
+    const contextHtml = contextActions
+      .map((action, index) => {
+        const label = t(`action.${action}`);
+        return index === 0
+          ? `<button data-action="context" data-context="${action}" class="primary">${isTouch ? label : t('action.withKey', { label })}</button>`
+          : `<button data-action="context" data-context="${action}">${label}</button>`;
+      })
+      .join('');
+    buttonsEl.innerHTML = `
+      <div class="ui-row ui-context">${contextHtml}</div>
+      <div class="ui-row">
+        ${MENUS.map(
+          (menuKind) =>
+            `<button class="ui-menu-button" data-action="menu" data-menu="${menuKind}"><span class="ui-menu-icon">${t(`button.icon.${menuKind}`)}</span><span>${t(isTouch ? `button.short.${menuKind}` : `button.${menuKind}`)}</span></button>`,
+        ).join('')}
+      </div>
+`;
+  };
+
+  // ---- 下中央：置く場所を選んでいる間 ----
+  const renderBuildBar = () => {
+    if (buildMode === null) {
+      buildbarEl.hidden = true;
+      buildbarEl.innerHTML = '';
+      return;
+    }
+    const { kind, placement } = buildMode;
+    const reason = placement.reason === null ? '' : t(`placement.${placement.reason}`);
+    let status: string;
+    if (!placement.allowed) {
+      status = `<div class="ui-bad">${t('build.blocked', { reason })}</div>`;
+    } else if (placement.works) {
+      status = `<div class="ui-ok">${t('build.good')}</div>`;
+    } else {
+      status = `<div>${t('build.warn', { reason })}</div>`;
+    }
+    buildbarEl.hidden = false;
+    buildbarEl.innerHTML = `
+      <div class="ui-fac-item">${facilityIconHtml(kind)}<b>${t('build.placing', { name: t(`facility.${kind}`) })}</b></div>
+      ${status}
+      <div class="ui-small ui-buildhint">${t(isTouch ? 'build.hint.touch' : 'build.hint.mouse')}</div>
+      <div class="ui-row">
+        <button data-action="buildConfirm" class="primary" ${placement.allowed ? '' : 'disabled'}>${t(isTouch ? 'build.place.touch' : 'build.place')}</button>
+        <button data-action="buildCancel">${t(isTouch ? 'build.cancel.touch' : 'build.cancel')}</button>
+      </div>`;
+  };
+
+  // ---- メニュー ----
+  const buildMenuHtml = (current: SimState) => {
+    const items = FACILITY_KINDS.map((kind) => {
+      const cost = buildCost(kind, optionsFor(kind), values);
+      const affordable = cost.materials <= current.stocks.materials;
+      if (kind === 'shield') {
+        // 遮蔽の壁は、材料（レゴリスか水）を選んでから建てる。選ぶところを壁の枠の中にまとめる
+        const shield = values.facilities.shield;
+        const options = SHIELD_MATERIALS.map((material) => {
+          const materialCost = buildCost(
+            kind,
+            { ...optionsFor(kind), shieldMaterial: material },
+            values,
+          );
+          const need =
+            material === 'water'
+              ? t('build.materialNeed.water', {
+                  materials: fmt(materialCost.materials),
+                  water: fmt(shield.waterKg.value),
+                })
+              : t('build.cost', { materials: fmt(materialCost.materials) });
+          const protection =
+            material === 'water' ? shield.waterProtection.value : shield.regolithProtection.value;
+          return `<button class="ui-material ${buildOptions.shieldMaterial === material ? 'on' : ''}" data-action="shieldMaterial" data-material="${material}">
+            <b>${t(`build.material.${material}`)}</b>
+            <span>${need}</span>
+            <span class="ui-ok">${t('build.materialProtect', { pct: fmt(protection * PERCENT) })}</span>
+          </button>`;
+        }).join('');
+        return `<li class="ui-shield-card">
+          <button class="ui-item ui-fac-item ${affordable && buildAllowed(kind) ? '' : 'dim'}" data-action="buildSelect" data-kind="${kind}" ${buildLockAttr(kind)}>
+            ${facilityIconHtml(kind)}
+            <span class="ui-grow"><b>${t('build.shieldWith', { material: t(`build.material.${buildOptions.shieldMaterial}`) })}</b> — ${t('build.cost', { materials: fmt(cost.materials) })}
+            <small>${t(`facilityDesc.${kind}`)}</small></span>
+          </button>
+          <div class="ui-material-pick">
+            <div class="ui-material-title">${t('build.materialPick')}</div>
+            <div class="ui-material-options">${options}</div>
+            <small>${t(`build.materialDesc.${buildOptions.shieldMaterial}`)}</small>
+          </div>
+        </li>`;
+      }
+      return `<li>
+        <button class="ui-item ui-fac-item ${affordable && buildAllowed(kind) ? '' : 'dim'}" data-action="buildSelect" data-kind="${kind}" ${buildLockAttr(kind)}>
+          ${facilityIconHtml(kind)}
+          <span class="ui-grow"><b>${t(`facility.${kind}`)}</b> — ${t('build.cost', { materials: fmt(cost.materials) })}
+          <small>${t(`facilityDesc.${kind}`)}</small></span>
+        </button>
+      </li>`;
+    }).join('');
+    return `
+      <h2>${t('build.title')}</h2>
+      <p>${t('build.have', { materials: fmt(current.stocks.materials) })}</p>
+      <button data-action="dustCover" class="${buildOptions.dustCover ? 'on' : ''}">${t(
+        'build.dustCover',
+        {
+          state: t(buildOptions.dustCover ? 'common.on' : 'common.off'),
+        },
+      )}</button>
+      <small>${t('build.dustCoverDesc')}</small>
+      <ul class="ui-list">${items}</ul>`;
+  };
+
+  const launchMenuHtml = (current: SimView) => {
+    const items = cartItems();
+    const used = items.reduce((sum, item) => sum + launchItemCost(item, values), 0);
+    const capacity = current.launch.capacity;
+    const over = used > capacity;
+    const reasons: string[] = [];
+    // 今は注文できない理由（通信、次のロケット待ち）は、開いてすぐ見えるよう上に出す
+    const blockers: string[] = [];
+    if (!current.comm.linked) {
+      if (state === null) {
+        throw new Error('ui: state がないのに打ち上げメニューを描こうとした');
+      }
+      // できなかった理由から、やることまでを1本のつながりで見せる
+      blockers.push(t(`launch.noLinkChain.${commLostReason(state, current)}`));
+    }
+    if (current.launch.tasksDone < current.launch.tasksNeeded) {
+      blockers.push(
+        t('launch.needTasks', { count: current.launch.tasksNeeded - current.launch.tasksDone }),
+      );
+    }
+    if (current.launch.hoursUntilNext > 0) {
+      blockers.push(
+        t('launch.notYet', { days: fmt(current.launch.hoursUntilNext / HOURS_PER_DAY, 1) }),
+      );
+    }
+    if (over) {
+      reasons.push(t('launch.overCapacity'));
+    }
+    if (items.length === 0) {
+      reasons.push(t('launch.empty'));
+    }
+    const canOrder = current.launch.canOrderNow && !over && items.length > 0;
+    // 新しい隊員は、居住モジュール1つに1人。届く前の隊員と、カートに入れた分も数える
+    if (state === null) {
+      throw new Error('ui: state がないのに補給の窓を描こうとした');
+    }
+    const crewOnTheWay = state.launches
+      .flatMap((launch) => launch.items)
+      .filter((item) => item.kind === 'crew')
+      .reduce((sum, item) => sum + item.quantity, 0);
+    const crewRoom = current.crew.capacity - current.crew.count - crewOnTheWay - cart.crew;
+    const rows = LAUNCH_ITEM_KINDS.map((kind) => {
+      // ＋を1回押したときに増える数と、それがロケットの場所をどれだけ使うか
+      const step = BULK_LAUNCH_ITEMS.includes(kind) ? values.launch.bulkOrderStep.value : 1;
+      const stepCost = launchItemCost({ kind, quantity: step }, values);
+      // 量は名前のかっこの中に（＋1回で増える量）。横には、それが使うロケットの場所だけを出す
+      const nameText = BULK_LAUNCH_ITEMS.includes(kind)
+        ? t('launch.itemAmount', { name: t(`launchItem.${kind}`), step: fmt(step) })
+        : t(`launchItem.${kind}`);
+      const costText = t('launch.stepCostOne', { cost: fmt(stepCost) });
+      // 何に使うかは「？」にのせる（マウスを重ねるか、タップして出す）
+      const why = `<button type="button" class="ui-why" aria-label="${tPlain('launch.whyLabel')}">?</button><span class="ui-why-tip" role="tooltip">${t(`launchItemWhy.${kind}`)}</span>`;
+      const noRoom = kind === 'crew' && crewRoom <= 0;
+      const roomNote =
+        kind === 'crew'
+          ? `<small class="${noRoom && cart.crew === 0 ? 'ui-bad' : 'ui-ok'}">${noRoom ? t(cart.crew > 0 ? 'launch.crewFull' : 'launch.crewNoRoom') : t('launch.crewRoom', { count: crewRoom })}</small>`
+          : '';
+      // 名前と −/＋ を1つのわくに入れ、どの数を増やすのかが分かるようにする
+      return `<li class="ui-supply-row${cart[kind] > 0 ? ' picked' : ''}">
+        <span class="ui-grow"><b>${nameText}</b>${why} <span class="ui-small ui-cost">${costText}</span>${roomNote}</span>
+        <span class="ui-stepper">
+          <button data-action="cart" data-kind="${kind}" data-delta="-1" aria-label="${tPlain(`launchItem.${kind}`)} −">−</button>
+          <span class="ui-qty">${cart[kind] / step}</span>
+          <button data-action="cart" data-kind="${kind}" data-delta="1" aria-label="${tPlain(`launchItem.${kind}`)} ＋" ${noRoom ? 'disabled' : orderAllowed(kind) ? '' : 'aria-disabled="true" data-locked="tutorial.order"'}>＋</button>
+        </span>
+      </li>`;
+    }).join('');
+    const meterRatio = capacity > 0 ? Math.min(1, used / capacity) : 1;
+    const inFlight = current.launch.inFlight
+      .map(
+        (launch) =>
+          `<div class="ui-small">${t('launch.inFlight', { days: fmt(launch.hoursUntilArrival / HOURS_PER_DAY, 1) })}</div>`,
+      )
+      .join('');
+    if (rest?.queuedOrder != null) {
+      const list = rest.queuedOrder
+        .map((item) => {
+          const step = BULK_LAUNCH_ITEMS.includes(item.kind)
+            ? values.launch.bulkOrderStep.value
+            : 1;
+          const name = BULK_LAUNCH_ITEMS.includes(item.kind)
+            ? t('launch.itemAmount', { name: t(`launchItem.${item.kind}`), step: fmt(step) })
+            : t(`launchItem.${item.kind}`);
+          return `<li>${name} × ${fmt(item.quantity / step)}</li>`;
+        })
+        .join('');
+      return `
+        <h2>${t('launch.title')}</h2>
+        <div class="ui-queued">
+          <p><b>${t('launch.queued')}</b></p>
+          <ul>${list}</ul>
+          <p class="ui-small">${t('launch.queuedNote')}</p>
+          <button data-action="cancelOrder">${t('launch.cancel')}</button>
+        </div>`;
+    }
+    return `
+      <h2>${t('launch.title')}</h2>
+      ${current.launch.inFlight.length > 0 ? `<div class="route-panel">${routeSvg(current.launch, true)}</div>` : ''}
+      ${blockers.length > 0 ? `<div class="ui-blocker">${blockers.map((b) => `<div>${b}</div>`).join('')}</div>` : ''}
+      <div class="ui-meter"><div class="${over ? 'over' : ''}" style="width:${fmt(meterRatio * PERCENT)}%"></div></div>
+      <div>${t('launch.meter', { used: fmt(used), capacity: fmt(capacity) })}</div>
+      <div class="ui-small">${t('launch.delivery', { days: fmt(current.launch.deliveryHours / HOURS_PER_DAY) })}</div>
+      <div class="ui-small ${current.launch.tasksDone >= current.launch.tasksNeeded ? 'ui-ok' : ''}">${t('launch.reports', { done: Math.min(current.launch.tasksDone, current.launch.tasksNeeded), need: current.launch.tasksNeeded })}</div>
+      <ul class="ui-list">${rows}</ul>
+      ${inFlight}
+      ${reasons.map((reason) => `<div class="ui-small ui-bad">${reason}</div>`).join('')}
+      <div class="ui-actions">
+        <button data-action="order" class="primary" ${
+          !canOrder
+            ? 'disabled'
+            : tutorialLimits.orderRequires !== null && cart[tutorialLimits.orderRequires] === 0
+              ? `aria-disabled="true" data-locked="tutorial.orderRequires"`
+              : ''
+        }>${t('launch.order')}</button>
+      </div>`;
+  };
+
+  const crewMenuHtml = (current: SimState, currentView: SimView) => {
+    let number = 0;
+    const rows = current.crew
+      .map((member) => {
+        if (member.isPlayer) {
+          return `<li><span class="ui-grow"><b>${t('crew.you')}</b><small>${t('crew.youDesc')}</small></span></li>`;
+        }
+        number += 1;
+        const task = assigned.get(member.id) ?? member.task;
+        const buttons = CREW_TASKS.map(
+          (option) =>
+            `<button data-action="assign" data-crew="${esc(member.id)}" data-task="${option}" class="${task === option ? 'on' : ''}">${t(`crewTask.${option}`)}</button>`,
+        ).join('');
+        return `<li><span class="ui-grow"><b>${t('crew.member', { number })}</b></span>${buttons}</li>`;
+      })
+      .join('');
+    const descriptions = CREW_TASKS.map(
+      (task) =>
+        `<div class="ui-small"><b>${t(`crewTask.${task}`)}</b>: ${t(`crewTaskDesc.${task}`)}</div>`,
+    ).join('');
+    return `
+      <h2>${t('crew.title')}</h2>
+      <p>${t('crew.beds', { count: currentView.crew.count, capacity: currentView.crew.capacity })}</p>
+      <ul class="ui-list">${rows}</ul>
+      ${descriptions}`;
+  };
+
+  /** 嵐の残りの時間を、ゲームの中の時間と、外にいるときの本当の秒数で */
+  const stormLeft = (hours: number) => ({
+    hours: fmt(Math.ceil(hours)),
+    seconds: fmt(Math.ceil(hours * values.time.evaSecondsPerHour.value)),
+  });
+
+  /** 待つと失う時間と、外にいると浴びる量を並べて、退避するかを決める手がかりにする */
+  const stormChoiceHtml = (event: ActiveEvent) => {
+    if (state === null || view === null) {
+      throw new Error('ui: state がないのに嵐の警報を描こうとした');
+    }
+    const hours = event.endsAtHours - state.timeHours;
+    const outside = outdoorDoseMsvPerHour([event], values) * hours;
+    const inside = outside * (1 - view.shielding.indoorProtection);
+    const { playerDoseMsv, doseLimitMsv } = view.shielding;
+    const over = playerDoseMsv + outside >= doseLimitMsv;
+    return `
+      <ul class="ui-storm">
+        <li><b>${t('flare.duration', stormLeft(hours))}</b></li>
+        <li>${t('flare.waitInside', { dose: fmt(inside, 1) })}</li>
+        <li>${t('flare.stayOutside', { dose: fmt(outside, 1), now: fmt(playerDoseMsv, 1), limit: fmt(doseLimitMsv) })}</li>
+      </ul>
+      <p class="${over ? 'ui-bad' : 'ui-small'}">${t(over ? 'flare.overLimit' : 'flare.underLimit')}</p>`;
+  };
+
+  // ---- 説明の窓 ----
+  // 太陽フレアの警報に出す NASA の写真（main が setNasaImages で渡す）
+  let nasaImages: NasaImages = {};
+  const flareHtml = (event: ActiveEvent, donki: DonkiEvent | null) => {
+    let source: string;
+    if (event.source === 'archived') {
+      if (donki === null) {
+        throw new Error(`過去のイベントの DONKI の記録がない: ${event.donkiId}`);
+      }
+      source = `${t('flare.archived', { date: donki.eventTime.slice(0, ISO_DATE_LENGTH) })}
+        <a href="${esc(donki.link)}" target="_blank" rel="noopener noreferrer">${t('flare.sourceLink')}</a>`;
+    } else {
+      source = t('flare.live');
+    }
+    return `
+      <h2>${t(`flare.title.${event.kind}`)}</h2>
+      <p>${t(`flare.explain.${event.kind}`)}</p>
+      ${nasaImages.flare === undefined ? '' : photoFigureHtml(nasaImages.flare)}
+      <p><b>${t('flare.class', { value: esc(event.classOrIntensity) })}</b></p>
+      <p class="ui-small">${source}</p>
+      <p>${t('flare.hint')}</p>
+      ${stormChoiceHtml(event)}
+      <div class="ui-actions">
+        <button data-action="flare" data-choice="continue">${t('flare.continue')}</button>
+        <button data-action="flare" data-choice="shelter" class="primary">${t('flare.shelter')}</button>
+      </div>`;
+  };
+
+  /** 「翌日へ」で寝ている間に起きたこと（物資の増減、ロケットの到着、宇宙天気） */
+  const morningHtml = (summary: MorningSummary) => {
+    const rows = summary.stockChanges
+      .map(
+        (change) =>
+          `<li><span class="ui-grow">${t(`launchItem.${change.kind}`)}</span><b class="${change.delta >= 0 ? 'ui-ok' : 'ui-bad'}">${change.delta >= 0 ? '+' : ''}${fmt(change.delta, 1)}</b></li>`,
+      )
+      .join('');
+    const weather = summary.spaceWeather
+      .map(
+        (event) =>
+          `<p class="ui-small">${t(`morning.spaceWeather.${event.kind}`, { cls: esc(event.classOrIntensity) })}</p>`,
+      )
+      .join('');
+    return `
+      <h2>${t('morning.title', { day: summary.day + 1 })}</h2>
+      <p>${t('morning.lead')}</p>
+      ${rows === '' ? '' : `<ul class="ui-list">${rows}</ul>`}
+      ${summary.arrived > 0 ? `<p class="ui-ok">${t('morning.arrived')}</p>` : ''}
+      ${summary.newlyShaded > 0 ? `<p class="ui-warn">${t('morning.shaded', { count: summary.newlyShaded })}</p>` : ''}
+      ${summary.newlyLit > 0 ? `<p class="ui-ok">${t('morning.lit', { count: summary.newlyLit })}</p>` : ''}
+      ${weather}
+      <div class="ui-actions"><button data-action="dialogOk" class="primary">${t('morning.ok')}</button></div>`;
+  };
+
+  const dialogHtml = (dialog: Dialog): string => {
+    switch (dialog.type) {
+      case 'flare':
+        return flareHtml(dialog.event, dialog.donki);
+      case 'downed':
+        return `
+          <h2>${t('downed.title')}</h2>
+          ${professorDeathAdviceHtml(dialog.advice)}
+          <p>${t('downed.wake')}</p>
+          <div class="ui-actions"><button data-action="dialogOk" class="primary">${t('button.ok')}</button></div>`;
+      case 'cleared':
+        return `
+          <h2>${t('cleared.title')}</h2>
+          <p>${t('cleared.body', { value: fmt(dialog.total) })}</p>
+          <p>${t('cleared.next')}</p>
+          <div class="ui-actions"><button data-action="dialogOk" class="primary">${t('cleared.continue')}</button></div>`;
+      case 'morning':
+        return morningHtml(dialog.summary);
+      case 'gameOver': {
+        const kind = dialog.advice.kind;
+        // 宇宙飛行士が倒れた（ボンベ・放射線）か、基地の物資が尽きたか
+        const playerDown = kind === 'tankEmpty' || kind === 'radiation';
+        return `
+          <h2>${t(playerDown ? 'gameOver.playerTitle' : 'gameOver.title')}</h2>
+          <p>${playerDown ? t(`gameOver.player.${kind}`) : t('gameOver.reason', { resource: t(`resource.${kind}`) })}</p>
+          ${professorDeathAdviceHtml(dialog.advice)}
+          ${saves.length > 0 ? `<p>${t('gameOver.resumeFrom')}</p>${saveListHtml()}` : ''}
+          <div class="ui-actions"><button data-action="restart" class="primary">${t('gameOver.restart')}</button></div>`;
+      }
+    }
+  };
+
+  // ---- セーブ ----
+  const saveSummaryText = (save: SaveSummary) =>
+    t('save.summary', { day: Math.floor(save.day) + 1, development: fmt(save.developmentTotal) });
+
+  const saveListHtml = () => {
+    if (saves.length === 0) {
+      return `<p class="ui-small">${t('save.none')}</p>`;
+    }
+    const rows = saves
+      .map(
+        (save) => `<li>
+          <span class="ui-grow"><b>${t(save.kind === 'auto' ? 'save.auto' : 'save.manual')}</b> ${saveSummaryText(save)}</span>
+          <button data-action="load" data-save="${esc(save.id)}">${t('save.resume')}</button>
+        </li>`,
+      )
+      .join('');
+    return `<ul class="ui-list">${rows}</ul>`;
+  };
+
+  const saveMenuHtml = () => {
+    const slots = Array.from({ length: values.save.manualSlots.value }, (_, slot) => {
+      const current = saves.find((save) => save.kind === 'manual' && save.slot === slot);
+      return `<li>
+        <span class="ui-grow"><b>${t('save.slot', { number: slot + 1 })}</b> ${current === undefined ? t('save.empty') : saveSummaryText(current)}</span>
+        <button data-action="save" data-slot="${slot}">${t('save.saveHere')}</button>
+      </li>`;
+    }).join('');
+    return `
+      <h2>${t('save.title')}</h2>
+      <p class="ui-small">${t('save.autoNote', { days: values.save.autoSaveDays.value })}</p>
+      <h3>${t('save.manualTitle')}</h3>
+      <ul class="ui-list">${slots}</ul>
+      <h3>${t('save.listTitle')}</h3>
+      ${saveListHtml()}`;
+  };
+
+  // ---- データ出典 ----
+  const dataMenuHtml = () => {
+    const events = donkiEvents
+      .map(
+        (event) => `<li>
+          <span class="ui-grow"><b>${t(`data.kind.${event.kind}`)}</b> ${t('data.eventLine', {
+            strength: esc(event.classOrIntensity),
+            date: event.eventTime.slice(0, ISO_DATE_LENGTH),
+          })}</span>
+          <a href="${esc(event.link)}" target="_blank" rel="noopener noreferrer">${t('data.donkiLink')}</a>
+        </li>`,
+      )
+      .join('');
+    const collected = collectValueSources(values);
+    const sources = collected.sources
+      .map(
+        ({ source, url }) =>
+          `<li>${url === undefined ? esc(source) : `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(source)}</a>`}</li>`,
+      )
+      .join('');
+    return `
+      <h2>${t('data.title')}</h2>
+      <h3>${t('data.spaceWeather')}</h3>
+      <p class="ui-small">${t('data.spaceWeatherNote')}</p>
+      <ul class="ui-list">${events}</ul>
+      <h3>${t('source.title')}</h3>
+      ${SOURCE_SECTIONS.map((section) => `<h4>${t(`source.section.${section}`)}</h4>${sourceListHtml(values, section)}`).join('')}
+      <h3>${t('data.values')}</h3>
+      <ul class="ui-list">${sources}</ul>
+      <p class="ui-small">${t('data.valuesGameTuning', { count: fmt(collected.gameTuning) })}</p>
+      <h3>${t('data.terrainTitle')}</h3>
+      ${
+        terrainSource === null
+          ? ''
+          : `<p class="ui-small">${t('data.terrain', {
+              name: esc(terrainSource.name),
+              crop: fmt(terrainSource.cropMeters),
+              scale: fmt(terrainSource.scale),
+            })}</p>
+      <ul class="ui-list"><li><a href="${esc(terrainSource.url)}" target="_blank" rel="noopener noreferrer">${esc(terrainSource.source)}</a></li><li class="ui-small">${esc(terrainSource.citation)}</li></ul>`
+      }`;
+  };
+
+  // ---- 休息フェーズの2D画面（ノート） ----
+  const researchHtml = (current: SimState, currentView: SimView) => {
+    const today = current.history[current.history.length - 1];
+    return `
+      <h2>${t('research.title')}</h2>
+      <p>${t('research.body')}</p>
+      <ul class="nb-stats">
+        <li><span>${t('research.researchers')}</span><b>${fmt(currentView.crew.byTask.research)}</b></li>
+        <li><span>${t('research.today')}</span><b>${fmt(today?.research ?? 0, 1)}</b></li>
+        <li><span>${t('research.unsent')}</span><b class="${currentView.comm.unsentResearch > 0 ? 'ui-bad' : ''}">${fmt(currentView.comm.unsentResearch, 1)}</b></li>
+        <li><span>${t('research.comm')}</span><b class="${currentView.comm.linked ? 'ui-ok' : 'ui-bad'}">${t(currentView.comm.linked ? 'hud.commLinked' : 'hud.commLost')}</b></li>
+      </ul>
+      <p class="ui-small">${t('research.note')}</p>`;
+  };
+
+  /**
+   * 地球管制からの通信（話せない日は基地の端末）。メイン画面に相手が映り、吹き出しで話す。
+   * ねぎらい・今日の一言・基地の変化・危ないこと（赤）・★と変わったわけ・明日への一言（緑）
+   */
+  const commHtml = (info: RestInfo) => {
+    const r = info.report;
+    const stars = r.stars
+      .map(
+        (s) =>
+          `<span class="nb-comm-star"><span>${s.label}</span><b>${'★'.repeat(s.stars)}${'☆'.repeat(STAR_COUNT - s.stars)}</b></span>`,
+      )
+      .join('');
+    const bubbles = [
+      ...(r.lead === null ? [] : [`<div class="cr-bubble cr-bubble-note">${r.lead}</div>`]),
+      ...(r.greeting === null
+        ? []
+        : [`<div class="cr-bubble cr-bubble-greet">${r.greeting}</div>`]),
+      ...r.lines.map((line) => `<div class="cr-bubble">${line}</div>`),
+      ...r.dangers.map((line) => `<div class="cr-bubble cr-bubble-danger">${line}</div>`),
+      `<div class="cr-bubble"><div class="nb-comm-stars">${stars}</div>${r.starChanges.map((line) => `<p class="nb-comm-starline">${line}</p>`).join('')}</div>`,
+      `<div class="cr-bubble cr-bubble-tomorrow">${r.tomorrow}<p class="ui-small">${r.tomorrowTasks}</p></div>`,
+      ...(info.queuedOrder === null
+        ? []
+        : [`<div class="cr-bubble cr-bubble-note ui-ok">${t('comm.queued')}</div>`]),
+      ...(r.tip === null ? [] : [`<div class="cr-bubble cr-bubble-note">${r.tip}</div>`]),
+    ]
+      // 届いたときは、吹き出しを1つずつ順に出す（--i が順番）
+      .map((bubble, i) => bubble.replace('class="cr-bubble', `style="--i:${i}" class="cr-bubble`))
+      .join('');
+    return `
+      <div class="cr-call ${r.linked ? '' : 'cr-call-terminal'}">
+        <div class="cr-caller">
+          <div class="cr-avatar">${r.linked ? CONTROLLER_SVG : TERMINAL_SVG}</div>
+          <div class="cr-caller-name">${r.from}</div>
+          <div class="cr-signal">${t(r.linked ? 'cr.receiving' : 'cr.offline')}</div>
+        </div>
+        <div class="cr-bubbles">${bubbles}</div>
+      </div>`;
+  };
+
+  /**
+   * 管制室の左右の小さな画面。数字を読まなくても分かるように、ゲージと記号だけにする（くわしい数字は管制モニター）。
+   * 左：基地の物資（あと何日もつか）と電力
+   */
+  const controlScreensLeft = (currentView: SimView) => {
+    const full = values.development.stabilityFullSupplyDays.value;
+    const low = values.advice.lifeSupportLowDays.value;
+    const supplies = LIFE_SUPPORT_KEYS.map((key) => {
+      const days = currentView.lifeSupportDays[key];
+      return `<div class="cr-gauge ${days < low ? 'cr-danger' : ''}" title="${esc(tPlain('cr.daysLeft', { days: days >= full ? `${full}+` : fmt(days, 1) }))}">
+        <span>${t(`launchItem.${key}`)}</span>${bar(days / full, 'cr-bar')}</div>`;
+    }).join('');
+    const p = currentView.power;
+    const battery = p.batteryCapacityKwh > 0 ? p.batteryKwh / p.batteryCapacityKwh : 0;
+    const net = p.generationKw - p.consumptionKw;
+    return `
+      <div class="cr-screen cr-deco" aria-hidden="true"><div class="cr-screen-title">${t('cr.signal')}</div>
+        <svg class="cr-wave" viewBox="0 0 160 40"><polyline points="0,20 10,20 16,8 22,32 28,20 50,20 56,12 62,28 68,20 90,20 96,6 102,34 108,20 130,20 136,14 142,26 148,20 160,20" fill="none" stroke="#7dff9a" stroke-width="2"/></svg></div>
+      <div class="cr-screen cr-screen-tall"><div class="cr-screen-title">${t('cr.supplies')}</div>${supplies}</div>
+      <div class="cr-screen"><div class="cr-screen-title">${t('cr.power')} <b class="${net >= 0 ? 'ui-ok' : 'ui-bad'}">${net >= 0 ? '▲' : '▼'}</b></div>
+        <div class="cr-gauge"><span>${t('cr.battery')}</span>${bar(battery, 'cr-bar')}</div></div>
+      <div class="cr-screen"><div class="cr-screen-title">${t('cr.crew')}</div>
+        <div class="cr-crew">${'🧑‍🚀'.repeat(currentView.crew.count)}</div></div>`;
+  };
+
+  /** 右：今日の行動と、ロケット（飛んでいるか、注文できるか）と、地球との通信。左と同じ5段の高さにそろえる */
+  const controlScreensRight = (currentView: SimView, today: readonly string[]) => {
+    const l = currentView.launch;
+    const flying = [...l.inFlight].sort((a, b) => a.hoursUntilArrival - b.hoursUntilArrival)[0];
+    const toDays = (hours: number) => Math.max(1, Math.ceil(hours / HOURS_PER_DAY));
+    const rocket =
+      flying !== undefined
+        ? t('cr.rocket.flying', { days: toDays(flying.hoursUntilArrival) })
+        : l.canOrderNow
+          ? t('cr.rocket.canOrder')
+          : l.tasksDone < l.tasksNeeded && l.hoursUntilNext <= 0
+            ? t('cr.rocket.needTasks', { count: l.tasksNeeded - l.tasksDone })
+            : t('cr.rocket.wait', { days: toDays(l.hoursUntilNext) });
+    const linked = currentView.comm.linked;
+    return `
+      <div class="cr-screen cr-screen-tall"><div class="cr-screen-title">${t('cr.today')}</div>
+        <ul class="cr-today">${today.map((line) => `<li>${line}</li>`).join('')}</ul></div>
+      <div class="cr-screen cr-screen-tall"><div class="cr-screen-title">${t('cr.rocket')}</div>
+        ${routeSvg(l, true, true, MONITOR_ROCKET_SCALE)}<div class="ui-small">${rocket}</div></div>
+      <div class="cr-screen ${linked ? '' : 'cr-danger'}"><div class="cr-screen-title">${t('cr.earth')}</div>
+        <div class="cr-big">${linked ? '🌍' : '📵'}</div><div class="ui-small">${t(linked ? 'hud.commLinked' : 'hud.commLost')}</div></div>`;
+  };
+
+  /** 管制モニター：隊員の係・明日のタスク・くわしい様子を、見たいときだけ開く */
+  const monitorHtml = () => `
+    <h2>${t('monitor.title')}</h2>
+    <p class="ui-small">${t('monitor.lead')}</p>
+    <div class="nb-monitor">
+      ${MONITOR_VIEWS.map((v) => `<button data-action="nightView" data-view="${v}">${t(`monitor.${v}`)}</button>`).join('')}
+    </div>`;
+
+  const detailsHtml = (current: SimState, currentView: SimView) => `
+    ${inventoryHtml(current, currentView)}
+    ${researchHtml(current, currentView)}`;
+
+  /** インベントリ画面（くわしい様子）：くわしい数字、物資の量、基地の様子（docs/SPEC.md ステップ16） */
+  const inventoryHtml = (current: SimState, currentView: SimView) => {
+    const stocks = INVENTORY_STOCKS.map(
+      (kind) =>
+        `<li><span>${t(`launchItem.${kind}`)}</span><b>${fmt(current.stocks[kind], kind === 'spareParts' ? 1 : 0)}${kind === 'spareParts' ? '' : ' kg'}</b></li>`,
+    ).join('');
+    const commLine = currentView.comm.linked
+      ? `<b class="ui-ok">${t('hud.commLinked')}</b>`
+      : `<b class="ui-bad">${t('hud.commLost')}</b>`;
+    return `
+      <h2>${t('inventory.title')}</h2>
+      <div class="nb-inv">
+        ${detailPanelsHtml(current, currentView)}
+        <div class="ui-panel">
+          <span class="ui-label">${t('inventory.stocks')}</span>
+          <ul class="nb-stats">${stocks}</ul>
+        </div>
+        <div class="ui-panel">
+          <span class="ui-label">${t('inventory.base')}</span>
+          <ul class="nb-stats">
+            <li><span>${t('hud.day', { day: Math.floor(currentView.day) + 1 })}</span><b>${t(current.player.indoors ? 'hud.indoors' : 'hud.outdoors')}</b></li>
+            <li><span>${t('research.comm')}</span>${commLine}</li>
+            <li><span>${t('hud.relays', { count: currentView.comm.relaySatellites })}</span><b></b></li>
+            <li><span>${t('crew.title')}</span><b>${t('inventory.crew', { count: currentView.crew.count, capacity: currentView.crew.capacity })}</b></li>
+            ${current.phase === 'cleared' ? `<li><b class="ui-ok">${t('hud.cleared')}</b></li>` : ''}
+          </ul>
+        </div>
+      </div>`;
+  };
+
+  /** 翌日のタスクを選ぶ。外にいられる時間は限られるので、全部はできないかもしれない */
+  const tasksHtml = (info: RestInfo) => {
+    const rows = info.tasks
+      .map(
+        (task) => `<li class="ui-supply-row${task.selected ? ' picked' : ''}">
+          <span class="ui-grow"><b>${task.label}</b> <span class="ui-small ui-cost">${t('tasks.meters', { meters: fmt(task.meters) })}</span></span>
+          <button data-action="taskToggle" data-task="${esc(task.id)}" class="${task.selected ? 'on' : ''}">${t(task.selected ? 'tasks.selected' : 'tasks.select')}</button>
+        </li>`,
+      )
+      .join('');
+    return `
+      <h2>${t('tasks.title')}</h2>
+      <p>${t('tasks.lead', { hours: fmt(values.eva.maxHours.value) })}</p>
+      <p class="ui-small">${t('tasks.reportNote', { need: values.launch.tasksPerLaunch.value })}</p>
+      ${rows === '' ? `<p class="ui-small">${t('tasks.none')}</p>` : `<ul class="ui-list">${rows}</ul>`}`;
+  };
+
+  const nightViewHtml = (v: NightView, info: RestInfo, current: SimState, currentView: SimView) => {
+    switch (v) {
+      case 'comm':
+        return commHtml(info);
+      case 'reply':
+        return launchMenuHtml(currentView);
+      case 'monitor':
+        return monitorHtml();
+      case 'crew':
+        return crewMenuHtml(current, currentView);
+      case 'tasks':
+        return tasksHtml(info);
+      case 'details':
+        return detailsHtml(current, currentView);
+    }
+  };
+
+  /** 夜の画面を切り替える */
+  const openNightView = (v: NightView) => {
+    nightView = v;
+    renderNotebook();
+  };
+
+  const renderNotebook = () => {
+    if (rest === null || state === null || view === null) {
+      notebookEl.hidden = true;
+      notebookEl.innerHTML = '';
+      document.body.classList.remove('nb-open');
+      return;
+    }
+    notebookEl.hidden = false;
+    document.body.classList.add('nb-open');
+    // 博士の「やること」がこの夜の操作（返信・隊員・タスク）なら、済むまで「翌朝へ」「外に出る」は押せない。
+    // 押せないボタンは disabled にせず（押しても何も起きないと理由が分からない）、押したら理由を知らせる
+    const requiredPage = rest.requiredPage;
+    const locked = requiredPage === 'launch' || requiredPage === 'crew' || requiredPage === 'tasks';
+    const lockedAttr = locked ? `aria-disabled="true" data-locked="task.${requiredPage}"` : '';
+    const guideHtml =
+      guide === null
+        ? ''
+        : `<div class="ui-modal-guide"><span class="ui-modal-guide-face">${PROFESSOR_SVG}</span><div>${guide}</div></div>`;
+    let foot: string;
+    if (nightView === 'comm') {
+      // 主なボタンは「翌朝へ」（朝でまだ外に出ていなければ「外に出る」）。返信と管制モニターは必要なときだけ
+      const reply = rest.report.linked
+        ? `<button data-action="nightView" data-view="reply">${t('comm.reply')}</button>`
+        : `<button aria-disabled="true" data-locked="reply">${t('comm.reply')}</button>`;
+      const monitor = `<button data-action="nightView" data-view="monitor">${t('comm.monitor')}</button>`;
+      const morningFirst = rest.canGoOut && !rest.wentOutToday;
+      // 「外に出る」「翌朝へ」は 3D の画面と同じボタン（data-action="context"）にして、E キーとくんれんの矢印もそのまま使う
+      const goOut = rest.canGoOut
+        ? `<button class="${morningFirst ? 'primary nb-next' : ''}" data-action="context" data-context="exitHabitat" ${lockedAttr}>${t('action.exitHabitat')}</button>`
+        : '';
+      const nextDay = rest.canNextDay
+        ? `<button class="${morningFirst ? '' : 'primary nb-next'}" data-action="context" data-context="nextDay" ${lockedAttr}>${t('comm.nextMorning')}</button>`
+        : '';
+      foot = `<span class="nb-foot-actions">${reply}${monitor}</span><span class="nb-foot-actions">${goOut}${nextDay}</span>`;
+    } else {
+      const backTo: NightView = MONITOR_VIEWS.some((m) => m === nightView) ? 'monitor' : 'comm';
+      foot = `<button data-action="nightView" data-view="${backTo}">${t(backTo === 'monitor' ? 'comm.monitorBack' : 'comm.back')}</button><span></span>`;
+    }
+    const arriving =
+      nightView === 'comm' && performance.now() - commArrivedAt < COMM_ARRIVE_MS
+        ? `<div class="nb-comm-arrive">${t(rest.report.linked ? 'comm.arrived' : 'comm.terminal')}</div>`
+        : '';
+    // 出口はいつも左上に（ちょっと中に入っただけのときも、「次へ」で最後まで進まなくてよい）
+    const exitTop = rest.canGoOut
+      ? `<button class="nb-exit" data-action="context" data-context="exitHabitat" aria-label="${tPlain('action.exitHabitat')}"><span>${t('notebook.icon.exit')}</span><span class="nb-head-label">${t('action.exitHabitat')}</span><span class="nb-exit-short">${t('notebook.exitShort')}</span></button>`
+      : '';
+    // 同じページを描き直すときは、スクロールの位置をそのままにする（下の物資を ＋ しても上に戻らないように）
+    const oldPage = notebookEl.querySelector<HTMLElement>('.nb-page');
+    const keepScroll =
+      oldPage !== null && oldPage.dataset.page === nightView ? oldPage.scrollTop : 0;
+    notebookEl.innerHTML = `
+      <div class="nb cr">
+        <div class="cr-lights" aria-hidden="true"></div>
+        <div class="cr-wall">
+          <div class="cr-ticker"><span class="cr-led" aria-hidden="true"></span><span class="nb-head-label">${t('notebook.title', { day: Math.floor(view.day) + 1 })}</span><span class="nb-exit-short">${t('hud.day', { day: Math.floor(view.day) + 1 })}</span><span class="cr-clock">${gameClock(view.day)}</span></div>
+          ${guideHtml === '' ? '' : `<div class="cr-guide">${guideHtml}</div>`}
+          <div class="cr-wallgrid">
+            <div class="cr-bank cr-bank-left">${controlScreensLeft(view)}</div>
+            <div class="cr-main">
+              <div class="cr-main-label" aria-hidden="true">MAIN</div>
+              ${arriving}
+              <section class="nb-page ${arriving === '' ? '' : 'nb-page-arriving'}" data-page="${nightView}">${nightViewHtml(nightView, rest, state, view)}</section>
+            </div>
+            <div class="cr-bank cr-bank-right">${controlScreensRight(view, rest.today)}</div>
+          </div>
+        </div>
+        <div class="cr-desk">
+          <div class="cr-desk-top" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="nb-foot cr-console">${nightView === 'comm' ? '' : exitTop}${foot}</div>
+        </div>
+      </div>`;
+    const newPage = notebookEl.querySelector<HTMLElement>('.nb-page');
+    if (newPage === null) {
+      throw new Error('ノートのページがない');
+    }
+    newPage.scrollTop = keepScroll;
+  };
+
+  // 窓のいちばん上に出す博士の「やること」（main が毎フレーム渡す）
+  let guide: string | null = null;
+  const renderModal = () => {
+    renderNotebook();
+    const dialog = dialogs[0];
+    if (dialog !== undefined) {
+      modalEl.hidden = false;
+      modalEl.innerHTML = `<div class="ui-modal">${dialogHtml(dialog)}</div>`;
+      return;
+    }
+    if (menu !== null && state !== null && view !== null) {
+      let html: string;
+      if (menu === 'build') {
+        html = buildMenuHtml(state);
+      } else {
+        html = inventoryHtml(state, view);
+      }
+      modalEl.hidden = false;
+      // 閉じるボタンは下にもあるが、見つけやすいよう右上にも出す
+      const guideHtml =
+        guide === null
+          ? ''
+          : `<div class="ui-modal-guide"><span class="ui-modal-guide-face">${PROFESSOR_SVG}</span><div>${guide}</div></div>`;
+      modalEl.innerHTML = `<div class="ui-modal"><button class="ui-modal-x" data-action="closeMenu" aria-label="${tPlain('button.close')}">${t('button.closeIcon')}</button>${guideHtml}${html}<div class="ui-close-row"><button data-action="closeMenu">${t('button.close')}</button></div></div>`;
+      return;
+    }
+    modalEl.hidden = true;
+    modalEl.innerHTML = '';
+  };
+
+  const pushDialog = (dialog: Dialog) => {
+    // 説明の窓はメニューより先に見せる
+    menu = null;
+    dialogs.push(dialog);
+    renderModal();
+    updatePause();
+    renderStatus();
+  };
+
+  const closeTopDialog = () => {
+    dialogs.shift();
+    renderModal();
+    updatePause();
+    renderStatus();
+  };
+
+  // メニュー（一時停止）の窓を閉じて、ゲームに戻る（「再開する」と同じ）
+  const closePause = (): boolean => {
+    if (!userPaused) {
+      return false;
+    }
+    userPaused = false;
+    pauseView = 'main';
+    renderPauseOverlay();
+    renderTopButtons();
+    updatePause();
+    renderStatus();
+    return true;
+  };
+
+  const closeMenus = () => {
+    if (menu === null) {
+      return;
+    }
+    menu = null;
+    renderModal();
+    updatePause();
+    renderStatus();
+  };
+
+  /** 3D の窓（建設・データ）を開く。隊員・ほきゅう・セーブは休息の画面のタブなので、中にいればそのタブにし、外ならひとこと出す */
+  const openMenu = (kind: MenuKind | 'launch' | 'crew') => {
+    const menuKind = MENUS.find((m) => m === kind);
+    // 中にいる間：くわしい様子は休息の画面のページで。建設は外の 3D の地面で選ぶので、外に出てから
+    if (menuKind === 'status' && rest !== null) {
+      openNightView('details');
+      return;
+    }
+    if (menuKind === 'build' && rest !== null) {
+      toast(t('notebook.buildOutside'), false);
+      return;
+    }
+    if (menuKind === undefined) {
+      // 隊員・補給は夜の画面で開く（補給は地球管制への返信、隊員は管制モニター）
+      const page = pick(kind, ['launch', 'crew'] as const, 'night view');
+      if (rest === null) {
+        toast(t('notebook.insideOnly', { name: t(`notebook.page.${page}`) }), false);
+        return;
+      }
+      openNightView(page === 'launch' ? 'reply' : 'crew');
+      return;
+    }
+    if (state === null || view === null) {
+      throw new Error('ui.update の前にメニューを開こうとした');
+    }
+    if (dialogs.length > 0) {
+      return; // 説明の窓を先に閉じてもらう
+    }
+    if (menu === menuKind) {
+      closeMenus();
+      return;
+    }
+    menu = menuKind;
+    renderModal();
+    updatePause();
+    renderStatus();
+  };
+
+  const renderAll = () => {
+    renderTopButtons();
+    renderPauseOverlay();
+    renderStatus();
+    renderHud();
+    renderButtons();
+    renderBuildBar();
+    renderModal();
+  };
+
+  // ---- 押せないボタンを押したとき ----
+  // 文を読まずに押した子にも届くよう、押したその場で知らせる：ボタンを震わせ、すぐ上に大きな吹き出しで理由を出し、
+  // 博士の「やること」の欄を光らせる（下のお知らせや、ほかの場所の文を探させない）
+  let lockedBubble: { el: HTMLElement; timer: number } | null = null;
+  const explainLocked = (target: HTMLElement, text: string) => {
+    if (lockedBubble !== null) {
+      window.clearTimeout(lockedBubble.timer);
+      lockedBubble.el.remove();
+    }
+    const bubble = document.createElement('div');
+    bubble.className = 'ui-locked-bubble';
+    bubble.setAttribute('role', 'alert');
+    bubble.innerHTML = text;
+    root.append(bubble);
+    const rect = target.getBoundingClientRect();
+    const box = bubble.getBoundingClientRect();
+    const left = Math.min(
+      window.innerWidth - box.width - BUBBLE_MARGIN_PX,
+      Math.max(BUBBLE_MARGIN_PX, rect.left + rect.width / 2 - box.width / 2),
+    );
+    // 上に場所があれば上に、なければ下に出す
+    const above = rect.top - box.height - BUBBLE_GAP_PX >= BUBBLE_MARGIN_PX;
+    bubble.style.left = `${left}px`;
+    bubble.style.top = `${above ? rect.top - box.height - BUBBLE_GAP_PX : rect.bottom + BUBBLE_GAP_PX}px`;
+    bubble.dataset.side = above ? 'above' : 'below';
+    bubble.style.setProperty('--tail-x', `${rect.left + rect.width / 2 - left}px`);
+    for (const el of [target, ...root.querySelectorAll<HTMLElement>('.nb .ui-modal-guide')]) {
+      const name = el === target ? 'ui-shake' : 'ui-flash';
+      el.classList.remove(name);
+      // つけ直して、アニメーションをもう一度動かす
+      requestAnimationFrame(() => el.classList.add(name));
+    }
+    lockedBubble = {
+      el: bubble,
+      timer: window.setTimeout(() => {
+        bubble.remove();
+        lockedBubble = null;
+      }, BUBBLE_MS),
+    };
+  };
+
+  // ---- 入力 ----
+  root.addEventListener('click', (e) => {
+    if (!(e.target instanceof Element)) {
+      return;
+    }
+    const target = e.target.closest<HTMLElement>('[data-action]');
+    if (target === null) {
+      return;
+    }
+    // 押せないボタン：何もせず、押せない理由を知らせる
+    if (target.getAttribute('aria-disabled') === 'true') {
+      const locked = target.dataset.locked;
+      if (locked === undefined) {
+        throw new Error('押せないボタンに、押せないわけ（data-locked）がない');
+      }
+      explainLocked(
+        target,
+        locked === 'reply'
+          ? t('comm.replyLocked')
+          : locked.startsWith('tutorial.')
+            ? t(`tutorial.locked.${locked.slice('tutorial.'.length)}`)
+            : t(`notebook.doFirst.${locked.slice('task.'.length)}`),
+      );
+      return;
+    }
+    switch (target.dataset.action) {
+      case 'openDictionary':
+        callbacks.onOpenDictionary();
+        break;
+      case 'pauseView':
+        pauseView = pick(target.dataset.view, PAUSE_VIEWS, 'menu view');
+        if (pauseView === 'cards') {
+          cardsPulse = false;
+          renderTopButtons();
+        }
+        renderPauseOverlay();
+        break;
+      case 'soundMode':
+        callbacks.setSoundMode(pick(target.dataset.mode, SOUND_MODES, 'sound mode'));
+        renderPauseOverlay();
+        break;
+      case 'pause':
+        userPaused = !userPaused;
+        pauseView = 'main';
+        renderPauseOverlay();
+        renderTopButtons();
+        updatePause();
+        renderStatus();
+        break;
+      case 'lang':
+        setLang(pick(target.dataset.lang, ['en', 'ja'] as const, 'lang'));
+        break;
+      case 'menu':
+        openMenu(pick(target.dataset.menu, MENUS, 'menu'));
+        break;
+      case 'closeMenu':
+        closeMenus();
+        break;
+      case 'openTerm': {
+        const term = target.dataset.term;
+        if (term === undefined) {
+          throw new Error('ui の言葉がない');
+        }
+        callbacks.onOpenTerm(term);
+        break;
+      }
+      case 'nightView':
+        openNightView(pick(target.dataset.view, NIGHT_VIEWS, 'night view'));
+        break;
+      case 'taskToggle': {
+        const taskId = target.dataset.task;
+        if (taskId === undefined) {
+          throw new Error('ui のタスクの ID がない');
+        }
+        callbacks.onTaskToggle(taskId);
+        break;
+      }
+      case 'context':
+        callbacks.onContextAction(pick(target.dataset.context, CONTEXT_ACTIONS, 'context'));
+        break;
+      case 'dustCover':
+        buildOptions.dustCover = !buildOptions.dustCover;
+        renderModal();
+        break;
+      case 'shieldMaterial':
+        buildOptions.shieldMaterial = pick(target.dataset.material, SHIELD_MATERIALS, 'material');
+        renderModal();
+        break;
+      case 'buildSelect': {
+        const kind = pick(target.dataset.kind, FACILITY_KINDS, 'facility');
+        menu = null;
+        renderModal();
+        updatePause();
+        renderStatus();
+        callbacks.onBuildSelect(kind, optionsFor(kind));
+        break;
+      }
+      case 'buildConfirm':
+        callbacks.onBuildConfirm();
+        break;
+      case 'buildCancel':
+        callbacks.onBuildCancel();
+        break;
+      case 'cart': {
+        const kind = pick(target.dataset.kind, LAUNCH_ITEM_KINDS, 'launch item');
+        const delta = pick(target.dataset.delta, ['1', '-1'] as const, 'delta') === '1' ? 1 : -1;
+        // 酸素・水・食料・資材は 1 個が 1 kg なので、1 回の押しでまとまった量を増減する
+        const step = BULK_LAUNCH_ITEMS.includes(kind) ? values.launch.bulkOrderStep.value : 1;
+        cart[kind] = Math.max(0, cart[kind] + delta * step);
+        renderModal();
+        break;
+      }
+
+      case 'order': {
+        const items = cartItems();
+        for (const kind of LAUNCH_ITEM_KINDS) {
+          cart[kind] = 0;
+        }
+        callbacks.onOrderLaunch(items);
+        break;
+      }
+      case 'cancelOrder': {
+        // 取り消したら、カゴに戻して選び直せるようにする
+        for (const item of rest?.queuedOrder ?? []) {
+          cart[item.kind] += item.quantity;
+        }
+        callbacks.onCancelOrder();
+        break;
+      }
+      case 'assign': {
+        const crewId = target.dataset.crew;
+        if (crewId === undefined) {
+          throw new Error('ui の隊員の ID がない');
+        }
+        const task = pick(target.dataset.task, CREW_TASKS, 'task');
+        assigned.set(crewId, task);
+        callbacks.onAssignCrew(crewId, task);
+        renderModal();
+        break;
+      }
+      case 'flare': {
+        const choice = pick(target.dataset.choice, ['shelter', 'continue'] as const, 'choice');
+        closeTopDialog();
+        callbacks.onFlareChoice(choice);
+        break;
+      }
+      case 'dialogOk':
+        closeTopDialog();
+        break;
+      case 'backToTitle':
+        dialogs.length = 0;
+        menu = null;
+        // メニューの窓から戻るので、メニューも閉じる（タイトルの上に残らないように）
+        closePause();
+        renderModal();
+        updatePause();
+        callbacks.onBackToTitle();
+        break;
+      case 'restart':
+        dialogs.length = 0;
+        menu = null;
+        renderModal();
+        updatePause();
+        callbacks.onRestart();
+        break;
+      case 'save': {
+        const slot = Number(target.dataset.slot);
+        if (!Number.isInteger(slot) || slot < 0 || slot >= values.save.manualSlots.value) {
+          throw new Error(`ui のセーブの枠が不正: ${String(target.dataset.slot)}`);
+        }
+        callbacks.onSave(slot);
+        break;
+      }
+      case 'load': {
+        const saveId = target.dataset.save;
+        if (saveId === undefined) {
+          throw new Error('ui のセーブの ID がない');
+        }
+        // 再開の前に窓とメニューを閉じる
+        dialogs.length = 0;
+        menu = null;
+        renderModal();
+        updatePause();
+        renderStatus();
+        callbacks.onLoad(saveId);
+        break;
+      }
+    }
+  });
+
+  // 「？」：PC はマウスを重ねると、スマホは押すと説明が出る（もう一度押すか、ほかの場所を押すと閉じる）。
+  // 押したあとはボタンからフォーカスが外れる（main.ts）ので、開いているかは open で持つ
+  document.addEventListener('pointerdown', (e) => {
+    const why = e.target instanceof Element ? e.target.closest('.ui-why') : null;
+    for (const open of root.querySelectorAll('.ui-why.open')) {
+      if (open !== why) {
+        open.classList.remove('open');
+      }
+    }
+    why?.classList.toggle('open');
+  });
+
+  // HUD は時間が進むたびに描き直すので、押した瞬間に反応させる
+  root.addEventListener('pointerdown', (e) => {
+    if (!(e.target instanceof Element)) {
+      return;
+    }
+    const target = e.target.closest<HTMLElement>('[data-action]');
+    if (target?.dataset.action === 'toggleBreakdown') {
+      showBreakdown = !showBreakdown;
+      renderHud();
+    }
+  });
+
+  const movePad = (e: PointerEvent) => {
+    const rect = padEl.getBoundingClientRect();
+    const radius = rect.width / 2;
+    let dx = (e.clientX - (rect.left + radius)) / radius;
+    let dy = (e.clientY - (rect.top + radius)) / radius;
+    const length = Math.hypot(dx, dy);
+    if (length > 1) {
+      dx /= length;
+      dy /= length;
+    }
+    pad.x = dx;
+    pad.y = -dy;
+    knobEl.style.transform = `translate(${dx * radius * KNOB_TRAVEL}px, ${dy * radius * KNOB_TRAVEL}px)`;
+  };
+  const releasePad = (e: PointerEvent) => {
+    if (e.pointerId !== padPointer) {
+      return;
+    }
+    padPointer = null;
+    pad.x = 0;
+    pad.y = 0;
+    knobEl.style.transform = '';
+  };
+  padEl.addEventListener('pointerdown', (e) => {
+    padPointer = e.pointerId;
+    padEl.setPointerCapture(e.pointerId);
+    movePad(e);
+    e.preventDefault();
+  });
+  padEl.addEventListener('pointermove', (e) => {
+    if (e.pointerId === padPointer) {
+      movePad(e);
+    }
+  });
+  padEl.addEventListener('pointerup', releasePad);
+  padEl.addEventListener('pointercancel', releasePad);
+
+  onLangChange(renderAll);
+
+  const showEvents = (events: GameEvent[], eventState: SimState, death: DeathAdvice | null) => {
+    const adviceFor = (what: string): DeathAdvice => {
+      if (death === null) {
+        throw new Error(`ui: ${what} なのに、ルナはかせのアドバイスがない`);
+      }
+      return death;
+    };
+    for (const event of events) {
+      switch (event.type) {
+        // 止まった施設は、困りごとカード（直るまで出る）と HUD で分かるので、そのたびのお知らせは出さない
+        case 'facilityStopped':
+          break;
+        case 'launchArrived':
+          toast(t('event.launchArrived'), false);
+          break;
+        case 'commLost':
+          toast(t('event.commLost'), true);
+          break;
+        case 'commRestored':
+          toast(t('event.commRestored'), false);
+          break;
+        case 'playerDowned':
+          // 同じときに基地の物資も尽きたら、そちらのゲームオーバーの窓だけを出す
+          if (events.some((e) => e.type === 'gameOver')) {
+            break;
+          }
+          // チュートリアルの外で倒れたら、main がゲームオーバーにしている
+          pushDialog(
+            eventState.phase === 'gameOver'
+              ? { type: 'gameOver', advice: adviceFor('倒れた') }
+              : { type: 'downed', advice: adviceFor('倒れた') },
+          );
+          break;
+        case 'cleared':
+          pushDialog({ type: 'cleared', total: eventState.development.total });
+          break;
+        case 'gameOver':
+          pushDialog({ type: 'gameOver', advice: adviceFor('ゲームオーバー') });
+          break;
+        case 'achievement':
+          toast(t('event.achievement', { name: t(`achievement.${event.id}`) }), false);
+          break;
+        // 警報は DONKI の記録と合わせて main が showFlareAlert で出す。発展度は HUD に出る
+        case 'eventStarted':
+        case 'developmentChanged':
+          break;
+      }
+    }
+  };
+
+  const sameBuildMode = (mode: { kind: FacilityKind; placement: Placement } | null) => {
+    if (mode === null || buildMode === null) {
+      return mode === buildMode;
+    }
+    return (
+      mode.kind === buildMode.kind &&
+      mode.placement.allowed === buildMode.placement.allowed &&
+      mode.placement.works === buildMode.placement.works &&
+      mode.placement.reason === buildMode.placement.reason
+    );
+  };
+
+  document.documentElement.lang = getLang();
+  renderAll();
+
+  return {
+    update(nextState, nextView) {
+      state = nextState;
+      view = nextView;
+      for (const member of nextState.crew) {
+        if (assigned.get(member.id) === member.task) {
+          assigned.delete(member.id);
+        }
+      }
+      renderHud();
+      renderStatus();
+      if (rest !== null) {
+        renderNotebook();
+      }
+    },
+    showEvents,
+    cardsChanged(isNew) {
+      if (isNew) {
+        cardsPulse = true;
+      }
+      renderTopButtons();
+    },
+    showDayTransition(info) {
+      // いちばん早く届くロケットだけを描いて、その日数を言う（何本も飛んでいても、絵と文をそろえる）
+      const soonest = [...info.launch.inFlight].sort(
+        (a, b) => a.hoursUntilArrival - b.hoursUntilArrival,
+      )[0];
+      const rocket =
+        soonest === undefined
+          ? ''
+          : `<div class="day-fade-route">${routeSvg({ ...info.launch, inFlight: [soonest] }, true)}</div>
+             <p>${t('dayFade.rocket', { days: Math.max(1, Math.ceil(soonest.hoursUntilArrival / HOURS_PER_DAY)) })}</p>`;
+      const arrived =
+        info.arrived > 0 ? `<p class="day-fade-arrived">${t('dayFade.arrived')}</p>` : '';
+      dayFadeEl.innerHTML = `<div class="day-fade-body">
+          <div class="day-fade-day">${t('dayFade.day', { day: info.day + 1 })}</div>
+          ${arrived}${rocket}
+        </div>`;
+      // 同じ要素でアニメーションをもう一度動かす
+      dayFadeEl.hidden = true;
+      void dayFadeEl.offsetWidth;
+      dayFadeEl.hidden = false;
+    },
+    showMorning(summary) {
+      pushDialog({ type: 'morning', summary });
+    },
+    showFlareAlert(event, donki) {
+      pushDialog({ type: 'flare', event, donki });
+    },
+    getPadInput(): PadInput {
+      const input = { x: pad.x, y: pad.y };
+      return input;
+    },
+    setBuildMode(mode) {
+      if (sameBuildMode(mode)) {
+        return;
+      }
+      buildMode = mode;
+      renderBuildBar();
+    },
+    setContextActions(actions) {
+      if (
+        actions.length === contextActions.length &&
+        actions.every((action, index) => action === contextActions[index])
+      ) {
+        return;
+      }
+      contextActions = [...actions];
+      renderButtons();
+    },
+    openMenu,
+    closeMenus,
+    closePause,
+    notify: toast,
+    setNasaImages(images) {
+      nasaImages = images;
+    },
+    setTerrainSource(source) {
+      terrainSource = { ...source };
+    },
+    setDonkiEvents(events) {
+      donkiEvents = [...events];
+      if (userPaused && pauseView === 'data') {
+        renderPauseOverlay();
+      }
+    },
+    setSaves(next) {
+      saves = [...next];
+      if (rest !== null || dialogs[0]?.type === 'gameOver') {
+        renderModal();
+      }
+      if (userPaused) {
+        renderPauseOverlay();
+      }
+    },
+    isInventoryOpen() {
+      return menu === 'status';
+    },
+    isMenuOpen() {
+      return menu !== null || dialogs.length > 0 || closeMinigame !== null;
+    },
+    setGuide(next) {
+      if (next === guide) {
+        return;
+      }
+      guide = next;
+      if (menu !== null || rest !== null) {
+        renderModal();
+      }
+    },
+    setTutorialLimits(next) {
+      if (JSON.stringify(next) === JSON.stringify(tutorialLimits)) {
+        return;
+      }
+      tutorialLimits = next;
+      renderModal();
+    },
+    setTaskList(next) {
+      if (JSON.stringify(next) === JSON.stringify(taskList)) {
+        return;
+      }
+      taskList = next.map((task) => ({ ...task }));
+      renderHud();
+    },
+    startMinigame(kind, onFinish) {
+      if (closeMinigame !== null) {
+        return;
+      }
+      closeMinigame = openMinigame(
+        root,
+        kind,
+        values,
+        (outcome: MinigameOutcome) => {
+          closeMinigame = null;
+          onFinish(outcome);
+        },
+        (name) => callbacks.onMinigameSound(name),
+      );
+    },
+    stopMinigame() {
+      closeMinigame?.();
+      closeMinigame = null;
+    },
+    isMinigameOpen() {
+      return closeMinigame !== null;
+    },
+    setRest(next) {
+      if (JSON.stringify(next) === JSON.stringify(rest)) {
+        return;
+      }
+      if (rest === null && next !== null) {
+        // 中に入ったら、まず地球管制からの通信（話せない日は基地の端末）を見せる
+        nightView = 'comm';
+        commArrivedAt = performance.now();
+        // 演出が終わったら、演出なしで描き直す
+        window.setTimeout(() => renderNotebook(), COMM_ARRIVE_MS);
+      }
+      rest = next;
+      renderNotebook();
+      renderButtons();
+    },
+    isUserPaused() {
+      return userPaused;
+    },
+  };
+}

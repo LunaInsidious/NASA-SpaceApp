@@ -1,0 +1,116 @@
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+}
+
+#renderCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+/* 氷を運んでいる間の表示 */
+.carry-badge {
+  position: absolute;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(150, 210, 255, 0.9);
+  color: #0b1a2a;
+  font:
+    600 14px / 1.3 system-ui,
+    sans-serif;
+  pointer-events: none;
+}
+
+.carry-badge[hidden] {
+  display: none;
+}
+
+/* チュートリアルで行く方向の矢印 */
+.guide-arrow {
+  position: absolute;
+  left: 50%;
+  bottom: 120px;
+  transform: translateX(-50%);
+  text-align: center;
+  color: #ffd27a;
+  font:
+    700 16px / 1.2 system-ui,
+    sans-serif;
+  text-shadow: 0 1px 3px #000;
+  pointer-events: none;
+}
+
+.guide-arrow[hidden] {
+  display: none;
+}
+
+.guide-arrow-icon {
+  font-size: 44px;
+  line-height: 1;
+}
+
+/* 白いドームの上でも読めるよう、言葉は暗い帯の上に出す */
+.guide-arrow > :last-child {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  background: rgba(8, 12, 22, 0.8);
+}
+
+@media (max-width: 640px) {
+  .guide-arrow {
+    top: auto;
+    bottom: 230px;
+  }
+}
+
+/* ふりがな（文言の「｜漢字《かんじ》」から作る <ruby>）。
+   ふりがなのほうが長いとき、漢字を1文字ずつ離さず（「研 究」にならない）、まとめて真ん中に置く */
+ruby {
+  ruby-align: center;
+}
+
+rt {
+  ruby-align: center;
+  font-size: 0.5em;
+  font-weight: 400;
+  opacity: 0.9;
+}
+
+/* ボタンの手ごたえ：マウスを重ねると明るく浮いて影がつき、押すと少し沈む（色の違うボタンにも同じように効くよう、明るさで変える）。
+   押せないボタンは変えない。スマホ（重ねる操作がない）では押したときだけ */
+button,
+summary {
+  transition:
+    filter 0.12s,
+    box-shadow 0.12s,
+    transform 0.08s;
+}
+
+@media (hover: hover) {
+  button:not(:disabled, [aria-disabled="true"]):hover,
+  summary:hover {
+    filter: brightness(1.35);
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.5),
+      0 0 0 2px rgba(255, 255, 255, 0.35);
+    transform: translateY(-1px);
+    cursor: pointer;
+  }
+}
+
+button:not(:disabled, [aria-disabled="true"]):active {
+  filter: brightness(0.9);
+  transform: translateY(1px);
+  box-shadow: none;
+}

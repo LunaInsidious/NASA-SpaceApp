@@ -1,0 +1,970 @@
+/* チュートリアルとミッションの案内（上の真ん中） */
+.tutorial {
+  position: fixed;
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
+  width: min(460px, calc(100vw - 24px));
+  padding: 12px 14px;
+  border: 2px solid #ffd27a;
+  border-radius: 12px;
+  background: rgba(10, 14, 24, 0.92);
+  color: #f4f7fc;
+  font:
+    17px / 1.55 system-ui,
+    -apple-system,
+    "Hiragino Sans",
+    "Noto Sans JP",
+    sans-serif;
+  pointer-events: auto;
+  z-index: 0;
+}
+
+.tutorial[hidden],
+.tutorial-modal-layer[hidden],
+.advice-card[hidden] {
+  display: none;
+}
+
+.tutorial-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  color: #ffd27a;
+}
+
+.tutorial-progress {
+  margin-left: auto;
+}
+
+.tutorial-text {
+  margin: 6px 0 4px;
+}
+
+.tutorial-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.tutorial button,
+.tutorial-modal button,
+.advice-card button {
+  font: inherit;
+  font-size: 15px;
+  padding: 4px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(40, 52, 72, 0.95);
+  color: #f4f7fc;
+  cursor: pointer;
+}
+
+.tutorial .tutorial-ok {
+  background: #2e9d5b;
+  border: none;
+  font-weight: 700;
+}
+
+.tutorial .tutorial-restart {
+  font-size: 12px;
+  padding: 2px 8px;
+  font-weight: 400;
+}
+
+/* 大きな窓（あそんだことがある？／くんれん かんりょう／さいしょから） */
+.tutorial-modal-layer {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.tutorial-modal {
+  width: min(520px, calc(100vw - 32px));
+  padding: 24px;
+  border: 3px solid #ffd27a;
+  border-radius: 16px;
+  background: #0e1422;
+  color: #f4f7fc;
+  text-align: center;
+  font:
+    18px / 1.6 system-ui,
+    -apple-system,
+    "Hiragino Sans",
+    "Noto Sans JP",
+    sans-serif;
+}
+
+.tutorial-modal h2 {
+  margin: 0 0 8px;
+  font-size: 26px;
+  color: #ffd27a;
+}
+
+.tutorial-modal-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.tutorial-modal .tutorial-big {
+  font-size: 20px;
+  padding: 14px 18px;
+  border-radius: 12px;
+}
+
+.tutorial-modal .primary {
+  background: #2e9d5b;
+  border: none;
+  font-weight: 700;
+}
+
+/* アクシデントのカード（案内の下） */
+.advice-card {
+  position: fixed;
+  right: 12px;
+  /* 右上の日数・通信の表示（通信できないときは理由の行が増える）の下に出す */
+  top: 185px;
+  width: min(300px, calc(100vw - 24px));
+  padding: 10px 14px;
+  border: 2px solid #ff8a5c;
+  border-radius: 12px;
+  background: rgba(40, 14, 8, 0.92);
+  color: #fff3ec;
+  font:
+    16px / 1.5 system-ui,
+    -apple-system,
+    "Hiragino Sans",
+    "Noto Sans JP",
+    sans-serif;
+  pointer-events: auto;
+  z-index: 0;
+}
+
+.advice-title {
+  font-weight: 700;
+  font-size: 18px;
+  color: #ffb08f;
+}
+
+.advice-label {
+  margin-top: 4px;
+  font-weight: 700;
+}
+
+.advice-todo {
+  white-space: pre-line;
+  margin-bottom: 8px;
+}
+
+/* いま押すボタンを光らせる */
+@keyframes tutorial-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 210, 122, 0.95);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(255, 210, 122, 0);
+  }
+}
+
+body[data-tutorial-step="move"] .ui-pad,
+body[data-tutorial-step="buildSolar"] [data-action="menu"][data-menu="build"],
+body[data-tutorial-step="buildSolar"] [data-action="buildSelect"][data-kind="solar"],
+body[data-tutorial-step="placeSolar"] [data-action="buildConfirm"],
+body[data-tutorial-step="battery"] [data-action="menu"][data-menu="build"],
+body[data-tutorial-step="battery"] [data-action="buildSelect"][data-kind="battery"],
+body[data-tutorial-step="battery"] [data-action="buildConfirm"],
+body[data-tutorial-step="buildAntenna"] [data-action="menu"][data-menu="build"],
+body[data-tutorial-step="buildAntenna"] [data-action="buildSelect"][data-kind="antenna"],
+body[data-tutorial-step="buildAntenna"] [data-action="buildConfirm"],
+body[data-tutorial-step="buildHabitat"] [data-action="menu"][data-menu="build"],
+body[data-tutorial-step="buildHabitat"] [data-action="buildSelect"][data-kind="habitat"],
+body[data-tutorial-step="buildHabitat"] [data-action="buildConfirm"],
+body[data-tutorial-step="order"] [data-action="nightView"][data-view="reply"],
+body[data-tutorial-step="order"] [data-action="cart"][data-kind="food"][data-delta="1"],
+body[data-tutorial-step="order"] [data-action="cart"][data-kind="crew"][data-delta="1"],
+body[data-tutorial-step="order"] [data-action="order"],
+body[data-tutorial-step="nextDay"] [data-action="context"][data-context="nextDay"],
+body[data-tutorial-step="waitArrival"] [data-action="context"][data-context="nextDay"],
+body[data-tutorial-step="assignCrew"] [data-action="nightView"][data-view="monitor"],
+body[data-tutorial-step="assignCrew"] [data-action="nightView"][data-view="crew"],
+body[data-tutorial-step="assignCrew"] [data-action="assign"],
+body[data-tutorial-step="takeIce"] [data-action="context"],
+body[data-tutorial-step="goHome"] [data-action="context"],
+body[data-tutorial-step="flareDrill"] [data-action="flare"],
+body[data-tutorial-step="goOutside"] [data-action="context"],
+body[data-tutorial-step="regolith"] [data-action="context"][data-context="coverRegolith"],
+body[data-tutorial-step="dictionary"] [data-action="openDictionary"],
+body[data-tutorial-step="dictionary"] [data-action="pause"],
+body[data-tutorial-step="dictionary"] .help-card details[data-term="solar"]:not([open]) summary,
+body[data-tutorial-step="dictionary"]
+  .help-card:has(details[data-term="solar"][open])
+  .help-close-x,
+body[data-tutorial-step="dictionary"] .help-card:has(details[data-term="solar"][open]) .help-close,
+body[data-tutorial-step="pause"] [data-action="pause"],
+body[data-tutorial-step="resume"] [data-action="pause"],
+body[data-tutorial-step="save"] [data-action="pause"],
+body[data-tutorial-step="inventory"] [data-action="menu"][data-menu="status"],
+body[data-tutorial-step="chooseTask"] [data-action="nightView"][data-view="monitor"],
+body[data-tutorial-step="chooseTask"] [data-action="nightView"][data-view="tasks"],
+body[data-tutorial-step="chooseTask"] [data-action="taskToggle"][data-task="ice"],
+body[data-tutorial-step="sleepAgain"] [data-action="context"][data-context="nextDay"],
+body[data-tutorial-step="save"] [data-action="save"],
+body[data-tutorial-step="save"] [data-action="pauseView"][data-view="save"],
+body[data-tutorial-step="data"] [data-action="pause"],
+body[data-tutorial-step="data"] [data-action="pauseView"][data-view="data"],
+body[data-advice="noPower"] [data-action="menu"][data-menu="build"],
+body[data-advice="oxygenLow"] [data-action="menu"][data-menu="build"],
+body[data-advice="waterLow"] [data-action="menu"][data-menu="launch"],
+body[data-advice="foodLow"] [data-action="menu"][data-menu="launch"],
+body[data-advice="noParts"] [data-action="menu"][data-menu="launch"],
+body[data-advice="broken"] [data-action="context"][data-context="repair"] {
+  outline: 3px solid #ffd27a;
+  animation: tutorial-pulse 1.2s infinite;
+}
+
+/* 少し狭い画面：左の HUD と右の状態の窓のあいだに出す */
+@media (min-width: 900px) and (max-width: 1199px) {
+  .tutorial {
+    left: 330px;
+    right: 270px;
+    transform: none;
+    width: auto;
+  }
+}
+
+/* もっと狭い画面：上にすき間がないので、下のボタンの列のすぐ上に、横いっぱいに出す */
+@media (max-width: 899px) {
+  .tutorial {
+    top: auto;
+    bottom: 160px;
+    left: 8px;
+    right: 8px;
+    transform: none;
+    width: auto;
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  /* スマホ：左上のゲージのすぐ下。宇宙飛行士は画面の下のほうに見せる（src/world の PHONE_PLAYER_SCREEN_SHIFT） */
+  .tutorial {
+    top: calc(140px + env(safe-area-inset-top));
+    bottom: auto;
+    right: 8px;
+    max-height: 30vh;
+    padding: 8px 10px;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  /* 困りごとは上（左上のいのちのバーの下）に出し、下の案内と重ねない */
+  .advice-card {
+    top: 150px;
+    left: 8px;
+    right: 74px;
+    transform: none;
+    width: auto;
+    max-height: 28vh;
+    overflow-y: auto;
+    font-size: 13px;
+  }
+
+  .tutorial-reopen {
+    top: 110px;
+    left: 8px;
+    transform: none;
+  }
+
+  .tutorial button,
+  .advice-card button {
+    font-size: 13px;
+  }
+}
+
+/* 「どうして？」と「やること」の見出し */
+.tutorial-label {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #9fd3ff;
+}
+
+.tutorial-why {
+  margin: 2px 0 4px;
+  color: #c9d6ea;
+  font-size: 0.86em;
+}
+
+/* 最初の窓の言語の切り替え */
+.tutorial-modal-lang {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.tutorial-modal .tutorial-lang {
+  font-size: 13px;
+  padding: 2px 10px;
+}
+
+/* 段ができた瞬間の「できた！」 */
+@keyframes tutorial-cleared {
+  0% {
+    box-shadow: 0 0 0 0 rgba(120, 230, 150, 0.9);
+    border-color: #78e696;
+  }
+  100% {
+    box-shadow: 0 0 0 18px rgba(120, 230, 150, 0);
+    border-color: #ffd27a;
+  }
+}
+
+.tutorial.tutorial-cleared {
+  animation: tutorial-cleared 0.9s ease-out;
+}
+
+body[data-tutorial-step="goInsideWait"] [data-action="context"],
+body[data-tutorial-step="assignCrew"] [data-action="assign"][data-task="research"] {
+  outline: none;
+  animation: none;
+}
+
+body[data-tutorial-step="goInsideWait"] [data-action="context"] {
+  outline: 3px solid #ffd27a;
+  animation: tutorial-pulse 1.2s infinite;
+}
+
+/* 「見てごらん」の段：まわりを暗くして、その場所だけを照らし、矢印で指す */
+body[data-tutorial-step="power"] .tutorial,
+body[data-tutorial-step="comm"] .tutorial,
+body[data-tutorial-step="lifeLine"] .tutorial {
+  z-index: 3;
+}
+
+body[data-tutorial-step="power"] .ui-power,
+body[data-tutorial-step="comm"] .ui-status,
+body[data-tutorial-step="lifeLine"] .ui-life {
+  position: relative;
+  z-index: 5;
+  border-radius: 8px;
+  outline: 4px solid #ffd27a;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+  animation: tutorial-spot 1s ease-in-out infinite alternate;
+}
+
+@keyframes tutorial-spot {
+  from {
+    outline-offset: 2px;
+  }
+  to {
+    outline-offset: 8px;
+  }
+}
+
+body[data-tutorial-step="power"] .ui-power::after,
+body[data-tutorial-step="comm"] .ui-status::before,
+body[data-tutorial-step="lifeLine"] .ui-life::after {
+  position: absolute;
+  top: 50%;
+  font-size: 34px;
+  line-height: 1;
+  color: #ffd27a;
+  text-shadow: 0 0 6px #000;
+  animation: tutorial-nudge 0.6s ease-in-out infinite alternate;
+}
+
+body[data-tutorial-step="power"] .ui-power::after,
+body[data-tutorial-step="lifeLine"] .ui-life::after {
+  content: "◀";
+  right: -48px;
+}
+
+body[data-tutorial-step="comm"] .ui-status::before {
+  content: "▶";
+  left: -48px;
+}
+
+@keyframes tutorial-nudge {
+  from {
+    transform: translate(0, -50%);
+  }
+  to {
+    transform: translate(8px, -50%);
+  }
+}
+
+/* アクシデントの一覧：見出しはいつも、やることは折りたたみ */
+.advice-item + .advice-item {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 176, 143, 0.35);
+}
+
+.advice-item summary {
+  cursor: pointer;
+}
+
+.advice-card {
+  /* 右下のことばじてん・音のボタンと、メニューの列の手前まで */
+  max-height: calc(100vh - 185px - 140px);
+  overflow-y: auto;
+}
+
+/* ミッションのパネルを閉じたあとの、開き直すボタン */
+.tutorial-reopen {
+  position: fixed;
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
+  z-index: 0;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #ffd27a;
+  border-radius: 10px;
+  background: rgba(10, 14, 24, 0.92);
+  font-size: 20px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.tutorial-reopen[hidden] {
+  display: none;
+}
+
+/* 説明の読み直し（読むだけ） */
+.tutorial-reread {
+  max-height: 80vh;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.tutorial-reread ol {
+  padding-left: 1.4em;
+}
+
+.tutorial-reread li + li {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* ルナはかせ：PC では吹き出し（案内の窓）の左に立ち、吹き出しのしっぽが博士の口を向く */
+.tutorial-professor {
+  position: absolute;
+  left: -112px;
+  top: 6px;
+  width: 96px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.tutorial-professor svg {
+  display: block;
+  width: 96px;
+  height: 112px;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.6));
+}
+
+.tutorial-professor-name {
+  margin-top: 2px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(10, 14, 24, 0.85);
+  color: #ffd27a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* 吹き出しのしっぽ（外側の線と、中の色の2枚重ね） */
+.tutorial::before,
+.tutorial::after {
+  content: "";
+  position: absolute;
+  top: 52px;
+  border-style: solid;
+  border-color: transparent;
+}
+
+.tutorial::before {
+  left: -16px;
+  border-width: 10px 16px 10px 0;
+  border-right-color: #ffd27a;
+}
+
+.tutorial::after {
+  left: -12px;
+  top: 54px;
+  border-width: 8px 13px 8px 0;
+  border-right-color: rgba(10, 14, 24, 0.92);
+}
+
+/* 大きな窓の博士：窓の上から顔を出す */
+.tutorial-modal-professor {
+  width: 120px;
+  margin: -84px auto 0;
+}
+
+.tutorial-modal .tutorial-modal-professor svg {
+  display: block;
+  width: 120px;
+  height: 140px;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.6));
+}
+
+.tutorial-modal-layer .tutorial-modal {
+  margin-top: 70px;
+}
+
+/* 話している間だけ、口と体が動く */
+@keyframes prof-talk {
+  from {
+    transform: scaleY(0.4);
+  }
+  to {
+    transform: scaleY(1.4);
+  }
+}
+
+@keyframes prof-bob {
+  from {
+    transform: translateY(0) rotate(-1deg);
+  }
+  to {
+    transform: translateY(-3px) rotate(1deg);
+  }
+}
+
+.prof-mouth {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.speaking .prof-mouth {
+  animation: prof-talk 0.18s ease-in-out infinite alternate;
+}
+
+.speaking .tutorial-professor svg,
+.speaking .tutorial-modal-professor svg {
+  animation: prof-bob 0.5s ease-in-out infinite alternate;
+}
+
+/* 「ぜんぶ よむ」 */
+.tutorial .tutorial-skip {
+  display: block;
+  margin: 2px 0 0 auto;
+  font-size: 12px;
+  padding: 1px 10px;
+}
+
+/* 広い画面：博士と吹き出しをひとかたまりで真ん中に置く（博士が左の HUD に重ならない） */
+@media (min-width: 1200px) {
+  .tutorial {
+    transform: translateX(calc(-50% + 64px));
+  }
+}
+
+/* スマホと狭い画面：博士は吹き出しの左上の小さな顔だけ。しっぽは出さない */
+@media (max-width: 1199px) {
+  .tutorial-professor {
+    left: 6px;
+    top: 4px;
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+    border-radius: 50%;
+    background: #2a3550;
+  }
+
+  .tutorial-professor svg {
+    width: 40px;
+    height: 47px;
+    filter: none;
+  }
+
+  .tutorial-professor-name {
+    display: none;
+  }
+
+  .tutorial .tutorial-head {
+    padding-left: 46px;
+    min-height: 34px;
+  }
+
+  .tutorial::before,
+  .tutorial::after {
+    display: none;
+  }
+}
+
+/* スマホ：大きな窓の博士も小さくする */
+@media (max-width: 640px) {
+  .tutorial-modal-professor {
+    width: 90px;
+    margin-top: -64px;
+  }
+
+  .tutorial-modal .tutorial-modal-professor svg {
+    width: 90px;
+    height: 105px;
+  }
+}
+
+/* スマホ：見出しの行を1行におさめる。困りごとのカードは短く（上の .advice-card の高さより優先） */
+@media (max-width: 640px) {
+  .tutorial .tutorial-head {
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .tutorial .tutorial-head button {
+    padding: 2px 6px;
+    font-size: 11px;
+  }
+
+  .tutorial .tutorial-long {
+    display: none;
+  }
+
+  .tutorial .tutorial-short {
+    display: inline;
+  }
+
+  .advice-card {
+    max-height: 28vh;
+  }
+
+  .advice-card .advice-title {
+    font-size: 14px;
+  }
+}
+
+/* ルナはかせの「どうして こうなったか」「つぎは こうしよう」（倒れたとき・ゲームオーバー） */
+.death-professor {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.death-face {
+  flex: 0 0 64px;
+}
+
+.death-face svg {
+  display: block;
+  width: 64px;
+  height: 75px;
+}
+
+.death-bubble {
+  flex: 1;
+  padding: 8px 12px;
+  border: 2px solid #ffd27a;
+  border-radius: 12px;
+  background: rgba(255, 210, 122, 0.08);
+}
+
+.death-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffd27a;
+}
+
+.death-advice {
+  text-align: left;
+}
+
+.death-advice p {
+  margin: 2px 0 6px;
+}
+
+.death-label {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #9fd3ff;
+}
+
+.death-advice ol {
+  margin: 2px 0 0;
+  padding-left: 1.4em;
+}
+
+.death-advice li + li {
+  margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .death-face {
+    flex-basis: 44px;
+  }
+
+  .death-face svg {
+    width: 44px;
+    height: 52px;
+  }
+}
+
+/* 読み直しのボタン：ふだんは長い名前、スマホ幅では短い名前（下の @media） */
+.tutorial-short {
+  display: none;
+}
+
+/* いま押すボタンを指す矢印（位置は tutorial/index.ts が毎フレーム合わせる） */
+.tutorial-pointer {
+  position: fixed;
+  z-index: 8;
+  width: 44px;
+  height: 44px;
+  font-size: 40px;
+  line-height: 44px;
+  text-align: center;
+  color: #ffd27a;
+  text-shadow:
+    0 0 6px #000,
+    0 0 12px rgba(255, 210, 122, 0.8);
+  pointer-events: none;
+  animation: tutorial-pointer-down 0.6s ease-in-out infinite alternate;
+}
+
+.tutorial-pointer[data-side="below"] {
+  animation-name: tutorial-pointer-up;
+}
+
+.tutorial-pointer[data-side="left"] {
+  animation-name: tutorial-pointer-right;
+}
+
+.tutorial-pointer[hidden] {
+  display: none;
+}
+
+@keyframes tutorial-pointer-down {
+  to {
+    transform: translateY(8px);
+  }
+}
+
+@keyframes tutorial-pointer-up {
+  to {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes tutorial-pointer-right {
+  to {
+    transform: translateX(8px);
+  }
+}
+
+/* 1文字ずつ出す途中の、まだ出していない文字（場所だけ取る） */
+.typing-rest {
+  visibility: hidden;
+}
+
+/* 「ぜんぶ よむ」は、消えても場所を残して、下のボタンを動かさない */
+.tutorial .tutorial-skip[hidden] {
+  display: block;
+  visibility: hidden;
+}
+
+/* 外でやる段なのに中にいるときの、ひとこと */
+.tutorial-note {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 210, 122, 0.15);
+  color: #ffd27a;
+  font-weight: 700;
+}
+
+.tutorial-note[hidden] {
+  display: none;
+}
+
+/* くんれんで時間を止めている段のしるし */
+.tutorial-frozen {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #9fd3ff;
+}
+
+/* 困りごとカード：ゲームの画面をふさぎすぎないよう、PC でも高さを抑える */
+@media (min-width: 641px) {
+  .advice-card {
+    max-height: 45vh;
+    font-size: 14px;
+  }
+}
+
+/* 大きな窓の博士は、丸いわくの中に入れる（うしろの 3D の明かりが透けて、帽子のように見えないように） */
+.tutorial-modal-layer .tutorial-modal-professor {
+  width: 128px;
+  height: 128px;
+  margin: -96px auto 4px;
+  overflow: hidden;
+  border: 3px solid #ffd27a;
+  border-radius: 50%;
+  background: #2a3550;
+}
+
+.tutorial-modal-layer .tutorial-modal .tutorial-modal-professor svg {
+  width: 112px;
+  height: 131px;
+  margin: 8px auto 0;
+}
+
+@media (max-width: 640px) {
+  .tutorial-modal-layer .tutorial-modal-professor {
+    width: 96px;
+    height: 96px;
+    margin-top: -72px;
+  }
+
+  .tutorial-modal-layer .tutorial-modal .tutorial-modal-professor svg {
+    width: 84px;
+    height: 98px;
+    margin-top: 6px;
+  }
+}
+
+/* 吹き出しの続き：下に読み残しがあるときだけ、吹き出しのいちばん下に貼りつけて出す */
+.tutorial .tutorial-more {
+  position: sticky;
+  bottom: -12px;
+  display: block;
+  width: calc(100% + 28px);
+  margin: 4px -14px -12px;
+  padding: 10px 0 8px;
+  border: none;
+  border-radius: 0 0 12px 12px;
+  background: linear-gradient(rgba(10, 14, 24, 0), rgba(10, 14, 24, 0.97) 45%);
+  color: #ffd27a;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  animation: tutorial-more-bob 0.9s ease-in-out infinite alternate;
+}
+
+.tutorial-more[hidden] {
+  display: none;
+}
+
+@keyframes tutorial-more-bob {
+  to {
+    padding-top: 14px;
+  }
+}
+
+@media (max-width: 640px) {
+  .tutorial .tutorial-more {
+    bottom: -8px;
+    width: calc(100% + 20px);
+    margin: 4px -10px -8px;
+  }
+
+  /* 置く場所を選んでいる間：吹き出しは上（ゲージの下）に小さく、やることの文だけ（博士の顔・見出し・どうして？は隠す）。
+     下は地面と「ここに置く」 */
+  .tutorial.tutorial-compact {
+    top: calc(140px + env(safe-area-inset-top));
+    bottom: auto;
+    max-height: 18vh;
+  }
+
+  .tutorial.tutorial-compact .tutorial-professor,
+  .tutorial.tutorial-compact .tutorial-why,
+  .tutorial.tutorial-compact .tutorial-label,
+  .tutorial.tutorial-compact .tutorial-frozen,
+  .tutorial.tutorial-compact .tutorial-skip {
+    display: none;
+  }
+
+  .tutorial.tutorial-compact .tutorial-text {
+    margin: 0;
+  }
+}
+
+/* たたんだ吹き出し：見出しの1行（くんれん 4/30・読み直す・ひらく）だけ */
+.tutorial.tutorial-collapsed > :not(.tutorial-head) {
+  display: none;
+}
+
+.tutorial .tutorial-collapse {
+  min-width: 34px;
+  padding: 2px 8px;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .tutorial.tutorial-collapsed .tutorial-head {
+    padding-left: 0;
+    min-height: 0;
+  }
+
+  /* 置く場所を選んでいる間も、見出しの1行は残す（たためるように）。博士の顔はなし */
+  .tutorial.tutorial-compact {
+    max-height: 22vh;
+  }
+
+  .tutorial.tutorial-compact .tutorial-head {
+    display: flex;
+    padding-left: 0;
+    min-height: 0;
+  }
+}
+
+/* 博士の吹き出しと困りごとのカードの入れ物。PC ではそれぞれの場所（fixed）に出す */
+.guide-stack {
+  display: contents;
+}
+
+/* スマホ：左上のゲージのすぐ下から、吹き出し・困りごとの順に並べる（重ならないように）。
+   宇宙飛行士はその下に見せる（src/world の PHONE_PLAYER_SCREEN_SHIFT） */
+@media (max-width: 640px) {
+  .guide-stack {
+    position: fixed;
+    top: calc(140px + env(safe-area-inset-top));
+    left: 8px;
+    right: 8px;
+    z-index: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: none;
+  }
+
+  .guide-stack > .tutorial,
+  .guide-stack > .tutorial.tutorial-compact,
+  .guide-stack > .advice-card {
+    position: static;
+    transform: none;
+    width: auto;
+    pointer-events: auto;
+  }
+}
+
+/* 置く場所を選んでいる間は、どの画面でも「やること」の文だけにして、置く場所（地面の形）を見せる */
+.tutorial.tutorial-compact .tutorial-why,
+.tutorial.tutorial-compact .tutorial-label,
+.tutorial.tutorial-compact .tutorial-frozen,
+.tutorial.tutorial-compact .tutorial-skip {
+  display: none;
+}
+
+/* たたんだ吹き出しは博士を隠すので、博士を指す吹き出しの三角も出さない */
+.tutorial.tutorial-collapsed::before,
+.tutorial.tutorial-collapsed::after {
+  display: none;
+}

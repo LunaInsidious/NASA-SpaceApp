@@ -1,0 +1,2504 @@
+.ui-root {
+  position: fixed;
+  inset: 0;
+  /* チュートリアルの一覧（z-index 0）より上に、メニューや窓を出す */
+  z-index: 1;
+  pointer-events: none;
+  color: #f2f4f8;
+  font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  font-size: 14px;
+  line-height: 1.35;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ui-root button,
+.ui-root select,
+.ui-root a,
+.ui-panel,
+.ui-pad,
+.ui-modal {
+  pointer-events: auto;
+}
+
+.ui-root button {
+  font: inherit;
+  color: inherit;
+  background: rgba(40, 52, 72, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.ui-root button.on {
+  background: #3d7be0;
+  border-color: #8fb6ff;
+}
+
+.ui-root button.primary {
+  background: #2f9e5b;
+  border-color: #8be0ad;
+  font-weight: 700;
+}
+
+.ui-root button:disabled,
+.ui-root button.dim {
+  opacity: 0.45;
+}
+
+.ui-panel {
+  background: rgba(8, 12, 22, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+/* 左上：資源 */
+.ui-hud {
+  position: absolute;
+  top: calc(8px + env(safe-area-inset-top));
+  left: calc(8px + env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: min(320px, 46vw);
+}
+
+.ui-stat {
+  margin-bottom: 6px;
+}
+
+.ui-stat:last-child {
+  margin-bottom: 0;
+}
+
+.ui-label {
+  display: block;
+  font-size: 11px;
+  opacity: 0.75;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ui-value {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.ui-small {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.ui-bad {
+  color: #ff8a7a;
+}
+
+.ui-ok {
+  color: #8be0ad;
+}
+
+.ui-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 3px;
+}
+
+.ui-bar > div {
+  height: 100%;
+  background: #f5c542;
+}
+
+.ui-meter {
+  height: 14px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.ui-meter > div {
+  height: 100%;
+  background: #3d7be0;
+}
+
+.ui-meter > div.over {
+  background: #ff6b5a;
+}
+
+.ui-bar.o2 > div {
+  background: #6ec6ff;
+}
+
+.ui-bar.low > div {
+  background: #ff6b5a;
+}
+
+.ui-breakdown {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.ui-stars {
+  color: #f5c542;
+  letter-spacing: 1px;
+}
+
+/* 右上：速さ・一時停止・言語・状態 */
+.ui-top {
+  position: absolute;
+  top: calc(8px + env(safe-area-inset-top));
+  right: calc(8px + env(safe-area-inset-right));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 50vw;
+}
+
+.ui-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.ui-status {
+  text-align: right;
+  font-size: 12px;
+}
+
+/* 右下：メニューとその場の行動 */
+.ui-buttons {
+  position: absolute;
+  right: calc(8px + env(safe-area-inset-right));
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.ui-context button {
+  font-size: 16px;
+  padding: 10px 14px;
+}
+
+/* 下中央：置く場所を選んでいる間 */
+.ui-buildbar {
+  position: absolute;
+  left: 50%;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  max-width: min(520px, 92vw);
+  text-align: center;
+}
+
+.ui-buildbar .ui-row {
+  justify-content: center;
+  margin-top: 6px;
+}
+
+/* 左下：仮想パッド（タッチのときだけ） */
+.ui-pad {
+  position: absolute;
+  left: calc(20px + env(safe-area-inset-left));
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  touch-action: none;
+}
+
+.ui-pad-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* トースト */
+.ui-toasts {
+  position: absolute;
+  /* 上の真ん中はチュートリアルとミッションの案内が使うので、通知は下の真ん中に出す */
+  bottom: calc(150px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(420px, 60vw);
+}
+
+.ui-toast {
+  background: rgba(20, 28, 44, 0.92);
+  border-left: 4px solid #6ec6ff;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.ui-toast.bad {
+  border-left-color: #ff6b5a;
+}
+
+/* メニューと説明の窓 */
+.ui-modal-layer {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  padding: 12px;
+}
+
+.ui-modal-layer[hidden],
+.ui-buildbar[hidden],
+.ui-pad[hidden] {
+  display: none;
+}
+
+.ui-modal {
+  /* 後ろの案内の文字が透けないよう、不透明にする */
+  background: rgb(14, 20, 34);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  width: min(560px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  user-select: text;
+}
+
+.ui-modal h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.ui-modal p {
+  margin: 6px 0;
+}
+
+.ui-modal a {
+  color: #8fb6ff;
+}
+
+.ui-list {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ui-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ui-list li > button.ui-item {
+  flex: 1 1 100%;
+  text-align: left;
+}
+
+.ui-list small,
+.ui-modal small {
+  display: block;
+  opacity: 0.8;
+  font-size: 12px;
+}
+
+.ui-qty {
+  min-width: 2em;
+  text-align: center;
+  font-weight: 700;
+}
+
+.ui-grow {
+  /* 説明が長くても、右の +/− ボタンを次の行に押し出さず、文字のほうを折り返す */
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.ui-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+@media (max-width: 640px) {
+  .ui-root {
+    font-size: 12px;
+  }
+
+  .ui-value {
+    font-size: 14px;
+  }
+
+  .ui-hud {
+    max-width: 52vw;
+  }
+
+  .ui-panel {
+    padding: 6px 8px;
+  }
+
+  /* 左下の仮想パッドに重ならないよう、ボタンの列はパッドの右側で折り返す */
+  .ui-buttons {
+    max-width: calc(100vw - 170px);
+  }
+}
+
+.ui-modal h3 {
+  margin: 12px 0 4px;
+  font-size: 15px;
+}
+
+/* 建設のバー：置き方の説明 */
+.ui-buildhint {
+  margin-top: 4px;
+  opacity: 0.85;
+}
+
+@media (max-width: 640px) {
+  /* スマホ幅：建設のバーは、下のボタン列と仮想パッドより上に出す */
+  .ui-buildbar {
+    left: 8px;
+    right: 8px;
+    bottom: calc(180px + env(safe-area-inset-bottom));
+    transform: none;
+    max-width: none;
+  }
+}
+
+/* 通信できないときの「やること」 */
+.ui-hint {
+  max-width: 230px;
+  margin-left: auto;
+  font-size: 12px;
+  color: #ffd27a;
+  white-space: normal;
+}
+
+/* 今は注文できない理由と、やること（メニューの上） */
+.ui-blocker {
+  margin: 6px 0 8px;
+  padding: 8px 10px;
+  border: 2px solid #ff8a5c;
+  border-radius: 8px;
+  background: rgba(60, 20, 10, 0.6);
+  color: #ffd2c0;
+  font-weight: 700;
+}
+
+/* ボンベの酸素（いのちのバー） */
+.ui-tank {
+  border: 2px solid #6fd3ff;
+}
+
+.ui-tank-danger {
+  border-color: #ff5a4f;
+  animation: ui-tank-alarm 0.7s ease-in-out infinite alternate;
+}
+
+.ui-tank.indoors {
+  animation: none;
+  border-color: #6fd3ff;
+}
+
+@keyframes ui-tank-alarm {
+  from {
+    box-shadow: 0 0 0 0 rgba(255, 90, 79, 0.9);
+  }
+  to {
+    box-shadow: 0 0 14px 4px rgba(255, 90, 79, 0.9);
+  }
+}
+
+/* 生き延びられる日数がふえたとき */
+.ui-pop {
+  display: inline-block;
+  animation: ui-pop 0.8s ease-out;
+  color: #6dff9a;
+}
+
+@keyframes ui-pop {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.6);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.ui-gain {
+  position: fixed;
+  z-index: 6;
+  pointer-events: none;
+  font:
+    800 24px / 1 system-ui,
+    sans-serif;
+  color: #6dff9a;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.9);
+  animation: ui-gain-rise 1.6s ease-out forwards;
+}
+
+@keyframes ui-gain-rise {
+  0% {
+    transform: translate(40px, 0) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(40px, -10px) scale(1.25);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(40px, -70px) scale(1);
+    opacity: 0;
+  }
+}
+
+.ui-sparkle {
+  position: absolute;
+  left: 30%;
+  top: 30%;
+  font-size: 16px;
+  animation: ui-sparkle 1s ease-out forwards;
+}
+
+@keyframes ui-sparkle {
+  from {
+    transform: rotate(var(--angle)) translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: rotate(var(--angle)) translateX(60px);
+    opacity: 0;
+  }
+}
+
+/* 「データ」の窓：数値と出典の一覧 */
+.ui-modal h4 {
+  margin: 10px 0 2px;
+  font-size: 14px;
+  color: #9fd3ff;
+}
+
+.ui-src-list {
+  margin: 2px 0 0;
+  padding-left: 1.1em;
+  font-size: 13px;
+}
+
+.ui-src-list li + li {
+  margin-top: 4px;
+}
+
+.ui-src-tbd {
+  color: #ffb08f;
+}
+
+/* 太陽フレアの警報：待つか、外にいるかを比べる */
+.ui-storm {
+  margin: 8px 0 4px;
+  padding: 8px 10px 8px 12px;
+  list-style: none;
+  border-radius: 8px;
+  background: rgba(255, 210, 122, 0.1);
+}
+
+.ui-storm li + li {
+  margin-top: 4px;
+}
+
+/* 短い表示（スマホだけ）とメニューのアイコン */
+.ui-short {
+  display: none;
+}
+
+.ui-menu-icon {
+  margin-right: 4px;
+}
+
+/* スマホ：詰め込みすぎない */
+@media (max-width: 640px) {
+  .ui-long {
+    display: none;
+  }
+
+  .ui-short {
+    display: inline;
+  }
+
+  /* 左上：いのちのバーとチップ。右上のボタンの列にかからない幅 */
+  .ui-hud {
+    max-width: none;
+    width: calc(100vw - 196px - env(safe-area-inset-left) - env(safe-area-inset-right));
+    gap: 4px;
+  }
+
+  .ui-tank {
+    padding: 4px 8px;
+  }
+
+  /* 右上：速さ・一時停止・言語を1列に。言語は切り替え先だけ見せる */
+  .ui-top {
+    max-width: 188px;
+    gap: 48px;
+  }
+
+  .ui-top .ui-row {
+    flex-wrap: nowrap;
+  }
+
+  .ui-top .ui-row button {
+    padding: 5px 7px;
+    font-size: 12px;
+  }
+
+  .ui-status {
+    padding: 4px 8px;
+  }
+
+  /* 通信が切れたときのやることは、困りごとのカードに出す */
+  .ui-status .ui-hint {
+    display: none;
+  }
+
+  /* 右下：メニューはアイコンと短い名前で縦1列。ジャンプはその下 */
+  .ui-buttons {
+    max-width: none;
+  }
+
+  .ui-buttons .ui-row:not(.ui-context) {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .ui-root button.ui-menu-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 58px;
+    padding: 3px 2px;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+
+  .ui-menu-icon {
+    margin: 0;
+    font-size: 18px;
+  }
+
+  /* その場の行動（「中に入る」など）は、仮想パッドのすぐ上に横長で出す */
+  .ui-buttons .ui-context {
+    position: fixed;
+    left: 8px;
+    right: 74px;
+    bottom: calc(150px + env(safe-area-inset-bottom));
+    justify-content: flex-start;
+  }
+
+  .ui-toasts {
+    width: calc(100vw - 96px);
+    left: 8px;
+    transform: none;
+  }
+}
+
+/* セーブの窓：ゲーム全体のやり直しは、ほかのボタンと分けて窓のいちばん下に小さく置く */
+.ui-restart-row {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 14px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.ui-restart-row button {
+  font-size: 12px;
+}
+
+/* メニューの窓の右上の ✕（窓を下へ読み進めても見えるよう、上に貼りつける） */
+.ui-root button.ui-modal-x {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  float: right;
+  width: 40px;
+  height: 40px;
+  margin: -6px -8px 0 8px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* 一時停止中：画面全体を暗くして、真ん中に大きく知らせる */
+.ui-pause {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(4, 8, 18, 0.62);
+  pointer-events: auto;
+}
+
+.ui-pause[hidden] {
+  display: none;
+}
+
+.ui-pause-card {
+  width: min(420px, 100%);
+  padding: 20px 22px;
+  border: 3px solid #9fd3ff;
+  border-radius: 18px;
+  background: rgba(14, 20, 34, 0.95);
+  text-align: center;
+  font-size: 16px;
+}
+
+.ui-pause-title {
+  font-size: clamp(30px, 8vw, 44px);
+  font-weight: 900;
+  color: #9fd3ff;
+}
+
+.ui-root button.ui-pause-resume {
+  margin-top: 8px;
+  padding: 12px 28px;
+  font-size: 20px;
+}
+
+/* 窓（メニュー）のいちばん上に、博士のいまの「やること」を出す（窓に隠れた吹き出しの代わり） */
+.ui-modal-guide {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 50px 10px 0;
+  padding: 6px 10px;
+  border: 2px solid #ffd27a;
+  border-radius: 12px;
+  background: rgba(255, 210, 122, 0.12);
+  font-weight: 700;
+}
+
+.ui-modal-guide-face {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #2a3550;
+}
+
+.ui-modal-guide-face svg {
+  display: block;
+  width: 44px;
+  height: 52px;
+}
+
+/* 窓の下の「閉じる」：窓の中の操作（再開、ここに保存など）と分けて、線で区切った横いっぱいのボタンにする */
+.ui-close-row {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.ui-root .ui-close-row button {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  font-weight: 700;
+}
+
+/* 建設の窓：遮蔽の壁は、材料（レゴリスか水）を選ぶところと一緒に枠で囲む */
+.ui-list li.ui-shield-card {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 8px;
+  border: 2px solid rgba(159, 211, 255, 0.5);
+  border-radius: 12px;
+}
+
+.ui-material-pick {
+  padding: 4px 4px 0;
+}
+
+.ui-material-title {
+  margin-bottom: 6px;
+  font-weight: 700;
+  color: #9fd3ff;
+}
+
+.ui-material-options {
+  display: flex;
+  gap: 8px;
+}
+
+.ui-root button.ui-material {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+/* 補給の窓：1行に名前・量と場所・ひとことだけ */
+.ui-cost {
+  margin-left: 4px;
+  opacity: 0.85;
+}
+
+/* 補給の窓：名前と −/＋ を1つのわくに入れ、どの数を増やすのかを分かりやすくする */
+.ui-list li.ui-supply-row {
+  position: relative;
+  flex-wrap: nowrap;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ui-list li.ui-supply-row.picked {
+  border-color: #6fd08c;
+  background: rgba(111, 208, 140, 0.12);
+}
+
+.ui-stepper {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 「？」：マウスを重ねるか、タップすると、何に使うかが出る */
+.ui-root button.ui-why {
+  min-width: 0;
+  min-height: 0;
+  width: 22px;
+  height: 22px;
+  margin-left: 6px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 13px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.ui-why-tip {
+  display: none;
+  position: absolute;
+  z-index: 2;
+  top: 100%;
+  left: 8px;
+  right: 8px;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid #8fb6ff;
+  border-radius: 8px;
+  background: #142033;
+  color: #e8f0ff;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: normal;
+}
+
+.ui-why:hover + .ui-why-tip,
+.ui-why:focus-visible + .ui-why-tip,
+.ui-why:focus + .ui-why-tip,
+.ui-why.open + .ui-why-tip {
+  display: block;
+}
+
+/* ---- 休息フェーズの2D画面（居住モジュールの中のノート。docs/SPEC.md ステップ13） ---- */
+.nb-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+}
+
+.nb-layer[hidden] {
+  display: none;
+}
+
+/* 方眼のノート。アイコンと数字を中心に、窓と同じ部品（ui-list など）をそのまま使う */
+.nb {
+  display: flex;
+  flex-direction: column;
+  width: min(780px, 100%);
+  max-height: 100%;
+  border: 1px solid rgba(143, 182, 255, 0.35);
+  border-radius: 14px;
+  background-color: rgb(14, 22, 38);
+  background-image:
+    linear-gradient(rgba(143, 182, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(143, 182, 255, 0.06) 1px, transparent 1px);
+  background-size: 22px 22px;
+  overflow: hidden;
+}
+
+.nb-head {
+  padding: 10px 16px 6px;
+  font-size: 17px;
+}
+
+.nb .ui-modal-guide {
+  margin: 0 12px 6px;
+}
+
+.nb-page {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 10px 16px 14px;
+  overflow-y: auto;
+}
+
+.nb-page h2 {
+  margin-top: 4px;
+}
+
+.nb-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 10px 14px;
+  border-top: 1px solid rgba(143, 182, 255, 0.35);
+  background: rgba(14, 22, 38, 0.95);
+}
+
+.ui-root button.nb-next {
+  flex: 1 1 200px;
+  max-width: 340px;
+  padding: 12px 18px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.nb-stats,
+.nb-review {
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+ul.nb-stats li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(143, 182, 255, 0.25);
+}
+
+ul.nb-review li {
+  padding: 6px 0;
+}
+
+/* ノートを開いている間は、3D の画面のボタンとくわしい数字を隠す */
+body.nb-open .ui-buttons,
+body.nb-open .ui-pad,
+body.nb-open .ui-hud,
+body.nb-open .ui-top .ui-status {
+  visibility: hidden;
+}
+
+/* 上の進み具合（①振り返り → … → ⑥明日の計画）。押すとそのページへ戻れる */
+.nb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nb-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 10px 8px;
+  border-bottom: 1px solid rgba(143, 182, 255, 0.35);
+}
+
+.ui-root button.nb-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.ui-root button[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ui-root button.nb-step.past {
+  opacity: 1;
+  border-color: #6fd08c;
+}
+
+.ui-root button.nb-step.on {
+  opacity: 1;
+  background: #3d7be0;
+  border-color: #8fb6ff;
+  font-weight: 700;
+}
+
+.nb-step-no {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 11px;
+}
+
+.nb-foot {
+  justify-content: space-between;
+}
+
+.nb-foot-actions {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+ol.nb-plan li {
+  padding: 4px 0;
+  font-weight: 700;
+}
+
+/* 外：今日のタスク（ボンベの下） */
+.ui-tasks {
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+/* ---- ミニゲーム（docs/SPEC.md ステップ14） ---- */
+.mg-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+}
+
+.mg-card {
+  width: min(520px, 100%);
+  padding: 14px 16px;
+  border: 2px solid #ffd27a;
+  border-radius: 14px;
+  background: rgb(14, 20, 34);
+}
+
+.mg-card h2 {
+  margin: 0 0 4px;
+}
+
+.mg-howto {
+  margin: 0 0 8px;
+}
+
+.mg-timer {
+  height: 8px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.mg-card .mg-timer > div {
+  height: 100%;
+  background: #ffd27a;
+}
+
+.mg-area {
+  position: relative;
+  height: 200px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  touch-action: none;
+  user-select: none;
+  cursor: pointer;
+}
+
+.mg-track {
+  position: absolute;
+  top: 40%;
+  left: 8%;
+  right: 8%;
+  height: 28px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.mg-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 14px;
+  background: rgba(111, 208, 140, 0.7);
+}
+
+.mg-marker {
+  position: absolute;
+  top: -6px;
+  width: 8px;
+  height: 40px;
+  margin-left: -4px;
+  border-radius: 4px;
+  background: #ffd27a;
+}
+
+.mg-dots {
+  position: absolute;
+  bottom: 14px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 22px;
+  color: #6fd08c;
+}
+
+.mg-drill {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 26px;
+}
+
+.mg-shake {
+  animation: mg-shake 0.3s;
+}
+
+@keyframes mg-shake {
+  25% {
+    transform: translateX(-6px);
+  }
+
+  75% {
+    transform: translateX(6px);
+  }
+}
+
+.mg-slot,
+.mg-piece,
+.mg-mound {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.mg-slot {
+  display: grid;
+  place-items: center;
+  width: 70px;
+  height: 70px;
+  border: 3px dashed #ffd27a;
+  border-radius: 12px;
+  color: #ffd27a;
+  animation: mg-glow 1s infinite alternate;
+}
+
+@keyframes mg-glow {
+  to {
+    box-shadow: 0 0 16px #ffd27a;
+  }
+}
+
+.mg-piece {
+  font-size: 46px;
+  pointer-events: none;
+}
+
+.mg-mound {
+  width: 36px;
+  height: 22px;
+  border-radius: 18px 18px 4px 4px;
+  background: #6b6355;
+  pointer-events: none;
+}
+
+.mg-mound.next {
+  outline: 3px solid #ffd27a;
+}
+
+.mg-mound.done {
+  background: #c9b48a;
+  height: 30px;
+}
+
+.mg-status {
+  min-height: 1.6em;
+  margin-top: 8px;
+  font-weight: 700;
+}
+
+.mg-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* スマホ：上の一時停止・ことばじてんのボタンと重ならないよう、上を空ける */
+@media (max-width: 600px) {
+  .nb-layer {
+    padding: 56px 6px 6px;
+  }
+
+  .nb-page {
+    padding: 8px 10px 12px;
+  }
+
+  .ui-root button.nb-step {
+    padding: 3px 6px;
+    font-size: 12px;
+  }
+}
+
+/* ---- 3D の画面に常に出す数字は、ボンベと残りの時間だけ（docs/SPEC.md ステップ16） ----
+   くわしい数字はインベントリ画面（I キー）へ。くんれんで電力・生命維持を見る段だけ、左上に出す */
+.ui-hud .ui-detail {
+  display: none;
+}
+
+body[data-tutorial-step="power"] .ui-hud .ui-detail:not(.ui-development),
+body[data-tutorial-step="lifeLine"] .ui-hud .ui-detail:not(.ui-development) {
+  display: block;
+}
+
+/* 右上の様子は、宇宙天気の嵐のとき（緊急）と、くんれんで通信を見る段だけ */
+.ui-top .ui-status:not(.emergency) {
+  display: none;
+}
+
+body[data-tutorial-step="comm"] .ui-top .ui-status {
+  display: block;
+}
+
+.nb-head-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+/* インベントリ画面：3D の左上と同じパネルを並べる */
+.nb-inv {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.nb-inv .ui-panel {
+  margin: 0;
+}
+
+/* ---- 豆知識カード（docs/SPEC.md ステップ17）。休息の画面とタイトル画面で同じ見た目 ---- */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  padding: 10px 12px;
+  border: 2px solid #ffd27a;
+  border-radius: 12px;
+  background: rgba(40, 32, 12, 0.6);
+}
+
+.card.locked {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.card-title {
+  display: block;
+  margin-bottom: 6px;
+  color: #ffd27a;
+}
+
+.card-terms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.card-term {
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+  padding: 4px 8px;
+  border: 1px solid #8fb6ff;
+  border-radius: 999px;
+  background: rgba(61, 123, 224, 0.25);
+  cursor: pointer;
+}
+
+.ui-warn {
+  color: #ffd27a;
+}
+
+/* ---- スマホ：テストプレイで押しにくかった・重なったところ ---- */
+@media (max-width: 600px) {
+  /* 上の一時停止・音・ことばじてんのボタンと休息の画面が重ならないよう、もう少し下げる */
+  .nb-layer {
+    padding-top: 100px;
+  }
+
+  /* カード・くわしく・セーブは絵だけにする（文字が1文字ずつ折り返すので） */
+  .nb-head-label {
+    display: none;
+  }
+
+  /* ＋／−、タスクを選ぶボタンは、指で押しやすい大きさに */
+  .ui-stepper button,
+  .ui-root button[data-action="taskToggle"] {
+    min-width: 44px;
+    min-height: 40px;
+  }
+}
+
+/* 施設のアイコン：3D で施設の上に出しているのと同じ見た目（建設の窓と、置く場所を選ぶバー） */
+.ui-fac-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ui-fac-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #ffd27a;
+  border-radius: 50%;
+  background: rgba(14, 22, 38, 0.85);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.ui-buildbar .ui-fac-item {
+  justify-content: center;
+}
+
+/* 準備した注文（翌日へか外に出るまで取り消せる） */
+.ui-queued {
+  padding: 10px 12px;
+  border: 2px solid #6fd08c;
+  border-radius: 10px;
+  background: rgba(111, 208, 140, 0.12);
+}
+
+/* 休息の画面の左上の出口（どのページからでも外に出られる） */
+.nb-head-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ui-root button.nb-exit {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-color: #6fd08c;
+}
+
+/* スマホでは短く出す（「外に出る」→「外へ」、題名は日にちだけ。ほかの上のボタンは絵だけ） */
+.nb-exit-short {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .nb-exit-short {
+    display: inline;
+  }
+}
+
+/* 押せないボタンを押したとき：すぐ上の吹き出しで理由、ボタンは震え、博士の「やること」が光る */
+.ui-locked-bubble {
+  position: fixed;
+  z-index: 10;
+  max-width: min(360px, calc(100vw - 16px));
+  padding: 12px 16px;
+  border: 3px solid #ffd27a;
+  border-radius: 14px;
+  background: #2a2110;
+  color: #fff3d6;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.5;
+  pointer-events: none;
+  animation: ui-bubble-in 0.18s ease-out;
+}
+
+.ui-locked-bubble::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--tail-x) - 10px);
+  border: 10px solid transparent;
+}
+
+.ui-locked-bubble[data-side="above"]::after {
+  top: 100%;
+  border-top-color: #ffd27a;
+}
+
+.ui-locked-bubble[data-side="below"]::after {
+  bottom: 100%;
+  border-bottom-color: #ffd27a;
+}
+
+@keyframes ui-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.95);
+  }
+}
+
+.ui-shake {
+  animation: ui-shake 0.4s;
+}
+
+@keyframes ui-shake {
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+.ui-flash {
+  animation: ui-flash 0.5s 3;
+}
+
+@keyframes ui-flash {
+  50% {
+    box-shadow:
+      0 0 0 4px #ffd27a,
+      0 0 18px #ffd27a;
+  }
+}
+
+/* 右上の一時停止は、休息の画面の上にも出す（セーブはいつでも一時停止の画面から）。一時停止の画面はその上、説明の窓はいちばん上 */
+.ui-top {
+  z-index: 1;
+}
+
+.ui-pause {
+  z-index: 2;
+}
+
+.ui-modal-layer {
+  z-index: 3;
+}
+
+.ui-pause-card {
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.ui-pause-save {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: left;
+}
+
+/* ---- 配置（PC）：ボンベと今日のタスクは左下。左上は音とことばじてんのボタン、その下にくんれんで見るくわしい数字 ---- */
+.ui-hud-tank {
+  position: absolute;
+  left: calc(8px + env(safe-area-inset-left));
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(300px, 46vw);
+}
+
+body.nb-open .ui-hud-tank {
+  visibility: hidden;
+}
+
+/* スマホ・タブレット：左下は動かすパッドとその場の行動のボタンなので、ゲージは左上 */
+@media (max-width: 640px), (pointer: coarse) {
+  .ui-hud-tank {
+    top: calc(8px + env(safe-area-inset-top));
+    bottom: auto;
+  }
+
+  .ui-hud {
+    top: calc(76px + env(safe-area-inset-top));
+  }
+
+  /* 左上ではボンベを上に、今日のタスクをその下に */
+  .ui-hud-tank .ui-tank {
+    order: -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .ui-hud-tank {
+    width: calc(100vw - 196px - env(safe-area-inset-left) - env(safe-area-inset-right));
+  }
+}
+
+/* ---- いつも見せるゲージ：アイコンと横のバーが4本（ボンベ・生命維持・電力・被ばく） ---- */
+.ui-gauges {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+}
+
+.ui-gauge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ui-gauge-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  background: rgba(8, 12, 22, 0.8);
+  font-size: 16px;
+  line-height: 1;
+  cursor: help;
+}
+
+.ui-gauge-bar {
+  flex: 1 1 auto;
+  height: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.ui-gauge-bar > span {
+  display: block;
+  height: 100%;
+  background: #4fd27a;
+  transition: width 0.3s;
+}
+
+.ui-gauge-warn .ui-gauge-bar > span {
+  background: #f2c94c;
+}
+
+.ui-gauge-danger .ui-gauge-bar > span {
+  background: #ff5a4f;
+}
+
+.ui-gauge-danger .ui-gauge-icon {
+  border-color: #ff5a4f;
+}
+
+/* ボンベのゲージだけは太く、目立たせる（命に関わる） */
+.ui-gauge-tank .ui-gauge-icon {
+  width: 36px;
+  height: 36px;
+  border-color: #6fd3ff;
+  font-size: 19px;
+}
+
+.ui-gauge-tank .ui-gauge-bar {
+  height: 16px;
+  border-radius: 8px;
+}
+
+/* スマホ：ゲージは小さめにして、上のほうにおさめる */
+@media (max-width: 640px) {
+  .ui-gauges {
+    gap: 3px;
+    padding: 5px 8px;
+  }
+
+  .ui-gauge {
+    gap: 6px;
+  }
+
+  .ui-gauge-icon {
+    width: 22px;
+    height: 22px;
+    border-width: 1px;
+    font-size: 12px;
+  }
+
+  .ui-gauge-tank .ui-gauge-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 15px;
+  }
+
+  .ui-gauge-bar {
+    height: 9px;
+  }
+
+  .ui-gauge-tank .ui-gauge-bar {
+    height: 12px;
+  }
+}
+
+/* ボンベのアイコンは「O₂」の文字（ひと目で酸素と分かるように） */
+.ui-gauge-tank .ui-gauge-icon {
+  color: #9fe3ff;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: -0.5px;
+}
+
+/* メニューの窓（一時停止中）：ことばじてん・豆知識カード・音・セーブ・タイトル */
+.ui-menu-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.ui-root .ui-menu-grid button {
+  padding: 8px 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ui-menu-sound {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* 右上のカードのボタン：新しいカードを手に入れたら、開くまで光る */
+.ui-root button.ui-cards-new {
+  border-color: #ffd27a;
+  animation: ui-cards-glow 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes ui-cards-glow {
+  to {
+    box-shadow: 0 0 12px 3px rgba(255, 210, 122, 0.8);
+  }
+}
+
+/* メニューの中の項目：4つとも同じ高さの1行。数（カードは 5/22）と NEW は名前の横に小さく */
+.ui-root .ui-menu-grid button {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px 6px;
+  min-height: 44px;
+}
+
+.ui-menu-grid small {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.ui-new {
+  color: #ffd27a;
+  font-weight: 800;
+}
+
+/* スマホ：メニューの項目は横幅が足りないので、1列に並べて1行ずつにする */
+@media (max-width: 600px) {
+  .ui-menu-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
+/* ---- 夜：地球管制からの通信（話せない日は基地の端末） ---- */
+.nb-comm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  border: 2px solid #6fd3ff;
+  border-radius: 14px;
+  background: rgba(16, 32, 52, 0.92);
+}
+
+.nb-comm p {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.nb-comm-terminal {
+  border-color: #ffd27a;
+  background: rgba(40, 32, 14, 0.92);
+}
+
+.nb-comm-from {
+  font-weight: 800;
+  color: #9fe3ff;
+}
+
+.nb-comm-terminal .nb-comm-from {
+  color: #ffd27a;
+}
+
+.nb-comm-greet {
+  font-size: 1.08em;
+  font-weight: 700;
+}
+
+/* 放っておくと命に関わること：目立たせる */
+.nb-comm-dangers {
+  margin: 4px 0;
+  padding: 8px 12px;
+  list-style: none;
+  border-left: 5px solid #ff5a4f;
+  border-radius: 8px;
+  background: rgba(120, 20, 16, 0.55);
+  font-weight: 700;
+  line-height: 1.7;
+}
+
+.nb-comm-stars {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin-top: 4px;
+}
+
+.nb-comm-star {
+  display: inline-flex;
+  gap: 4px;
+  align-items: baseline;
+}
+
+.nb-comm-star b {
+  color: #ffd27a;
+  letter-spacing: 1px;
+}
+
+.nb-comm-starline {
+  color: #ffe9a8;
+}
+
+.nb-comm-tomorrow {
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  font-weight: 700;
+  color: #b8f5c8;
+}
+
+/* 「通信が届きました」：中に入った直後だけ、上に出してから本文を見せる */
+.nb-comm-arrive {
+  margin: 0 12px 6px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(111, 211, 255, 0.18);
+  color: #cfefff;
+  font-weight: 800;
+  text-align: center;
+  animation: nb-comm-arrive 1.6s ease-out forwards;
+}
+
+@keyframes nb-comm-arrive {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  15%,
+  70% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0.35;
+  }
+}
+
+.nb-page-arriving .nb-comm {
+  animation: nb-comm-open 0.9s ease-out 0.5s both;
+}
+
+@keyframes nb-comm-open {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* 管制モニター：見たいものを選ぶ大きなボタン */
+.nb-monitor {
+  display: grid;
+  gap: 10px;
+  max-width: 560px;
+}
+
+.ui-root .nb-monitor button {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 16px;
+}
+
+/* ---- 夜の画面：居住モジュールの管制室（画面いっぱい）。天井の明かり、正面の壁一面のモニター、手前の操作卓 ---- */
+.nb-layer {
+  padding: 0;
+  background: #03060b;
+}
+
+.nb.cr {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  border: none;
+  border-radius: 0;
+  /* 部屋：暗い天井から、モニターに照らされた壁へ。壁のパネルの継ぎ目 */
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px) 0 0 / 160px 100%,
+    linear-gradient(#020408 0%, #08111d 18%, #0b1726 60%, #060b13 100%);
+  overflow: hidden;
+}
+
+/* 天井の明かり（並んだ照明から落ちる、うすい光） */
+.cr-lights {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 38%;
+  background:
+    radial-gradient(ellipse 9% 60% at 12% 0%, rgba(160, 210, 255, 0.16), transparent 70%),
+    radial-gradient(ellipse 9% 60% at 37% 0%, rgba(160, 210, 255, 0.16), transparent 70%),
+    radial-gradient(ellipse 9% 60% at 63% 0%, rgba(160, 210, 255, 0.16), transparent 70%),
+    radial-gradient(ellipse 9% 60% at 88% 0%, rgba(160, 210, 255, 0.16), transparent 70%);
+  pointer-events: none;
+}
+
+.cr-wall {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 10px 18px 6px;
+}
+
+/* 壁の上の電光表示：場所・日付・時計 */
+.cr-ticker {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px;
+  padding: 4px 18px;
+  border: 2px solid #1a2a3d;
+  border-radius: 6px;
+  background: #02060a;
+  color: #ffb84d;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-shadow: 0 0 6px rgba(255, 170, 60, 0.7);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+}
+
+.cr-clock {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color: #7dff9a;
+  text-shadow: 0 0 6px rgba(125, 255, 154, 0.7);
+}
+
+.cr-led {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff4f4f;
+  box-shadow: 0 0 8px #ff4f4f;
+  animation: cr-blink 1.2s steps(2, start) infinite;
+}
+
+/* 博士の案内は、電光表示の下に（メイン画面に重ねない） */
+.cr-guide {
+  width: min(900px, 100%);
+  margin: 0 auto 8px;
+}
+
+.cr-guide .ui-modal-guide {
+  margin: 0;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+}
+
+/* 壁一面のモニター：左右のモニター群は、少しこちらへ向けて弧を描くように */
+.cr-wallgrid {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(150px, 1fr) minmax(0, 3.2fr) minmax(150px, 1fr);
+  gap: 14px;
+  min-height: 0;
+  perspective: 1200px;
+}
+
+.cr-bank {
+  display: grid;
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 10px;
+  min-height: 0;
+}
+
+.cr-bank-left {
+  transform: rotateY(12deg);
+  transform-origin: right center;
+}
+
+.cr-bank-right {
+  transform: rotateY(-12deg);
+  transform-origin: left center;
+}
+
+/* モニター：黒いふち（ベゼル）、画面の光、走査線、映り込み */
+.cr-screen,
+.cr-main {
+  position: relative;
+  border: 7px solid #10151d;
+  border-radius: 8px;
+  background: radial-gradient(ellipse at 50% 30%, #12304d, #050d18 75%);
+  box-shadow:
+    0 0 0 1px #2a3442,
+    0 10px 24px rgba(0, 0, 0, 0.7),
+    0 0 26px rgba(80, 170, 255, 0.12);
+  overflow: hidden;
+}
+
+.cr-screen::after,
+.cr-main::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.06) 0%, transparent 35%),
+    repeating-linear-gradient(rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 3px);
+  pointer-events: none;
+}
+
+.cr-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+/* 物資の画面は3本のゲージがあるので、2段ぶんの高さ */
+.cr-screen.cr-screen-tall {
+  grid-row: span 2;
+}
+
+.cr-screen.cr-danger {
+  background: radial-gradient(ellipse at 50% 30%, #4d1614, #1a0606 75%);
+  box-shadow:
+    0 0 0 1px #5a2a2a,
+    0 0 26px rgba(255, 80, 70, 0.35);
+}
+
+.cr-screen-title {
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #9fe3ff;
+  letter-spacing: 1px;
+}
+
+.cr-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-width: 10px;
+}
+
+.cr-main-label {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  z-index: 1;
+  font:
+    700 10px / 1 ui-monospace,
+    Menlo,
+    monospace;
+  color: rgba(159, 227, 255, 0.5);
+  letter-spacing: 2px;
+}
+
+.cr-main .nb-page {
+  padding: 18px 22px;
+}
+
+.cr .nb-comm-arrive {
+  margin: 14px 22px 0;
+}
+
+.cr-gauge {
+  display: grid;
+  grid-template-columns: 4.2em 1fr;
+  gap: 6px;
+  align-items: center;
+  margin: 3px 0;
+  font-size: 12px;
+  text-align: left;
+}
+
+.cr-gauge .cr-bar {
+  height: 9px;
+}
+
+.cr-gauge.cr-danger span {
+  color: #ff8a80;
+  font-weight: 700;
+}
+
+.cr-big {
+  font-size: 30px;
+  line-height: 1.25;
+}
+
+.cr-crew {
+  font-size: 22px;
+  line-height: 1.3;
+  word-break: break-all;
+}
+
+/* 手前の操作卓：天板（奥へ傾いた面）と、その上の小さな光るパネル。ボタンは卓のキー */
+.cr-desk {
+  position: relative;
+  flex: 0 0 auto;
+  /* 薄い卓：メイン画面をできるだけ高くする */
+  padding: 16px 7% 8px;
+}
+
+.cr-desk::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(#253246 0%, #1a2433 30%, #0d131c 100%);
+  clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 100%);
+  box-shadow: inset 0 3px 0 #3a4b63;
+}
+
+.cr-desk-top {
+  position: absolute;
+  inset: 5px 9% auto;
+  display: flex;
+  gap: 2%;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.cr-desk .cr-desk-top span {
+  flex: 1 1 0;
+  height: 5px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #0f3d2a, #1b6b47 40%, #0f3d2a);
+  box-shadow: 0 0 8px rgba(80, 255, 160, 0.25);
+  animation: cr-blink 2.6s ease-in-out infinite;
+}
+
+.cr-desk .cr-desk-top span:nth-child(2n) {
+  background: linear-gradient(90deg, #3d2a0f, #8a5a1b 40%, #3d2a0f);
+  animation-delay: 0.7s;
+}
+
+.nb-foot.cr-console {
+  position: relative;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  align-items: center;
+}
+
+.ui-root .cr-console button {
+  border-color: #3a4b63;
+  background: linear-gradient(#2a3a52, #18243a);
+  box-shadow:
+    0 4px 0 #05080e,
+    0 6px 12px rgba(0, 0, 0, 0.6);
+}
+
+.ui-root .cr-console button.primary {
+  background: linear-gradient(#3cb36b, #23824a);
+  border-color: #6fe39a;
+}
+
+.ui-root .cr-console button.nb-exit {
+  flex: 0 0 auto;
+}
+
+/* 管制室にいる間は、外の困りごとのカードは出さない（命に関わることは通信で目立たせて知らせる） */
+body.nb-open .advice-card {
+  display: none;
+}
+
+/* せまい画面：壁はメイン画面だけ。卓は低く */
+@media (max-width: 900px) {
+  .cr-wallgrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cr-bank {
+    display: none;
+  }
+
+  .cr-wall {
+    padding: 6px 8px 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .cr-desk::before {
+    clip-path: polygon(3% 0, 97% 0, 100% 100%, 0 100%);
+  }
+
+  .cr-desk {
+    min-height: 0;
+    padding: 12px 4% 8px;
+  }
+
+  .cr-main .nb-page {
+    padding: 12px;
+  }
+}
+
+/* ---- メイン画面：相手が映り、吹き出しで話す ---- */
+.cr-call {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.cr-caller {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex: 0 0 132px;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  text-align: center;
+}
+
+.cr-avatar svg {
+  display: block;
+  width: 120px;
+  height: 120px;
+  border: 3px solid #6fd3ff;
+  border-radius: 16px;
+  box-shadow: 0 0 22px rgba(111, 211, 255, 0.35);
+}
+
+.cr-call-terminal .cr-avatar svg {
+  border-color: #ffd27a;
+  box-shadow: 0 0 22px rgba(255, 210, 122, 0.3);
+}
+
+.cr-caller-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #9fe3ff;
+}
+
+.cr-call-terminal .cr-caller-name {
+  color: #ffd27a;
+}
+
+.cr-signal {
+  font-size: 12px;
+  color: #7dff9a;
+  animation: cr-blink 1.6s ease-in-out infinite;
+}
+
+.cr-call-terminal .cr-signal {
+  color: #ffd27a;
+}
+
+@keyframes cr-blink {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.cr-bubbles {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* 吹き出し：左の相手から出る（左上に小さなしっぽ） */
+.cr-bubble {
+  position: relative;
+  padding: 10px 14px;
+  border: 2px solid #3d6f9c;
+  border-radius: 4px 16px 16px 16px;
+  background: #102a44;
+  color: #eef6ff;
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+.cr-bubble::before {
+  position: absolute;
+  top: -2px;
+  left: -12px;
+  border-width: 0 12px 12px 0;
+  border-style: solid;
+  border-color: transparent #3d6f9c transparent transparent;
+  content: "";
+}
+
+.cr-bubble p {
+  margin: 4px 0 0;
+}
+
+.cr-bubble-greet {
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.cr-bubble-danger {
+  border-color: #ff5a4f;
+  background: #4a1512;
+  font-weight: 700;
+}
+
+.cr-bubble-danger::before {
+  border-right-color: #ff5a4f;
+}
+
+.cr-bubble-tomorrow {
+  border-color: #4fbf74;
+  background: #10331f;
+  color: #c8f7d6;
+  font-weight: 700;
+}
+
+.cr-bubble-tomorrow::before {
+  border-right-color: #4fbf74;
+}
+
+.cr-bubble-note {
+  border-style: dashed;
+  background: transparent;
+  font-size: 14px;
+}
+
+.cr-call-terminal .cr-bubble:not(.cr-bubble-danger):not(.cr-bubble-tomorrow) {
+  border-color: #8a7432;
+  background: #2a2412;
+}
+
+.cr-call-terminal .cr-bubble:not(.cr-bubble-danger):not(.cr-bubble-tomorrow)::before {
+  border-right-color: #8a7432;
+}
+
+/* 通信が届いたときは、吹き出しを1つずつ出す */
+.nb-page-arriving .cr-bubble {
+  animation: cr-bubble-in 0.45s ease-out both;
+  animation-delay: calc(0.6s + var(--i) * 0.35s);
+}
+
+.nb-page-arriving .nb-comm {
+  animation: none;
+}
+
+@keyframes cr-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
+/* 飾りの画面（地球と月・信号の波） */
+.cr-wave polyline {
+  stroke-dasharray: 220;
+  animation: cr-wave 2.4s linear infinite;
+}
+
+@keyframes cr-wave {
+  from {
+    stroke-dashoffset: 220;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* せまい画面：相手は小さく上に、吹き出しはその下に */
+@media (max-width: 640px) {
+  .cr-call {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .cr-caller {
+    position: static;
+    flex-direction: row;
+    flex-basis: auto;
+    gap: 10px;
+    text-align: left;
+  }
+
+  .cr-avatar svg {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+  }
+
+  .cr-bubble {
+    font-size: 15px;
+  }
+
+  .cr-bubble::before {
+    display: none;
+  }
+}
+
+/* 地球から月へのロケットの道（管制室の右のモニターと、補給の画面） */
+.route {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.route-label {
+  fill: #cfe8ff;
+  font-size: 9px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.route-flame {
+  animation: cr-blink 0.5s steps(2, start) infinite;
+}
+
+.route-panel .route {
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.route-panel {
+  margin: 10px 0;
+  padding: 8px 12px;
+  border: 2px solid #23374f;
+  border-radius: 12px;
+  background: radial-gradient(ellipse at 50% 30%, #12304d, #050d18 80%);
+}
+
+.cr-wave {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ---- 1日の終わりの暗転：暗くなって「○日目」、補給のロケット、そして明ける（押すとすぐ終わる） ---- */
+.day-fade {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background: #000;
+  color: #fff;
+  pointer-events: auto;
+  cursor: pointer;
+  animation: day-fade 4.2s ease-in-out forwards;
+}
+
+.day-fade[hidden] {
+  display: none;
+}
+
+@keyframes day-fade {
+  0% {
+    opacity: 0;
+  }
+  12%,
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.day-fade-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  width: min(560px, calc(100vw - 32px));
+  text-align: center;
+  animation: day-fade-body 4.2s ease-out both;
+}
+
+@keyframes day-fade-body {
+  0%,
+  14% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  28%,
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.day-fade-day {
+  font-size: clamp(44px, 9vw, 84px);
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: #fff6d8;
+  text-shadow: 0 0 24px rgba(255, 210, 122, 0.45);
+}
+
+.day-fade-route {
+  width: 100%;
+}
+
+.day-fade p {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #cfe8ff;
+}
+
+.day-fade .day-fade-arrived {
+  color: #ffd27a;
+}
+
+/* 卓の上のボタンは低めに（いつもの「次へ」の大きなボタンより） */
+.ui-root .cr-console button.nb-next {
+  padding: 8px 18px;
+  font-size: 17px;
+}
+
+/* 地球で待っているロケット：少し上下にゆれる */
+.route-idle {
+  animation: cr-blink 2s ease-in-out infinite;
+}
+
+/* メニューの「タイトルに戻る」：ほかの項目と同じ大きさで、横いっぱいに（見つけやすく） */
+.ui-root .ui-menu-grid button.ui-menu-title {
+  grid-column: 1 / -1;
+}
+
+/* 中身だけを並べる入れ物（今日のタスクの欄。ゲージと同じ並びに入れる） */
+.ui-contents {
+  display: contents;
+}
+
+/* ゲージの「？」：右の端に小さく。説明はゲージの上に出す（PC はゲージが左下にあるので） */
+.ui-gauge {
+  position: relative;
+}
+
+.ui-root .ui-gauge button.ui-why {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-left: 0;
+  font-size: 12px;
+}
+
+.ui-root .ui-gauge .ui-why-tip {
+  top: auto;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  margin: 0 0 4px;
+}
+
+/* スマホ・タブレットはゲージが左上なので、説明はゲージの下に出す */
+@media (max-width: 640px), (pointer: coarse) {
+  .ui-root .ui-gauge .ui-why-tip {
+    top: 100%;
+    bottom: auto;
+    margin: 4px 0 0;
+  }
+}
+
+/* 管制室の右のモニター：今日の行動（外でしたことを1行ずつ） */
+.cr-today {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-y: auto;
+}
+
+.cr-today li::before {
+  content: "✔ ";
+  color: #7dff9a;
+}

@@ -1,0 +1,7 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "junior-astronaut-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01"
+  // observability（Workers Logs）は付けない。付けるなら、IP や端末情報が記録されないことを先に確かめる（docs/SPEC.md 共通ルール6）
+}

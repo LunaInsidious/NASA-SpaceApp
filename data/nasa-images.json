@@ -1,0 +1,65 @@
+{
+  "battery": {
+    "nasaId": "iss047e057658",
+    "file": "iss047e057658~small.jpg",
+    "titleEn": "Universal Battery Charger on the International Space Station (2016)",
+    "titleJa": "｜国際《こくさい》｜宇宙《うちゅう》ステーションの ｜電池《でんち》の ｜充電器《じゅうでんき》（2016｜年《ねん》）",
+    "credit": "NASA (JSC)"
+  },
+  "antenna": {
+    "nasaId": "PIA25136",
+    "file": "PIA25136~small.jpg",
+    "titleEn": "A new antenna for NASA's Deep Space Network (DSS-53, 2022)",
+    "titleJa": "｜地球《ちきゅう》で ｜宇宙《うちゅう》と ｜通信《つうしん》する ｜大《おお》きな アンテナ（2022｜年《ねん》）",
+    "credit": "NASA/JPL-Caltech"
+  },
+  "greenhouse": {
+    "nasaId": "KSC-20180307-PH_CSH01_0015",
+    "file": "KSC-20180307-PH_CSH01_0015~small.jpg",
+    "titleEn": "Tomatoes growing under LED lights for the space garden Veggie (2018)",
+    "titleJa": "｜宇宙《うちゅう》の ｜畑《はたけ》の ための トマト。LED の ｜光《ひかり》で ｜育《そだ》てる（2018｜年《ねん》）",
+    "credit": "NASA (KSC)"
+  },
+  "lifeSupport": {
+    "nasaId": "KSC-08pd3209",
+    "file": "KSC-08pd3209~small.jpg",
+    "titleEn": "Water Recovery System rack for the International Space Station (2008)",
+    "titleJa": "｜使《つか》った ｜水《みず》を きれいに する ｜装置《そうち》。｜宇宙《うちゅう》ステーション｜用《よう》（2008｜年《ねん》）",
+    "credit": "NASA (KSC)"
+  },
+  "iceDrill": {
+    "nasaId": "KSC-20231102-PH-FMX01_0020",
+    "file": "KSC-20231102-PH-FMX01_0020~small.jpg",
+    "titleEn": "Team training for PRIME-1, a drill to look for ice on the Moon (2023)",
+    "titleJa": "｜月《つき》の ｜氷《こおり》を ｜掘《ほ》る ドリル PRIME-1 の ｜練習《れんしゅう》を する チーム（2023｜年《ねん》）",
+    "credit": "NASA (KSC)"
+  },
+  "shield": {
+    "nasaId": "iss053e238888",
+    "file": "iss053e238888~small.jpg",
+    "titleEn": "Testing a radiation shielding vest on the International Space Station (2017)",
+    "titleJa": "｜放射線《ほうしゃせん》を ｜防《ふせ》ぐ ベストを ｜試《ため》す ｜宇宙飛行士《うちゅうひこうし》（2017｜年《ねん》）",
+    "credit": "NASA (JSC)"
+  },
+  "solarInShadow": {
+    "nasaId": "PIA00001",
+    "file": "PIA00001~small.jpg",
+    "titleEn": "The Moon's south pole seen by Clementine (mosaic of about 1500 images)",
+    "titleJa": "｜月《つき》の ｜南《みなみ》の ｜端《はし》。｜探査機《たんさき》 クレメンタインの ｜写真《しゃしん》 ｜約《やく》1500｜枚《まい》を つなげた もの",
+    "credit": "NASA/JPL"
+  },
+  "foundIce": {
+    "nasaId": "PIA24161",
+    "file": "PIA24161~small.jpg",
+    "titleEn": "Illustration of Lunar Trailblazer, made to look for ice in the Moon's shadows",
+    "titleJa": "｜月《つき》の ｜影《かげ》の ｜氷《こおり》を ｜探《さが》す ｜探査機《たんさき》 ルナ・トレイルブレイザー（｜絵《え》）",
+    "credit": "NASA/JPL-Caltech"
+  },
+  "flare": {
+    "nasaId": "GSFC_20171208_Archive_e001209",
+    "file": "GSFC_20171208_Archive_e001209~small.jpg",
+    "titleEn": "An X-class solar flare seen by SDO (left edge, Feb. 24, 2014)",
+    "titleJa": "｜太陽《たいよう》フレア（Xクラス）。｜左端《ひだりはし》の ｜光《ひか》って いる ところ（2014｜年《ねん》2｜月《がつ》24｜日《にち》）",
+    "credit": "NASA/SDO"
+  }
+}

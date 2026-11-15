@@ -1,0 +1,17 @@
+[
+  {
+    "id": "solarInShadow",
+    "condition": "buildSolarInShadow",
+    "textKey": "achievement.solarInShadow"
+  },
+  {
+    "id": "shelteredFromFlare",
+    "condition": "shelterDuringFlare",
+    "textKey": "achievement.shelteredFromFlare"
+  },
+  {
+    "id": "foundIce",
+    "condition": "collectIce",
+    "textKey": "achievement.foundIce"
+  }
+]
