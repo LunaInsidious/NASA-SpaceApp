@@ -10,8 +10,10 @@ import type { IPointerEvent } from '@babylonjs/core/Events/deviceInputEvents';
 import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
+import { FresnelParameters } from '@babylonjs/core/Materials/fresnelParameters';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
@@ -51,7 +53,11 @@ import {
   CLICK_SLOP_PX,
   DETAIL_TEXTURE_SIZE,
   DETAIL_TILE_M,
+  EARTH_ATMOSPHERE_SCALE,
   EARTH_DIAMETER_M,
+  EARTH_NIGHT_GLOW,
+  EARTH_SPIN_RAD_PER_SEC,
+  EARTH_TEXTURE_URL,
   GUIDE_ALPHA,
   GUIDE_COLOR,
   GUIDE_DIAMETER_M,
@@ -461,6 +467,43 @@ function createStarTexture(scene: Scene): DynamicTexture {
   return texture;
 }
 
+/**
+ * 地球：NASA の Blue Marble の写真を貼った球。月面と同じ太陽の光で照らすので、
+ * 太陽の向きによって昼の側と夜の側（満ち欠け）が本物どおりに見える。まわりに大気のうすい青い縁
+ */
+function createEarth(scene: Scene, position: Vector3): { globe: Mesh; atmosphere: Mesh } {
+  const globe = CreateSphere('earth', { diameter: EARTH_DIAMETER_M, segments: 48 }, scene);
+  const mat = new StandardMaterial('earth-mat', scene);
+  mat.diffuseTexture = new Texture(EARTH_TEXTURE_URL, scene);
+  mat.specularColor = Color3.Black();
+  // 夜の側も真っ黒にはしない（星空の中で形が分かるように）
+  mat.emissiveColor = new Color3(EARTH_NIGHT_GLOW, EARTH_NIGHT_GLOW, EARTH_NIGHT_GLOW * 1.5);
+  globe.material = mat;
+  globe.position = position;
+  // 歩いても近づかない（空の遠くにある）
+  globe.infiniteDistance = true;
+  globe.isPickable = false;
+  const atmosphere = CreateSphere(
+    'earth-atmosphere',
+    { diameter: EARTH_DIAMETER_M * EARTH_ATMOSPHERE_SCALE, segments: 32 },
+    scene,
+  );
+  const air = new StandardMaterial('earth-atmosphere-mat', scene);
+  air.disableLighting = true;
+  air.emissiveColor = new Color3(0.35, 0.6, 1);
+  air.alpha = 0.9;
+  // 縁ほど濃く、真ん中は透明（宇宙から見た大気の層）
+  air.opacityFresnelParameters = new FresnelParameters();
+  air.opacityFresnelParameters.leftColor = Color3.White();
+  air.opacityFresnelParameters.rightColor = Color3.Black();
+  air.opacityFresnelParameters.power = 3;
+  atmosphere.material = air;
+  atmosphere.position = position;
+  atmosphere.infiniteDistance = true;
+  atmosphere.isPickable = false;
+  return { globe, atmosphere };
+}
+
 function emissiveSphere(scene: Scene, name: string, diameter: number, rgb: Color3): Mesh {
   const mesh = CreateSphere(name, { diameter, segments: 16 }, scene);
   const mat = new StandardMaterial(`${name}-mat`, scene);
@@ -577,8 +620,9 @@ export function createWorld(
   sky.infiniteDistance = true;
   sky.isPickable = false;
 
-  const earth = emissiveSphere(scene, 'earth', EARTH_DIAMETER_M, new Color3(0.35, 0.55, 1));
-  earth.position = toVector(env.earthDirection(), CELESTIAL_DISTANCE_M);
+  const earth = createEarth(scene, toVector(env.earthDirection(), CELESTIAL_DISTANCE_M));
+  // 夜の側は、月面のまわりの明るさ（ambient）で照らさない（太陽の光だけで昼と夜を分ける）
+  ambient.excludedMeshes.push(earth.globe, earth.atmosphere);
   const sunDisc = emissiveSphere(scene, 'sun', SUN_DIAMETER_M, new Color3(1, 0.96, 0.85));
 
   const detail = createRegolithTexture(scene);
@@ -873,6 +917,8 @@ export function createWorld(
   return {
     frame(dtSec) {
       const dt = Math.min(dtSec, 0.1);
+      // 地球はゆっくり回る（見た目）
+      earth.globe.rotation.y += EARTH_SPIN_RAD_PER_SEC * dt;
       for (const [node, elapsed] of popping) {
         const t = Math.min(1, (elapsed + dt) / POP_SECONDS);
         // 少し大きくなりすぎてから戻る（ease-out-back）

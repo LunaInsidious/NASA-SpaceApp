@@ -68,6 +68,11 @@ export const STAR_TEXTURE_SIZE = 2048;
 export const CELESTIAL_DISTANCE_M = 800;
 /** 月から見た地球は直径約2°、太陽は約0.5°（見やすいよう太陽は大きめ） */
 export const EARTH_DIAMETER_M = 28;
+/** 地球の見た目：写真（NASA Blue Marble）を貼った球。大気のうすい縁の大きさ、夜の側の暗さ、回る速さ（見た目） */
+export const EARTH_TEXTURE_URL = '/textures/earth-bluemarble-2048.jpg';
+export const EARTH_ATMOSPHERE_SCALE = 1.06;
+export const EARTH_NIGHT_GLOW = 0.04;
+export const EARTH_SPIN_RAD_PER_SEC = 0.02;
 export const SUN_DIAMETER_M = 14;
 
 export const SUN_LIGHT_INTENSITY = 1.6;

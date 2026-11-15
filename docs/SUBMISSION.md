@@ -32,13 +32,13 @@ Artemis Kids is a free browser game that lets children aged 7–12 run a base at
 
 Artemis Kids turns the five decisions named in the challenge into things a child does with their hands:
 
-| Challenge requirement | What the player does in the game |
-| --- | --- |
-| Power allocation | Places solar panels where the real terrain keeps them in sunlight, watches them stop when a ridge shadow arrives, and adds batteries for the dark hours. |
-| Life support | Keeps oxygen, water and food above zero ("days we can live"). Builds life support and carries ice from a permanently shadowed crater, whose location was computed from the real terrain, before the suit's oxygen runs out. |
-| Radiation shielding | When a real particle storm (SEP) arrives, decides whether to shelter inside or keep working. Shields habitats with regolith or water walls. Radiation dose has a real limit (NASA-STD-3001). |
-| Food production | Builds greenhouses and assigns crew members to farm, trading crew time against research and repairs. |
-| Communication delay and blackout | Builds an antenna where Earth is visible. Earth sinks below the horizon on its real ~27-day cycle (nodal month) and cuts off contact and supply orders until it returns, unless the player launches a relay satellite. |
+| Challenge requirement            | What the player does in the game                                                                                                                                                                                            |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Power allocation                 | Places solar panels where the real terrain keeps them in sunlight, watches them stop when a ridge shadow arrives, and adds batteries for the dark hours.                                                                    |
+| Life support                     | Keeps oxygen, water and food above zero ("days we can live"). Builds life support and carries ice from a permanently shadowed crater, whose location was computed from the real terrain, before the suit's oxygen runs out. |
+| Radiation shielding              | When a real particle storm (SEP) arrives, decides whether to shelter inside or keep working. Shields habitats with regolith or water walls. Radiation dose has a real limit (NASA-STD-3001).                                |
+| Food production                  | Builds greenhouses and assigns crew members to farm, trading crew time against research and repairs.                                                                                                                        |
+| Communication delay and blackout | Builds an antenna where Earth is visible. Earth sinks below the horizon on its real ~27-day cycle (nodal month) and cuts off contact and supply orders until it returns, unless the player launches a relay satellite.      |
 
 The game loop:
 
@@ -48,8 +48,8 @@ The game loop:
 
 Learning support built into play:
 
-- **Training (about 3 minutes)** with Professor Luna. Each step says *what to do* and *why*. During training only the item the professor asks for can be built or ordered, so a child cannot get stuck.
-- **Word dictionary.** Terms such as *regolith*, *SEP* and *permanent shadow* are added the moment the game first uses them.
+- **Training (about 3 minutes)** with Professor Luna. Each step says _what to do_ and _why_. During training only the item the professor asks for can be built or ordered, so a child cannot get stuck.
+- **Word dictionary.** Terms such as _regolith_, _SEP_ and _permanent shadow_ are added the moment the game first uses them.
 - **27 fact cards** to collect. Each card shows the real data value behind it, with a link to the source.
 - **"?" buttons** on every gauge explain what it means right now and what to do about it.
 - **Japanese and English.** Every kanji has furigana (reading aids) for young readers.
@@ -75,7 +75,7 @@ Learning support built into play:
 
 ### Benefits and intended impact
 
-- Lets children *feel* trade-offs that are usually only words in a textbook: shadows stop power, air and water run out, storms are dangerous, and Earth can go silent.
+- Lets children _feel_ trade-offs that are usually only words in a textbook: shadows stop power, air and water run out, storms are dangerous, and Earth can go silent.
 - Shows where scientific numbers come from, and that some numbers in a game are choices rather than facts. This builds early data literacy.
 - Free, no installation, and runs on a phone, so it can be used at home, in classrooms and in science centers, in Japanese or English.
 
@@ -107,11 +107,11 @@ We did not use partner-agency datasets directly. Lunar surface radiation (1.369 
 
 ## References
 
-- Barker, M.K. et al. (2021). Improved LOLA elevation maps for south pole landing sites: Error estimates and their impact on illumination conditions. *Planetary and Space Science* 203, 105119. https://pgda.gsfc.nasa.gov/products/78
+- Barker, M.K. et al. (2021). Improved LOLA elevation maps for south pole landing sites: Error estimates and their impact on illumination conditions. _Planetary and Space Science_ 203, 105119. https://pgda.gsfc.nasa.gov/products/78
 - NASA DONKI: https://kauai.ccmc.gsfc.nasa.gov/DONKI/ (accessed via https://api.nasa.gov/)
 - NASA (2022). Life Support Baseline Values and Assumptions Document, NASA/TP-2015-218570/REV2. https://ntrs.nasa.gov/citations/20210024855
 - NASA-STD-3001 Vol. 1 Rev C (2023). https://standards.nasa.gov/
-- Zhang, S. et al. (2020). First measurements of the radiation dose on the lunar surface. *Science Advances* 6, eaaz1334.
+- Zhang, S. et al. (2020). First measurements of the radiation dose on the lunar surface. _Science Advances_ 6, eaaz1334.
 - NASA (2023). NASA Achieves Water Recovery Milestone on International Space Station.
 - Takada, K. et al. Advanced Oxygen Generation Assembly status (ICES 2024, 2025), NASA MSFC.
 - Dalton, P. et al. (2016). International Space Station Lithium-Ion Battery, NASA Battery Workshop.
