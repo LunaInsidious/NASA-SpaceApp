@@ -962,3 +962,9 @@ body[data-tutorial-step="comm"] .ui-status::before {
 .tutorial.tutorial-compact .tutorial-skip {
   display: none;
 }
+
+/* たたんだ吹き出しは博士を隠すので、博士を指す吹き出しの三角も出さない */
+.tutorial.tutorial-collapsed::before,
+.tutorial.tutorial-collapsed::after {
+  display: none;
+}
