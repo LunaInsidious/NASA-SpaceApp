@@ -382,13 +382,26 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   let saves: SaveSummary[] = [];
   let donkiEvents: DonkiEvent[] = [];
   // くんれんの間に建ててよいもの・頼んでよいもの（null なら制限なし）
-  let tutorialLimits: TutorialLimits = { build: null, order: null, orderRequires: null };
+  let tutorialLimits: TutorialLimits = {
+    build: null,
+    order: null,
+    orderRequires: null,
+    orderMax: null,
+    buildDone: false,
+  };
   const buildAllowed = (kind: FacilityKind) =>
     tutorialLimits.build === null || tutorialLimits.build.includes(kind);
   const buildLockAttr = (kind: FacilityKind) =>
-    buildAllowed(kind) ? '' : 'aria-disabled="true" data-locked="tutorial.build"';
+    buildAllowed(kind)
+      ? ''
+      : `aria-disabled="true" data-locked="${tutorialLimits.buildDone ? 'tutorial.buildDone' : 'tutorial.build'}"`;
   const orderAllowed = (kind: LaunchItemKind) =>
     tutorialLimits.order === null || tutorialLimits.order.includes(kind);
+  // くんれんで、もう言われた数だけカートに入れたか（＋で count を増やせるか）
+  const orderAtMax = (kind: LaunchItemKind, count: number) => {
+    const max = tutorialLimits.orderMax?.[kind];
+    return max !== undefined && count >= max;
+  };
   let terrainSource: TerrainSource | null = null;
   const buildOptions: { dustCover: boolean; shieldMaterial: 'regolith' | 'water' } = {
     dustCover: false,
@@ -984,7 +997,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         <span class="ui-stepper">
           <button data-action="cart" data-kind="${kind}" data-delta="-1" aria-label="${tPlain(`launchItem.${kind}`)} −">−</button>
           <span class="ui-qty">${cart[kind] / step}</span>
-          <button data-action="cart" data-kind="${kind}" data-delta="1" aria-label="${tPlain(`launchItem.${kind}`)} ＋" ${noRoom ? 'disabled' : orderAllowed(kind) ? '' : 'aria-disabled="true" data-locked="tutorial.order"'}>＋</button>
+          <button data-action="cart" data-kind="${kind}" data-delta="1" aria-label="${tPlain(`launchItem.${kind}`)} ＋" ${noRoom ? 'disabled' : !orderAllowed(kind) ? 'aria-disabled="true" data-locked="tutorial.order"' : orderAtMax(kind, cart[kind] / step) ? 'aria-disabled="true" data-locked="tutorial.orderMax"' : ''}>＋</button>
         </span>
       </li>`;
     }).join('');
