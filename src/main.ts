@@ -45,6 +45,7 @@ import {
   needsRepair as facilityNeedsRepair,
   type PlannedTask,
   parseTasks,
+  settleTasks,
   type TaskKind,
   taskCandidates,
   taskDef,
@@ -148,7 +149,7 @@ let lastEventId: string | null = null;
 let inventoryOpened = false;
 // 休息の画面で選んだ、次に外に出たときのタスク（選んだ順）と、今日外でこなすタスク
 let selectedTaskIds: string[] = [];
-let todayPlan: PlannedTask[] = [];
+let todayPlan: readonly PlannedTask[] = [];
 let menuPaused = false;
 let indoors = state.player.indoors;
 let buildMode: { kind: FacilityKind; options: BuildOptions } | null = null;
@@ -537,7 +538,12 @@ function doAction(action: ContextAction): void {
       });
       break;
     case 'repair': {
-      const target = near.find(needsRepair);
+      // 近くに傷んだ施設がいくつかあれば、今日のタスクで選んだ施設を先に点検する（タスクに印がつくように）
+      const planned = todayPlan
+        .filter((task) => !task.done && task.kind === 'repair')
+        .map((task) => task.facilityId);
+      const target =
+        near.find((f) => needsRepair(f) && planned.includes(f.id)) ?? near.find(needsRepair);
       if (target === undefined) {
         break;
       }
@@ -1187,7 +1193,10 @@ window.addEventListener('keydown', (e) => {
     return;
   }
   if (e.key === 'Escape') {
-    ui.closeMenus();
+    // メニュー（一時停止）の窓が開いていれば、それを閉じる。なければ建設などの窓を閉じる
+    if (!ui.closePause()) {
+      ui.closeMenus();
+    }
     return;
   }
   if (ui.isMenuOpen()) {
@@ -1262,6 +1271,8 @@ engine.runRenderLoop(() => {
   if (ui.isInventoryOpen()) {
     inventoryOpened = true;
   }
+  // 隊員が直した・その場で直したなど、もう要らなくなったタスクには印をつける
+  todayPlan = settleTasks(todayPlan, state, values);
   ui.setTaskList(todayPlan.map((task) => ({ label: taskLabel(task), done: task.done })));
   const actionsKey = actions.join(',');
   if (actionsKey !== lastActionsKey) {

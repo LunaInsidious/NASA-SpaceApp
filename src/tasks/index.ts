@@ -150,6 +150,33 @@ export function completeTask(
   return plan.map((task, i) => (i === index ? { ...task, done: true } : task));
 }
 
+/**
+ * もう要らなくなったタスクに印をつける。点検：施設が直っている（隊員が直した、その場の「点検する」で直したなど）。
+ * レゴリス：もう盛ってある。同じ施設をもう一度やらなくてよいように。施設がなくなっていても印をつける
+ */
+export function settleTasks(
+  plan: readonly PlannedTask[],
+  state: SimState,
+  values: Values,
+): readonly PlannedTask[] {
+  const settled = (task: PlannedTask): boolean => {
+    if (task.done || task.kind === 'ice') {
+      return false;
+    }
+    const facility = state.facilities.find((f) => f.id === task.facilityId);
+    if (facility === undefined) {
+      return true;
+    }
+    return task.kind === 'repair'
+      ? !needsRepair(facility, values)
+      : facility.regolithCover === true;
+  };
+  if (!plan.some(settled)) {
+    return plan;
+  }
+  return plan.map((task) => (settled(task) ? { ...task, done: true } : task));
+}
+
 /** 次に行くタスク（選んだ順で、まだのもの） */
 export function nextTask(plan: readonly PlannedTask[]): PlannedTask | null {
   return plan.find((task) => !task.done) ?? null;
