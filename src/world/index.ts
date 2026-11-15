@@ -30,6 +30,7 @@ import type { Facility, FacilityKind, Values } from '../contracts/index.ts';
 import type { OuterTerrain, TerrainEnv } from '../env/api.ts';
 import type { PadInput, PlayerPose, World } from './api.ts';
 import { createAstronaut } from './astronaut.ts';
+import { type FootprintBox, pushOutOfBoxes } from './collision.ts';
 import {
   applyFacilityState,
   applyGhostLook,
@@ -56,6 +57,7 @@ import {
   DETAIL_TILE_M,
   EARTH_ATMOSPHERE_ALPHA,
   EARTH_ATMOSPHERE_SCALE,
+  EARTH_DAY_BRIGHTNESS,
   EARTH_DIAMETER_M,
   EARTH_NIGHT_GLOW,
   EARTH_SPIN_RAD_PER_SEC,
@@ -83,6 +85,7 @@ import {
   PICK_STEP_M,
   PLAYER_BLOB_ALPHA,
   PLAYER_BLOB_RADIUS_M,
+  PLAYER_BODY_RADIUS_M,
   PLAYER_BOUNDS_MARGIN_M,
   POP_OVERSHOOT,
   POP_SECONDS,
@@ -525,10 +528,13 @@ function createStarTexture(scene: Scene): DynamicTexture {
 function createEarth(scene: Scene, position: Vector3): { globe: Mesh; atmosphere: Mesh } {
   const globe = CreateSphere('earth', { diameter: EARTH_DIAMETER_M, segments: 48 }, scene);
   const mat = new StandardMaterial('earth-mat', scene);
-  mat.diffuseTexture = new Texture(EARTH_TEXTURE_URL, scene);
+  // 昼の側：写真を明るくして貼る（光の強さは 1 で頭打ちになるので、写真のほうを明るくする）
+  const day = new Texture(EARTH_TEXTURE_URL, scene);
+  day.level = EARTH_DAY_BRIGHTNESS;
+  mat.diffuseTexture = day;
   mat.specularColor = Color3.Black();
   // 夜の側も真っ黒にはしない：写真がうっすら見えるようにする（星空の中で地球だと分かるように）
-  mat.emissiveTexture = mat.diffuseTexture;
+  mat.emissiveTexture = new Texture(EARTH_TEXTURE_URL, scene);
   mat.emissiveColor = new Color3(EARTH_NIGHT_GLOW, EARTH_NIGHT_GLOW, EARTH_NIGHT_GLOW);
   globe.material = mat;
   globe.position = position;
@@ -702,6 +708,18 @@ export function createWorld(
   // 施設
   const facilityVisuals = new Map<string, FacilityVisual>();
   const facilityPositions = new Map<string, { x: number; z: number }>();
+  // 建物の当たり判定（真上から見た箱）。宇宙飛行士は中に入れず、いちばん近い辺の外へ押し出す
+  const facilityColliders = new Map<string, FootprintBox>();
+  const pushOutOfFacilities = () => {
+    const pushed = pushOutOfBoxes(
+      player.x,
+      player.z,
+      PLAYER_BODY_RADIUS_M,
+      facilityColliders.values(),
+    );
+    player.x = pushed.x;
+    player.z = pushed.z;
+  };
   let ghost: { visual: FacilityVisual; material: StandardMaterial } | null = null;
 
   const placeOnGround = (node: TransformNode, x: number, z: number) => {
@@ -793,6 +811,8 @@ export function createWorld(
     player.z = clampToMap(wantZ);
     // 歩く範囲の端で、外へ進もうとしているか（見えない壁）
     atMapEdge = moving && (player.x !== wantX || player.z !== wantZ);
+    // 建物にはぶつかって止まる（通り抜けない）
+    pushOutOfFacilities();
     if (moving) {
       const targetHeading = Math.atan2(mx, mz);
       player.heading += angleDelta(targetHeading, player.heading) * (1 - Math.exp(-TURN_RATE * dt));
@@ -1006,6 +1026,9 @@ export function createWorld(
           visual = createFacilityVisual(scene, f.kind, f.shieldMaterial);
           if (visual.sunTracker !== null) visual.sunTracker.rotation.y = sunAzimuth;
           placeOnGround(visual.root, f.x, f.z);
+          // 当たり判定：建物の形を真上から見た箱（上に浮かぶアイコンを付ける前に測る）
+          const { min, max } = visual.root.getHierarchyBoundingVectors(true);
+          facilityColliders.set(f.id, { minX: min.x, maxX: max.x, minZ: min.z, maxZ: max.z });
           attachIcon(visual);
           facilityVisuals.set(f.id, visual);
           // 新しく建った施設は、ポンと弾んで出てくる（読み込んだ直後のものは弾ませない）
@@ -1023,6 +1046,7 @@ export function createWorld(
           visual.dispose();
           facilityVisuals.delete(id);
           facilityPositions.delete(id);
+          facilityColliders.delete(id);
         }
       }
     },

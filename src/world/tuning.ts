@@ -87,6 +87,8 @@ export const EARTH_TEXTURE_URL = '/textures/earth-bluemarble-2048.jpg';
 export const EARTH_ATMOSPHERE_SCALE = 1.06;
 export const EARTH_ATMOSPHERE_ALPHA = 0.45;
 export const EARTH_NIGHT_GLOW = 0.35;
+/** 昼の側の写真の明るさの倍率（写真の海がとても暗いので、太陽の当たる側が星空の中ではっきり見えるまで上げる） */
+export const EARTH_DAY_BRIGHTNESS = 3;
 export const EARTH_SPIN_RAD_PER_SEC = 0.02;
 export const SUN_DIAMETER_M = 14;
 
@@ -117,6 +119,8 @@ export const PICK_REFINE_STEPS = 6;
 
 // 宇宙飛行士の影（見た目）。足元の丸い影だけ（本当は太陽が低くて長い影になるが、でこぼこの地面で欠けやすいので出さない）
 export const PLAYER_BLOB_RADIUS_M = 0.45;
+/** 建物の当たり判定：宇宙飛行士の体の半径（建物の形の箱から、これだけ離れて止まる） */
+export const PLAYER_BODY_RADIUS_M = 0.4;
 export const PLAYER_BLOB_ALPHA = 0.45;
 export const SHADOW_LIFT_M = 0.05;
 
