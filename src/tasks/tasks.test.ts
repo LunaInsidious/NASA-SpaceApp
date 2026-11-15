@@ -3,7 +3,14 @@ import tasksJson from '../../data/tasks.json';
 import valuesJson from '../../data/values.json';
 import type { Env, Values } from '../contracts/index.ts';
 import { createInitialState } from '../sim/index.ts';
-import { completeTask, nextTask, parseTasks, settleTasks, taskCandidates } from './index.ts';
+import {
+  completeTask,
+  nextTask,
+  parseTasks,
+  settleTasks,
+  suggestTasks,
+  taskCandidates,
+} from './index.ts';
 import {
   dragFits,
   timingInZone,
@@ -101,6 +108,37 @@ describe('タスク', () => {
     const again = settleTasks(fixedResult.plan, fixed, values);
     expect(again.plan).toBe(fixedResult.plan);
     expect(again.crewFixed).toEqual([]);
+  });
+});
+
+describe('地球管制がすすめる明日のタスク', () => {
+  const initial = createInitialState(values, env, [0, 0]);
+  const habitat = initial.facilities[0];
+  if (habitat === undefined) throw new Error('居住モジュールがない');
+  const state = {
+    ...initial,
+    facilities: [
+      { ...habitat, id: 'a', condition: 0.7 },
+      { ...habitat, id: 'b', condition: 0.4 },
+    ],
+  };
+  const candidates = [
+    { id: 'ice', kind: 'ice', facilityId: null, x: 0, z: 0, done: false },
+    { id: 'repair:a', kind: 'repair', facilityId: 'a', x: 0, z: 0, done: false },
+    { id: 'repair:b', kind: 'repair', facilityId: 'b', x: 0, z: 0, done: false },
+    { id: 'regolith:a', kind: 'regolith', facilityId: 'a', x: 0, z: 0, done: false },
+  ] as const;
+
+  it('ふだんは傷みのひどい施設の点検から、決めた数まで', () => {
+    expect(suggestTasks(candidates, state, false, 3).map((t) => t.id)).toEqual([
+      'repair:b',
+      'repair:a',
+      'regolith:a',
+    ]);
+  });
+
+  it('水が足りなくなりそうなら、氷を運ぶのを先にすすめる', () => {
+    expect(suggestTasks(candidates, state, true, 2).map((t) => t.id)).toEqual(['ice', 'repair:b']);
   });
 });
 

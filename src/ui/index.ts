@@ -59,15 +59,16 @@ const MENUS = ['build', 'status'] as const;
 // メニュー（一時停止）の窓の中の画面
 const PAUSE_VIEWS = ['main', 'cards', 'save', 'data'] as const;
 type PauseView = (typeof PAUSE_VIEWS)[number];
-// 休息フェーズの2D画面のタブ（docs/SPEC.md ステップ13）
-// 休息フェーズの2D画面は、タブではなく順に進むページ（何から開くかを選ばなくてよい）。セーブは順の外
-const REST_PAGES = ['review', 'crew', 'launch', 'tasks', 'plan'] as const;
-// 順の外のページはない（セーブは一時停止の画面、くわしい様子は振り返り、カードはタイトル）
-const NOTEBOOK_PAGES = REST_PAGES;
+// 夜（居住モジュールの中）の画面。まず地球管制からの通信（comm）を見せ、主なボタンは「翌朝へ」。
+// 補給の注文は「返信」（reply）、隊員・明日のタスク・くわしい様子は「管制モニター」（monitor）から、必要なときだけ開く
+const NIGHT_VIEWS = ['comm', 'reply', 'monitor', 'crew', 'tasks', 'details'] as const;
+type NightView = (typeof NIGHT_VIEWS)[number];
+// 管制モニターから開くもの
+const MONITOR_VIEWS = ['crew', 'tasks', 'details'] as const;
+// 通信が届いたときの演出の長さ（この間に描き直したときだけ、演出をつける）
+const COMM_ARRIVE_MS = 1600;
 // インベントリ画面に出す物資
 const INVENTORY_STOCKS = ['oxygen', 'water', 'food', 'spareParts', 'materials'] as const;
-type RestPage = (typeof NOTEBOOK_PAGES)[number];
-type RestStep = (typeof REST_PAGES)[number];
 const DEVELOPMENT_ELEMENTS = ['selfSufficiency', 'stability', 'safety', 'scale'] as const;
 const LIFE_SUPPORT_KEYS = ['oxygen', 'water', 'food'] as const;
 const SHIELD_MATERIALS = ['regolith', 'water'] as const;
@@ -303,10 +304,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   let menu: MenuKind | null = null;
   // 休息フェーズの2D画面（居住モジュールの中）。main が setRest で開け閉めする
   let rest: RestInfo | null = null;
-  let restPage: RestPage = 'review';
-  // 順に進むページのどこまで来たか。先のページへは「次へ」でしか進めない（戻るのはできる）。
-  // セーブ・くわしい様子・カード（順の外）を開いている間も、ここを覚えておいて戻る
-  let restStep: RestStep = 'review';
+  let nightView: NightView = 'comm';
+  // 通信が届いた時刻（中に入ったとき）。少しの間だけ「届きました」の演出をつける
+  let commArrivedAt = 0;
   // 外で今日こなすタスク（main が setTaskList で渡す）
   let taskList: { label: string; done: boolean }[] = [];
   // 開いているミニゲームを閉じる関数
@@ -1122,9 +1122,40 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <p class="ui-small">${t('research.note')}</p>`;
   };
 
-  const reviewHtml = (info: RestInfo, current: SimState, currentView: SimView) => `
-    <h2>${t('review.title')}</h2>
-    <ul class="nb-review">${info.review.map((line) => `<li>${line}</li>`).join('')}</ul>
+  /** 地球管制からの通信（話せない日は基地の端末）。ねぎらい・今日の一言・基地の変化・危ないこと・★・明日への一言 */
+  const commHtml = (info: RestInfo) => {
+    const r = info.report;
+    const stars = r.stars
+      .map(
+        (s) =>
+          `<span class="nb-comm-star"><span>${s.label}</span><b>${'★'.repeat(s.stars)}${'☆'.repeat(STAR_COUNT - s.stars)}</b></span>`,
+      )
+      .join('');
+    return `
+      <div class="nb-comm ${r.linked ? '' : 'nb-comm-terminal'}">
+        <div class="nb-comm-from">${r.from}</div>
+        ${r.lead === null ? '' : `<p class="ui-small">${r.lead}</p>`}
+        ${r.greeting === null ? '' : `<p class="nb-comm-greet">${r.greeting}</p>`}
+        ${r.lines.map((line) => `<p>${line}</p>`).join('')}
+        ${r.dangers.length === 0 ? '' : `<ul class="nb-comm-dangers">${r.dangers.map((d) => `<li>${d}</li>`).join('')}</ul>`}
+        <div class="nb-comm-stars"><span class="ui-label">${t('comm.stars')}</span>${stars}</div>
+        ${r.starChanges.map((line) => `<p class="nb-comm-starline">${line}</p>`).join('')}
+        <p class="nb-comm-tomorrow">${r.tomorrow}</p>
+        <p class="ui-small">${r.tomorrowTasks}</p>
+        ${r.tip === null ? '' : `<p class="ui-small nb-comm-tip">${r.tip}</p>`}
+        ${info.queuedOrder === null ? '' : `<p class="ui-small ui-ok">${t('comm.queued')}</p>`}
+      </div>`;
+  };
+
+  /** 管制モニター：隊員の係・明日のタスク・くわしい様子を、見たいときだけ開く */
+  const monitorHtml = () => `
+    <h2>${t('monitor.title')}</h2>
+    <p class="ui-small">${t('monitor.lead')}</p>
+    <div class="nb-monitor">
+      ${MONITOR_VIEWS.map((v) => `<button data-action="nightView" data-view="${v}">${t(`monitor.${v}`)}</button>`).join('')}
+    </div>`;
+
+  const detailsHtml = (current: SimState, currentView: SimView) => `
     ${inventoryHtml(current, currentView)}
     ${researchHtml(current, currentView)}`;
 
@@ -1175,56 +1206,27 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       ${rows === '' ? `<p class="ui-small">${t('tasks.none')}</p>` : `<ul class="ui-list">${rows}</ul>`}`;
   };
 
-  /** さいごのページ：明日の計画（選んだタスク）と、「翌日へ」「外に出る」 */
-  const planHtml = (info: RestInfo) => {
-    const chosen = info.tasks.filter((task) => task.selected);
-    return `
-      <h2>${t('plan.title')}</h2>
-      ${
-        chosen.length === 0
-          ? `<p class="ui-small">${t('plan.empty')}</p>`
-          : `<ol class="nb-plan">${chosen.map((task) => `<li>${task.label}</li>`).join('')}</ol>`
-      }
-      <p class="ui-small">${t(info.canGoOut ? 'plan.goOutNote' : 'plan.sleepNote')}</p>`;
-  };
-
-  const restPageHtml = (
-    page: RestPage,
-    info: RestInfo,
-    current: SimState,
-    currentView: SimView,
-  ) => {
-    switch (page) {
-      case 'review':
-        return reviewHtml(info, current, currentView);
+  const nightViewHtml = (v: NightView, info: RestInfo, current: SimState, currentView: SimView) => {
+    switch (v) {
+      case 'comm':
+        return commHtml(info);
+      case 'reply':
+        return launchMenuHtml(currentView);
+      case 'monitor':
+        return monitorHtml();
       case 'crew':
         return crewMenuHtml(current, currentView);
-      case 'launch':
-        return launchMenuHtml(currentView);
       case 'tasks':
         return tasksHtml(info);
-      case 'plan':
-        return planHtml(info);
+      case 'details':
+        return detailsHtml(current, currentView);
     }
   };
 
-  /** 順に進むページの何番目か。セーブ・くわしい様子（順の外）なら -1 */
-  /**
-   * そのページを開く。順のページは、今いるところか、それより前（戻る）だけ。先へは「次へ」でしか進めないので false を返す。
-   * 順の外のページ（セーブ・くわしい様子・カード）はいつでも開ける
-   */
-  const openRestPage = (page: RestPage): boolean => {
-    const step = REST_PAGES.find((p) => p === page);
-    if (step === undefined) {
-      restPage = page;
-    } else if (REST_PAGES.indexOf(step) <= REST_PAGES.indexOf(restStep)) {
-      restStep = step;
-      restPage = step;
-    } else {
-      return false;
-    }
+  /** 夜の画面を切り替える */
+  const openNightView = (v: NightView) => {
+    nightView = v;
     renderNotebook();
-    return true;
   };
 
   const renderNotebook = () => {
@@ -1236,43 +1238,39 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     }
     notebookEl.hidden = false;
     document.body.classList.add('nb-open');
-    // 上の進み具合：番号と名前。前のページへは押して戻れる。先のページは押せない（「次へ」で順に進む）
-    const outOfOrder = restPage !== restStep;
-    const index = REST_PAGES.indexOf(restStep);
-    // 博士の「やること」がこのページでの操作なら、済むまで先へは進ませない（もどる・前のページと、左上の「外に出る」は押せる）
-    const requiredPage = rest.requiredPage;
-    const locked = requiredPage !== null && requiredPage === restPage;
+    // 博士の「やること」がこの夜の操作（返信・隊員・タスク）なら、済むまで「翌朝へ」「外に出る」は押せない。
     // 押せないボタンは disabled にせず（押しても何も起きないと理由が分からない）、押したら理由を知らせる
-    const lockedAttr = (reason: 'task' | 'ahead') =>
-      `aria-disabled="true" data-locked="${reason === 'task' && requiredPage !== null ? `task.${requiredPage}` : 'ahead'}"`;
-    const steps = REST_PAGES.map(
-      (page, i) =>
-        `<button class="nb-step ${page === restPage ? 'on' : i <= index ? 'past' : ''}" data-action="nbGo" data-page="${page}" ${i > index ? lockedAttr(locked ? 'task' : 'ahead') : ''}><span class="nb-step-no">${i + 1}</span><span>${t(`notebook.page.${page}`)}</span></button>`,
-    ).join('');
+    const requiredPage = rest.requiredPage;
+    const locked = requiredPage === 'launch' || requiredPage === 'crew' || requiredPage === 'tasks';
+    const lockedAttr = locked ? `aria-disabled="true" data-locked="task.${requiredPage}"` : '';
     const guideHtml =
       guide === null
         ? ''
         : `<div class="ui-modal-guide"><span class="ui-modal-guide-face">${PROFESSOR_SVG}</span><div>${guide}</div></div>`;
-    const back =
-      outOfOrder || index > 0
-        ? `<button data-action="nbBack">${t('notebook.back')}</button>`
-        : '<span></span>';
-    let forward: string;
-    if (outOfOrder) {
-      // セーブ・くわしい様子・カードからは、「もどる」で順のページに戻るだけ
-      forward = '<span></span>';
-    } else if (restPage === 'plan') {
-      // 「外に出る」「翌日へ」は 3D の画面と同じボタン（data-action="context"）にして、E キーとくんれんの矢印もそのまま使う
+    let foot: string;
+    if (nightView === 'comm') {
+      // 主なボタンは「翌朝へ」（朝でまだ外に出ていなければ「外に出る」）。返信と管制モニターは必要なときだけ
+      const reply = rest.report.linked
+        ? `<button data-action="nightView" data-view="reply">${t('comm.reply')}</button>`
+        : `<button aria-disabled="true" data-locked="reply">${t('comm.reply')}</button>`;
+      const monitor = `<button data-action="nightView" data-view="monitor">${t('comm.monitor')}</button>`;
+      const morningFirst = rest.canGoOut && !rest.wentOutToday;
+      // 「外に出る」「翌朝へ」は 3D の画面と同じボタン（data-action="context"）にして、E キーとくんれんの矢印もそのまま使う
       const goOut = rest.canGoOut
-        ? `<button class="${rest.wentOutToday && rest.canNextDay ? '' : 'primary nb-next'}" data-action="context" data-context="exitHabitat">${t('action.exitHabitat')}</button>`
+        ? `<button class="${morningFirst ? 'primary nb-next' : ''}" data-action="context" data-context="exitHabitat" ${lockedAttr}>${t('action.exitHabitat')}</button>`
         : '';
       const nextDay = rest.canNextDay
-        ? `<button class="${rest.canGoOut && !rest.wentOutToday ? '' : 'primary nb-next'}" data-action="context" data-context="nextDay">${t('action.nextDay')}</button>`
+        ? `<button class="${morningFirst ? '' : 'primary nb-next'}" data-action="context" data-context="nextDay" ${lockedAttr}>${t('comm.nextMorning')}</button>`
         : '';
-      forward = `<span class="nb-foot-actions">${goOut}${nextDay}</span>`;
+      foot = `<span class="nb-foot-actions">${reply}${monitor}</span><span class="nb-foot-actions">${goOut}${nextDay}</span>`;
     } else {
-      forward = `<button class="primary nb-next" data-action="nbNext" ${locked ? lockedAttr('task') : ''}>${t('notebook.next', { page: t(`notebook.page.${REST_PAGES[Math.min(index + 1, REST_PAGES.length - 1)]}`) })}</button>`;
+      const backTo: NightView = MONITOR_VIEWS.some((m) => m === nightView) ? 'monitor' : 'comm';
+      foot = `<button data-action="nightView" data-view="${backTo}">${t(backTo === 'monitor' ? 'comm.monitorBack' : 'comm.back')}</button><span></span>`;
     }
+    const arriving =
+      nightView === 'comm' && performance.now() - commArrivedAt < COMM_ARRIVE_MS
+        ? `<div class="nb-comm-arrive">${t(rest.report.linked ? 'comm.arrived' : 'comm.terminal')}</div>`
+        : '';
     // 出口はいつも左上に（ちょっと中に入っただけのときも、「次へ」で最後まで進まなくてよい）
     const exitTop = rest.canGoOut
       ? `<button class="nb-exit" data-action="context" data-context="exitHabitat" aria-label="${tPlain('action.exitHabitat')}"><span>${t('notebook.icon.exit')}</span><span class="nb-head-label">${t('action.exitHabitat')}</span><span class="nb-exit-short">${t('notebook.exitShort')}</span></button>`
@@ -1280,14 +1278,14 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     // 同じページを描き直すときは、スクロールの位置をそのままにする（下の物資を ＋ しても上に戻らないように）
     const oldPage = notebookEl.querySelector<HTMLElement>('.nb-page');
     const keepScroll =
-      oldPage !== null && oldPage.dataset.page === restPage ? oldPage.scrollTop : 0;
+      oldPage !== null && oldPage.dataset.page === nightView ? oldPage.scrollTop : 0;
     notebookEl.innerHTML = `
       <div class="nb">
         <div class="nb-head">${exitTop}<b class="nb-head-title"><span class="nb-head-label">${t('notebook.title', { day: Math.floor(view.day) + 1 })}</span><span class="nb-exit-short">${t('hud.day', { day: Math.floor(view.day) + 1 })}</span></b></div>
         ${guideHtml}
-        <nav class="nb-steps">${steps}</nav>
-        <section class="nb-page" data-page="${restPage}">${restPageHtml(restPage, rest, state, view)}</section>
-        <div class="nb-foot">${back}${forward}</div>
+        ${arriving}
+        <section class="nb-page ${arriving === '' ? '' : 'nb-page-arriving'}" data-page="${nightView}">${nightViewHtml(nightView, rest, state, view)}</section>
+        <div class="nb-foot">${foot}</div>
       </div>`;
     const newPage = notebookEl.querySelector<HTMLElement>('.nb-page');
     if (newPage === null) {
@@ -1367,11 +1365,11 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   };
 
   /** 3D の窓（建設・データ）を開く。隊員・ほきゅう・セーブは休息の画面のタブなので、中にいればそのタブにし、外ならひとこと出す */
-  const openMenu = (kind: MenuKind | RestPage) => {
+  const openMenu = (kind: MenuKind | 'launch' | 'crew') => {
     const menuKind = MENUS.find((m) => m === kind);
     // 中にいる間：くわしい様子は休息の画面のページで。建設は外の 3D の地面で選ぶので、外に出てから
     if (menuKind === 'status' && rest !== null) {
-      openRestPage('review');
+      openNightView('details');
       return;
     }
     if (menuKind === 'build' && rest !== null) {
@@ -1379,15 +1377,13 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       return;
     }
     if (menuKind === undefined) {
-      const page = pick(kind, NOTEBOOK_PAGES, 'notebook page');
+      // 隊員・補給は夜の画面で開く（補給は地球管制への返信、隊員は管制モニター）
+      const page = pick(kind, ['launch', 'crew'] as const, 'night view');
       if (rest === null) {
         toast(t('notebook.insideOnly', { name: t(`notebook.page.${page}`) }), false);
         return;
       }
-      // 中では順に進むので、先のページ（キーや困りごとカードから）は開かず、「次へ」で進むよう伝える
-      if (!openRestPage(page)) {
-        toast(t('notebook.inOrder'), false);
-      }
+      openNightView(page === 'launch' ? 'reply' : 'crew');
       return;
     }
     if (state === null || view === null) {
@@ -1469,10 +1465,13 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     // 押せないボタン：何もせず、押せない理由を知らせる
     if (target.getAttribute('aria-disabled') === 'true') {
       const locked = target.dataset.locked;
+      if (locked === undefined) {
+        throw new Error('押せないボタンに、押せないわけ（data-locked）がない');
+      }
       explainLocked(
         target,
-        locked === undefined || locked === 'ahead'
-          ? t('notebook.inOrder')
+        locked === 'reply'
+          ? t('comm.replyLocked')
           : t(`notebook.doFirst.${locked.slice('task.'.length)}`),
       );
       return;
@@ -1518,27 +1517,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         callbacks.onOpenTerm(term);
         break;
       }
-      case 'nbGo':
-        // 先のページのボタンは押せないようにしているので、ここで開けないのは作りの誤り
-        if (!openRestPage(pick(target.dataset.page, NOTEBOOK_PAGES, 'notebook page'))) {
-          throw new Error(`ui：先のページ ${String(target.dataset.page)} へ飛ぼうとした`);
-        }
+      case 'nightView':
+        openNightView(pick(target.dataset.view, NIGHT_VIEWS, 'night view'));
         break;
-      case 'nbNext': {
-        restStep = REST_PAGES[Math.min(REST_PAGES.indexOf(restStep) + 1, REST_PAGES.length - 1)];
-        restPage = restStep;
-        renderNotebook();
-        break;
-      }
-      case 'nbBack': {
-        // 順の外のページからは、開く前にいたページへ。順のページからは1つ前へ
-        if (restPage === restStep) {
-          restStep = REST_PAGES[Math.max(REST_PAGES.indexOf(restStep) - 1, 0)];
-        }
-        restPage = restStep;
-        renderNotebook();
-        break;
-      }
       case 'taskToggle': {
         const taskId = target.dataset.task;
         if (taskId === undefined) {
@@ -1894,9 +1875,11 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         return;
       }
       if (rest === null && next !== null) {
-        // 夕方に中に入ったら振り返りから。朝（まだ外に出ていない）なら、さいごのページ（明日の計画と「外に出る」）から
-        restStep = next.wentOutToday ? 'review' : 'plan';
-        restPage = restStep;
+        // 中に入ったら、まず地球管制からの通信（話せない日は基地の端末）を見せる
+        nightView = 'comm';
+        commArrivedAt = performance.now();
+        // 演出が終わったら、演出なしで描き直す
+        window.setTimeout(() => renderNotebook(), COMM_ARRIVE_MS);
       }
       rest = next;
       renderNotebook();

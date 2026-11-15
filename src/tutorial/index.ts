@@ -112,37 +112,37 @@ const STEP_POINTS: Partial<Record<Step, readonly string[]>> = {
   goInsideWait: ['[data-action="context"][data-context="enterHabitat"]'],
   nextDay: [
     '[data-action="context"][data-context="nextDay"]',
-    '[data-action="nbGo"][data-page="plan"]:not([aria-disabled="true"])',
-    '[data-action="nbNext"]',
+    '[data-action="nightView"][data-view="comm"]',
+    '[data-action="nightView"][data-view="monitor"]',
   ],
   sleepAgain: [
     '[data-action="context"][data-context="nextDay"]',
-    '[data-action="nbGo"][data-page="plan"]:not([aria-disabled="true"])',
-    '[data-action="nbNext"]',
+    '[data-action="nightView"][data-view="comm"]',
+    '[data-action="nightView"][data-view="monitor"]',
   ],
   inventory: ['[data-action="menu"][data-menu="status"]'],
   chooseTask: [
     '[data-action="taskToggle"][data-task="ice"]:not(.on)',
-    '[data-action="nbGo"][data-page="tasks"]:not([aria-disabled="true"])',
-    '[data-action="nbNext"]',
+    '[data-action="nightView"][data-view="tasks"]',
+    '[data-action="nightView"][data-view="monitor"]',
   ],
   waitArrival: [
     '[data-action="context"][data-context="nextDay"]',
-    '[data-action="nbGo"][data-page="plan"]:not([aria-disabled="true"])',
-    '[data-action="nbNext"]',
+    '[data-action="nightView"][data-view="comm"]',
+    '[data-action="nightView"][data-view="monitor"]',
   ],
   assignCrew: [
     '[data-action="assign"][data-task="farming"]',
-    '[data-action="nbGo"][data-page="crew"]:not([aria-disabled="true"])',
-    '[data-action="nbNext"]',
+    '[data-action="nightView"][data-view="crew"]',
+    '[data-action="nightView"][data-view="monitor"]',
   ],
   takeIce: ['[data-action="context"][data-context="collectIce"]'],
   goHome: ['[data-action="context"][data-context="enterHabitat"]'],
   flareDrill: ['[data-action="flare"][data-choice="shelter"]'],
   goOutside: [
     '[data-action="context"][data-context="exitHabitat"]',
-    '[data-action="nbGo"][data-page="plan"]:not([aria-disabled="true"])',
-    '[data-action="nbNext"]',
+    '[data-action="nightView"][data-view="comm"]',
+    '[data-action="nightView"][data-view="monitor"]',
   ],
   regolith: ['[data-action="context"][data-context="coverRegolith"]'],
   pause: ['[data-action="pause"]'],
@@ -186,8 +186,8 @@ function pointTarget(step: Step): HTMLElement | null {
     }
     return (
       visibleElement('[data-action="order"]') ??
-      visibleElement('[data-action="nbGo"][data-page="launch"]:not([aria-disabled="true"])') ??
-      visibleElement('[data-action="nbNext"]')
+      visibleElement('[data-action="nightView"][data-view="reply"]') ??
+      visibleElement('[data-action="nightView"][data-view="comm"]')
     );
   }
   for (const selector of STEP_POINTS[step] ?? []) {
@@ -496,8 +496,7 @@ export function createTutorial(
       if (mustGoOut) {
         target =
           visibleElement('[data-action="context"][data-context="exitHabitat"]') ??
-          visibleElement('[data-action="nbGo"][data-page="plan"]:not([aria-disabled="true"])') ??
-          visibleElement('[data-action="nbNext"]');
+          visibleElement('[data-action="nightView"][data-view="comm"]');
       } else if (mustGoIn) {
         target = visibleElement('[data-action="context"][data-context="enterHabitat"]');
       } else {

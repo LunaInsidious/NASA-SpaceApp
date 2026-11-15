@@ -1661,3 +1661,133 @@ body.nb-open .ui-hud-tank {
     gap: 6px;
   }
 }
+
+/* ---- 夜：地球管制からの通信（話せない日は基地の端末） ---- */
+.nb-comm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  border: 2px solid #6fd3ff;
+  border-radius: 14px;
+  background: rgba(16, 32, 52, 0.92);
+}
+
+.nb-comm p {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.nb-comm-terminal {
+  border-color: #ffd27a;
+  background: rgba(40, 32, 14, 0.92);
+}
+
+.nb-comm-from {
+  font-weight: 800;
+  color: #9fe3ff;
+}
+
+.nb-comm-terminal .nb-comm-from {
+  color: #ffd27a;
+}
+
+.nb-comm-greet {
+  font-size: 1.08em;
+  font-weight: 700;
+}
+
+/* 放っておくと命に関わること：目立たせる */
+.nb-comm-dangers {
+  margin: 4px 0;
+  padding: 8px 12px;
+  list-style: none;
+  border-left: 5px solid #ff5a4f;
+  border-radius: 8px;
+  background: rgba(120, 20, 16, 0.55);
+  font-weight: 700;
+  line-height: 1.7;
+}
+
+.nb-comm-stars {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin-top: 4px;
+}
+
+.nb-comm-star {
+  display: inline-flex;
+  gap: 4px;
+  align-items: baseline;
+}
+
+.nb-comm-star b {
+  color: #ffd27a;
+  letter-spacing: 1px;
+}
+
+.nb-comm-starline {
+  color: #ffe9a8;
+}
+
+.nb-comm-tomorrow {
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  font-weight: 700;
+  color: #b8f5c8;
+}
+
+/* 「通信が届きました」：中に入った直後だけ、上に出してから本文を見せる */
+.nb-comm-arrive {
+  margin: 0 12px 6px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(111, 211, 255, 0.18);
+  color: #cfefff;
+  font-weight: 800;
+  text-align: center;
+  animation: nb-comm-arrive 1.6s ease-out forwards;
+}
+
+@keyframes nb-comm-arrive {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  15%,
+  70% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0.35;
+  }
+}
+
+.nb-page-arriving .nb-comm {
+  animation: nb-comm-open 0.9s ease-out 0.5s both;
+}
+
+@keyframes nb-comm-open {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* 管制モニター：見たいものを選ぶ大きなボタン */
+.nb-monitor {
+  display: grid;
+  gap: 10px;
+  max-width: 560px;
+}
+
+.ui-root .nb-monitor button {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 16px;
+}

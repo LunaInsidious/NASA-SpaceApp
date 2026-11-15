@@ -10,6 +10,7 @@ import tasksJson from '../data/tasks.json';
 import valuesJson from '../data/values.json';
 import { type Card, createCardStore, parseCards } from './cards/index.ts';
 import { cardsHtml } from './cards/view.ts';
+import { composeNightReport, type ReportLine, STAR_ELEMENTS, type Stars } from './comm/report.ts';
 import type {
   ActiveEvent,
   DonkiEvent,
@@ -46,6 +47,7 @@ import {
   type PlannedTask,
   parseTasks,
   settleTasks,
+  suggestTasks,
   type TaskKind,
   taskCandidates,
   taskDef,
@@ -54,7 +56,7 @@ import { createTitle } from './title/index.ts';
 import { type Advice, createAdviceCard, pickAdvices } from './tutorial/advice.ts';
 import { type DeathAdvice, type DeathKind, diagnoseDeath } from './tutorial/death.ts';
 import { createTutorial, parseMissions } from './tutorial/index.ts';
-import type { ContextAction, MorningSummary, RestInfo } from './ui/api.ts';
+import type { ContextAction, MorningSummary, NightReportView, RestInfo } from './ui/api.ts';
 import { createFx } from './ui/fx.ts';
 import { onLangChange, t, tPlain } from './ui/i18n.ts';
 import { createUi } from './ui/index.ts';
@@ -140,6 +142,10 @@ type DayLogEntry = { kind: 'ice' | 'repair' | 'regolith' | 'build'; facility?: F
 let dayLog: DayLogEntry[] = [];
 // 休むときに見せた、休む理由（振り返りに「核になる知識の一言」として残す）
 let restReason: (typeof REST_REASONS)[number] | null = null;
+// きのうの夜の通信で見せた★（今夜の★と比べて、変わったわけを言う）。まだ見せていなければ null
+let lastNightStars: Stars | null = null;
+// 地球管制が明日のタスクをすすめた日（同じ日に何度も中に入っても、すすめ直さない）
+let suggestedOnDay = -1;
 let lastRestKey = '';
 // 準備した注文（「翌日へ」か「外に出る」で送る。それまでは取り消せる）
 let queuedOrder: LaunchItem[] | null = null;
@@ -602,7 +608,8 @@ function startRest(): void {
   }
   restReason = REST_REASONS[restDays % REST_REASONS.length];
   earn('firstRest');
-  ui.notify(restReasonText(restReason), false);
+  // 地球管制からの通信が届いた音（通信は休息の画面がすぐ開いて見せる）
+  fx.sound('chime');
   if (state.phase !== 'gameOver') {
     saves.autoSave(state);
     ui.setSaves(saves.list());
@@ -623,19 +630,7 @@ function restInfo(): RestInfo | null {
   if (!indoors || title.isOpen() || state.phase === 'gameOver') {
     return null;
   }
-  const done = dayLog.map((entry) =>
-    t(`review.did.${entry.kind}`, {
-      name: entry.facility === undefined ? '' : t(`facility.${entry.facility}`),
-    }),
-  );
-  const missed = todayPlan
-    .filter((task) => !task.done)
-    .map((task) => t('review.missed', { task: taskLabel(task) }));
-  const review = [
-    ...(done.length > 0 ? done : [t(wentOutToday ? 'review.nothing' : 'review.morning')]),
-    ...missed,
-    ...(restReason === null ? [] : [t('review.knowledge', { text: restReasonText(restReason) })]),
-  ];
+  suggestTomorrowTasks();
   const actions = contextActions();
   const home = mainHabitat();
   return {
@@ -644,13 +639,124 @@ function restInfo(): RestInfo | null {
     canGoOut: actions.includes('exitHabitat'),
     canNextDay: actions.includes('nextDay'),
     requiredPage: tutorial.requiredRestPage(),
-    review,
+    report: nightReport(),
     tasks: currentCandidates().map((task) => ({
       id: task.id,
       label: taskLabel(task),
       meters: Math.round(Math.hypot(task.x - home.x, task.z - home.z)),
       selected: selectedTasks.some((selected) => selected.id === task.id),
     })),
+  };
+}
+
+/** 今の発展度の★（4要素。画面の★と同じ数え方） */
+function currentStars(): Stars {
+  const max = values.development.elementMax.value;
+  const count = (value: number) =>
+    Math.min(STAR_COUNT, Math.max(0, Math.round((value / max) * STAR_COUNT)));
+  const d = state.development;
+  return {
+    selfSufficiency: count(d.selfSufficiency),
+    stability: count(d.stability),
+    safety: count(d.safety),
+    scale: count(d.scale),
+  };
+}
+
+/**
+ * 地球管制が明日のタスクをすすめる（くんれん中はしない。くんれんでは自分で選ぶのを教える）。
+ * その日のうちに1回だけ。管制モニターで変えられる
+ */
+function suggestTomorrowTasks(): void {
+  const today = Math.floor(state.timeHours / HOURS_PER_DAY);
+  if (tutorial.isTutorial() || suggestedOnDay === today || selectedTasks.length > 0) {
+    return;
+  }
+  suggestedOnDay = today;
+  const view = describe(state, values, env);
+  const waterLow = view.lifeSupportDays.water < values.advice.lifeSupportLowDays.value;
+  selectedTasks = suggestTasks(
+    currentCandidates(),
+    state,
+    waterLow,
+    values.launch.tasksPerLaunch.value,
+  );
+}
+
+/** 夜の地球管制からの通信を、今のゲームの様子から作って文にする */
+function nightReport(): NightReportView {
+  const view = describe(state, values, env);
+  const statuses = Object.values(view.facilityStatus);
+  const stoppedBy = (reason: 'noPower' | 'shadow' | 'condition') =>
+    statuses.filter((status) => status.reason === reason).length;
+  const lifeSupports = state.facilities.filter((f) => f.kind === 'lifeSupport');
+  const lifeSupportReasons = lifeSupports.map((f) => view.facilityStatus[f.id]?.reason ?? null);
+  const lifeSupport =
+    lifeSupports.length === 0
+      ? 'none'
+      : lifeSupportReasons.includes(null)
+        ? 'working'
+        : lifeSupportReasons.includes('noPower')
+          ? 'noPower'
+          : 'condition';
+  // 明日のうち（次の日の終わりまで）に届くロケットがあるか
+  const hoursToTomorrowEnd =
+    Math.ceil(state.timeHours / HOURS_PER_DAY) * HOURS_PER_DAY + HOURS_PER_DAY - state.timeHours;
+  const stars = currentStars();
+  const report = composeNightReport({
+    day: Math.floor(state.timeHours / HOURS_PER_DAY),
+    linked: view.comm.linked,
+    wentOut: wentOutToday,
+    did: dayLog,
+    stopped: {
+      noPower: stoppedBy('noPower'),
+      shadow: stoppedBy('shadow'),
+      condition: stoppedBy('condition'),
+    },
+    lifeSupport,
+    days: {
+      oxygen: view.lifeSupportDays.oxygen,
+      water: view.lifeSupportDays.water,
+      food: view.lifeSupportDays.food,
+    },
+    lowDays: values.advice.lifeSupportLowDays.value,
+    arrivingTomorrow: view.launch.inFlight.some((l) => l.hoursUntilArrival <= hoursToTomorrowEnd),
+    canOrder: view.launch.canOrderNow,
+    tasksLeftForOrder: Math.max(0, view.launch.tasksNeeded - view.launch.tasksDone),
+    stars,
+    starsBefore: lastNightStars,
+  });
+  const line = (l: ReportLine) =>
+    t(l.key, {
+      ...l.params,
+      ...(typeof l.params?.facility === 'string'
+        ? { facility: t(`facility.${l.params.facility}`) }
+        : {}),
+    });
+  const tomorrowTasks =
+    selectedTasks.length === 0
+      ? t('comm.tomorrowTasksNone')
+      : t('comm.tomorrowTasks', { tasks: selectedTasks.map(taskLabel).join('、') });
+  return {
+    linked: report.linked,
+    from: t(report.linked ? 'comm.from' : 'comm.terminal'),
+    lead: report.linked
+      ? null
+      : t('comm.terminal.lead', {
+          // 3D の画面のヒントは「→ 」から始まるので、文の中では取る
+          reason: t(`commHint.${commLostReason(state, view)}`).replace(/^→\s*/, ''),
+        }),
+    greeting: report.greeting === null ? null : line(report.greeting),
+    lines: report.lines.map(line),
+    dangers: report.dangers.map(line),
+    stars: STAR_ELEMENTS.map((element) => ({
+      label: t(`development.${element}`),
+      stars: stars[element],
+    })),
+    starChanges: report.starChanges.map(line),
+    tomorrow: line(report.tomorrow),
+    tomorrowTasks,
+    tip: restReason === null ? null : t('review.knowledge', { text: restReasonText(restReason) }),
   };
 }
 
@@ -731,6 +837,8 @@ function sleepUntilMorning(): void {
   // 建てる・注文するなどの操作を先に反映する
   sendQueuedOrder();
   tick(0);
+  // 今夜の通信で見せた★を覚えておき、次の夜に変わったわけを言う
+  lastNightStars = currentStars();
   const before = state;
   const shadedBefore = shadedSolarIds();
   // くんれん中は、本物の宇宙天気は起こさない（太陽フレアは訓練の警報で教える）
@@ -765,7 +873,15 @@ function sleepUntilMorning(): void {
         (id) => !shadedAfter.has(id) && state.facilities.some((f) => f.id === id),
       ).length,
     };
-    ui.showMorning(summary);
+    // 何も起きなかった朝は窓を出さずに、すぐ外へ出られるようにする（物資の増減は夜の通信で分かる）
+    const happened =
+      summary.arrived > 0 ||
+      summary.spaceWeather.length > 0 ||
+      summary.newlyShaded > 0 ||
+      summary.newlyLit > 0;
+    if (happened) {
+      ui.showMorning(summary);
+    }
     if (summary.arrived > 0) {
       fx.sound('coin');
     }

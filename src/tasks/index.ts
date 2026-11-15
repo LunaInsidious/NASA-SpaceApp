@@ -185,6 +185,27 @@ export function settleTasks(
   return { plan: plan.map((task) => (settled(task) ? { ...task, done: true } : task)), crewFixed };
 }
 
+/**
+ * 地球管制がすすめる明日のタスク（夜の通信で見せ、管制モニターで変えられる）。
+ * 水が足りなくなりそうなら氷を先に。あとは傷んだ施設の点検（傷みのひどい順）→ レゴリス → 氷。count 個まで
+ */
+export function suggestTasks(
+  candidates: readonly PlannedTask[],
+  state: SimState,
+  waterLow: boolean,
+  count: number,
+): PlannedTask[] {
+  const condition = (task: PlannedTask) =>
+    state.facilities.find((f) => f.id === task.facilityId)?.condition ?? 1;
+  const ice = candidates.filter((task) => task.kind === 'ice');
+  const repairs = candidates
+    .filter((task) => task.kind === 'repair')
+    .sort((a, b) => condition(a) - condition(b));
+  const regolith = candidates.filter((task) => task.kind === 'regolith');
+  const ordered = waterLow ? [...ice, ...repairs, ...regolith] : [...repairs, ...regolith, ...ice];
+  return ordered.slice(0, count);
+}
+
 /** 次に行くタスク（選んだ順で、まだのもの） */
 export function nextTask(plan: readonly PlannedTask[]): PlannedTask | null {
   return plan.find((task) => !task.done) ?? null;

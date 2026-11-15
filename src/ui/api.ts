@@ -41,6 +41,26 @@ export interface MorningSummary {
 }
 
 /** 休息フェーズの2D画面（居住モジュールの中）に出すもの。main が作る */
+/** 夜の通信に出すもの（main が src/comm/report.ts の中身を文にしたもの） */
+export interface NightReportView {
+  linked: boolean;
+  /** 「地球管制より」か「基地の端末より」 */
+  from: string;
+  /** 基地の端末のときの、話せないわけ */
+  lead: string | null;
+  greeting: string | null;
+  lines: string[];
+  /** 放っておくと命に関わること（急ぐ順） */
+  dangers: string[];
+  stars: { label: string; stars: number }[];
+  starChanges: string[];
+  tomorrow: string;
+  /** 明日のタスク（地球のおすすめか、自分で選んだもの） */
+  tomorrowTasks: string;
+  /** 宇宙で働く人の知識の一言（休む理由）。なければ null */
+  tip: string | null;
+}
+
 export interface RestInfo {
   /** その日にもう外に出たか（出たあとなら振り返りから、朝なら明日の計画のページから見せる） */
   wentOutToday: boolean;
@@ -48,12 +68,12 @@ export interface RestInfo {
   queuedOrder: LaunchItem[] | null;
   /** 外に出られるか */
   canGoOut: boolean;
-  /** 博士の「やること」をするページ。そのページにいる間は、済むまで次へ・もどる・進み具合を押せない */
+  /** 博士の「やること」をする夜の画面（launch は返信、crew・tasks は管制モニター、plan は通信）。済むまで「翌朝へ」は押せない */
   requiredPage: 'crew' | 'launch' | 'tasks' | 'plan' | 'save' | null;
   /** 「翌日へ」を押せるか（くんれん中は段による） */
   canNextDay: boolean;
-  /** 振り返り：その日の外での結果と、核になる知識の一言（i18n から作った HTML） */
-  review: string[];
+  /** 地球管制からの通信（話せない日は基地の端末）。文は i18n から作った HTML */
+  report: NightReportView;
   /** 翌日のタスクの候補（label は i18n から作った HTML、meters は居住モジュールからの距離）。selected は選んだもの */
   tasks: { id: string; label: string; meters: number; selected: boolean }[];
 }
