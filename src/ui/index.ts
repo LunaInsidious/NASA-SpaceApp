@@ -29,9 +29,9 @@ import type {
 } from './api.ts';
 import { CONTROLLER_SVG, TERMINAL_SVG } from './avatars.ts';
 import { SOUND_MODES } from './fx.ts';
-import { getLang, onLangChange, setLang, t, tPlain } from './i18n.ts';
+import { getLang, onLangChange, rubyHtml, setLang, t, tPlain } from './i18n.ts';
 import { type MinigameOutcome, openMinigame } from './minigame.ts';
-import { type NasaImages, photoFigureHtml } from './photo.ts';
+import { type NasaImages, photoFigureHtml, type TextureSource } from './photo.ts';
 import { type ValueEntryLike, valueText } from './valueText.ts';
 import './ui.css';
 
@@ -1106,6 +1106,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   // ---- 説明の窓 ----
   // 太陽フレアの警報に出す NASA の写真（main が setNasaImages で渡す）
   let nasaImages: NasaImages = {};
+  let textureSources: TextureSource[] = [];
   const flareHtml = (event: ActiveEvent, donki: DonkiEvent | null) => {
     let source: string;
     if (event.source === 'archived') {
@@ -1256,7 +1257,30 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
               scale: fmt(terrainSource.scale),
             })}</p>
       <ul class="ui-list"><li><a href="${esc(terrainSource.url)}" target="_blank" rel="noopener noreferrer">${esc(terrainSource.source)}</a></li><li class="ui-small">${esc(terrainSource.citation)}</li></ul>`
-      }`;
+      }
+      <h3>${t('data.imagesTitle')}</h3>
+      <p class="ui-small">${t('data.imagesNote')}</p>
+      <ul class="ui-list ui-image-sources">${imageSourcesHtml()}</ul>`;
+  };
+
+  /** 豆知識カードや建てたときに見せる NASA の写真と、地球のテクスチャ：小さな絵・題・クレジット・元のページ */
+  const imageSourcesHtml = () => {
+    const ja = getLang() === 'ja';
+    const photos = Object.values(nasaImages).map(
+      (image) => `<li>
+        <img src="/nasa/${esc(image.file)}" alt="" loading="lazy">
+        <span class="ui-grow"><b>${ja ? rubyHtml(esc(image.titleJa)) : esc(image.titleEn)}</b><br>
+          <span class="ui-small">${esc(image.credit)} · <a href="https://images.nasa.gov/details/${encodeURIComponent(image.nasaId)}" target="_blank" rel="noopener noreferrer">${t('data.imageLink')}</a></span></span>
+      </li>`,
+    );
+    const textures = textureSources.map(
+      (source) => `<li>
+        <img src="/${esc(source.file)}" alt="" loading="lazy">
+        <span class="ui-grow"><b>${ja ? rubyHtml(esc(source.titleJa)) : esc(source.titleEn)}</b><br>
+          <span class="ui-small">${esc(source.credit)} · <a href="${esc(source.url)}" target="_blank" rel="noopener noreferrer">${t('data.textureLink')}</a></span></span>
+      </li>`,
+    );
+    return [...photos, ...textures].join('');
   };
 
   // ---- 休息フェーズの2D画面（ノート） ----
@@ -2094,6 +2118,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     notify: toast,
     setNasaImages(images) {
       nasaImages = images;
+    },
+    setTextureSources(sources) {
+      textureSources = [...sources];
     },
     setTerrainSource(source) {
       terrainSource = { ...source };
