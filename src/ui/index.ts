@@ -26,6 +26,7 @@ import type {
   Ui,
   UiCallbacks,
 } from './api.ts';
+import { CONTROLLER_SVG, TERMINAL_SVG } from './avatars.ts';
 import { SOUND_MODES } from './fx.ts';
 import { getLang, onLangChange, setLang, t, tPlain } from './i18n.ts';
 import { type MinigameOutcome, openMinigame } from './minigame.ts';
@@ -73,7 +74,7 @@ type NightView = (typeof NIGHT_VIEWS)[number];
 // 管制モニターから開くもの
 const MONITOR_VIEWS = ['crew', 'tasks', 'details'] as const;
 // 通信が届いたときの演出の長さ（この間に描き直したときだけ、演出をつける）
-const COMM_ARRIVE_MS = 1600;
+const COMM_ARRIVE_MS = 4200;
 // インベントリ画面に出す物資
 const INVENTORY_STOCKS = ['oxygen', 'water', 'food', 'spareParts', 'materials'] as const;
 const DEVELOPMENT_ELEMENTS = ['selfSufficiency', 'stability', 'safety', 'scale'] as const;
@@ -1139,7 +1140,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <p class="ui-small">${t('research.note')}</p>`;
   };
 
-  /** 地球管制からの通信（話せない日は基地の端末）。ねぎらい・今日の一言・基地の変化・危ないこと・★・明日への一言 */
+  /**
+   * 地球管制からの通信（話せない日は基地の端末）。メイン画面に相手が映り、吹き出しで話す。
+   * ねぎらい・今日の一言・基地の変化・危ないこと（赤）・★と変わったわけ・明日への一言（緑）
+   */
   const commHtml = (info: RestInfo) => {
     const r = info.report;
     const stars = r.stars
@@ -1148,20 +1152,79 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           `<span class="nb-comm-star"><span>${s.label}</span><b>${'★'.repeat(s.stars)}${'☆'.repeat(STAR_COUNT - s.stars)}</b></span>`,
       )
       .join('');
+    const bubbles = [
+      ...(r.lead === null ? [] : [`<div class="cr-bubble cr-bubble-note">${r.lead}</div>`]),
+      ...(r.greeting === null
+        ? []
+        : [`<div class="cr-bubble cr-bubble-greet">${r.greeting}</div>`]),
+      ...r.lines.map((line) => `<div class="cr-bubble">${line}</div>`),
+      ...r.dangers.map((line) => `<div class="cr-bubble cr-bubble-danger">${line}</div>`),
+      `<div class="cr-bubble"><div class="nb-comm-stars"><span class="ui-label">${t('comm.stars')}</span>${stars}</div>${r.starChanges.map((line) => `<p class="nb-comm-starline">${line}</p>`).join('')}</div>`,
+      `<div class="cr-bubble cr-bubble-tomorrow">${r.tomorrow}<p class="ui-small">${r.tomorrowTasks}</p></div>`,
+      ...(info.queuedOrder === null
+        ? []
+        : [`<div class="cr-bubble cr-bubble-note ui-ok">${t('comm.queued')}</div>`]),
+      ...(r.tip === null ? [] : [`<div class="cr-bubble cr-bubble-note">${r.tip}</div>`]),
+    ]
+      // 届いたときは、吹き出しを1つずつ順に出す（--i が順番）
+      .map((bubble, i) => bubble.replace('class="cr-bubble', `style="--i:${i}" class="cr-bubble`))
+      .join('');
     return `
-      <div class="nb-comm ${r.linked ? '' : 'nb-comm-terminal'}">
-        <div class="nb-comm-from">${r.from}</div>
-        ${r.lead === null ? '' : `<p class="ui-small">${r.lead}</p>`}
-        ${r.greeting === null ? '' : `<p class="nb-comm-greet">${r.greeting}</p>`}
-        ${r.lines.map((line) => `<p>${line}</p>`).join('')}
-        ${r.dangers.length === 0 ? '' : `<ul class="nb-comm-dangers">${r.dangers.map((d) => `<li>${d}</li>`).join('')}</ul>`}
-        <div class="nb-comm-stars"><span class="ui-label">${t('comm.stars')}</span>${stars}</div>
-        ${r.starChanges.map((line) => `<p class="nb-comm-starline">${line}</p>`).join('')}
-        <p class="nb-comm-tomorrow">${r.tomorrow}</p>
-        <p class="ui-small">${r.tomorrowTasks}</p>
-        ${r.tip === null ? '' : `<p class="ui-small nb-comm-tip">${r.tip}</p>`}
-        ${info.queuedOrder === null ? '' : `<p class="ui-small ui-ok">${t('comm.queued')}</p>`}
+      <div class="cr-call ${r.linked ? '' : 'cr-call-terminal'}">
+        <div class="cr-caller">
+          <div class="cr-avatar">${r.linked ? CONTROLLER_SVG : TERMINAL_SVG}</div>
+          <div class="cr-caller-name">${r.from}</div>
+          <div class="cr-signal">${t(r.linked ? 'cr.receiving' : 'cr.offline')}</div>
+        </div>
+        <div class="cr-bubbles">${bubbles}</div>
       </div>`;
+  };
+
+  /**
+   * 管制室の左右の小さな画面。数字を読まなくても分かるように、ゲージと記号だけにする（くわしい数字は管制モニター）。
+   * 左：基地の物資（あと何日もつか）と電力
+   */
+  const controlScreensLeft = (currentView: SimView) => {
+    const full = values.development.stabilityFullSupplyDays.value;
+    const low = values.advice.lifeSupportLowDays.value;
+    const supplies = LIFE_SUPPORT_KEYS.map((key) => {
+      const days = currentView.lifeSupportDays[key];
+      return `<div class="cr-gauge ${days < low ? 'cr-danger' : ''}" title="${esc(tPlain('cr.daysLeft', { days: days >= full ? `${full}+` : fmt(days, 1) }))}">
+        <span>${t(`launchItem.${key}`)}</span>${bar(days / full, 'cr-bar')}</div>`;
+    }).join('');
+    const p = currentView.power;
+    const battery = p.batteryCapacityKwh > 0 ? p.batteryKwh / p.batteryCapacityKwh : 0;
+    const net = p.generationKw - p.consumptionKw;
+    return `
+      <div class="cr-screen cr-deco" aria-hidden="true"><div class="cr-screen-title">${t('cr.signal')}</div>
+        <svg class="cr-wave" viewBox="0 0 160 40"><polyline points="0,20 10,20 16,8 22,32 28,20 50,20 56,12 62,28 68,20 90,20 96,6 102,34 108,20 130,20 136,14 142,26 148,20 160,20" fill="none" stroke="#7dff9a" stroke-width="2"/></svg></div>
+      <div class="cr-screen"><div class="cr-screen-title">${t('cr.supplies')}</div>${supplies}</div>
+      <div class="cr-screen"><div class="cr-screen-title">${t('cr.power')} <b class="${net >= 0 ? 'ui-ok' : 'ui-bad'}">${net >= 0 ? '▲' : '▼'}</b></div>
+        <div class="cr-gauge"><span>${t('cr.battery')}</span>${bar(battery, 'cr-bar')}</div></div>`;
+  };
+
+  /** 右：地球との通信と、ロケット（飛んでいるか、注文できるか） */
+  const controlScreensRight = (currentView: SimView) => {
+    const l = currentView.launch;
+    const flying = [...l.inFlight].sort((a, b) => a.hoursUntilArrival - b.hoursUntilArrival)[0];
+    const toDays = (hours: number) => Math.max(1, Math.ceil(hours / HOURS_PER_DAY));
+    const rocket =
+      flying !== undefined
+        ? t('cr.rocket.flying', { days: toDays(flying.hoursUntilArrival) })
+        : l.canOrderNow
+          ? t('cr.rocket.canOrder')
+          : l.tasksDone < l.tasksNeeded && l.hoursUntilNext <= 0
+            ? t('cr.rocket.needTasks', { count: l.tasksNeeded - l.tasksDone })
+            : t('cr.rocket.wait', { days: toDays(l.hoursUntilNext) });
+    const linked = currentView.comm.linked;
+    return `
+      <div class="cr-screen cr-deco" aria-hidden="true"><div class="cr-screen-title">${t('cr.orbit')}</div>
+        <svg class="cr-orbit" viewBox="0 0 160 80"><ellipse cx="80" cy="40" rx="66" ry="26" fill="none" stroke="#2f5a7e" stroke-dasharray="4 4"/>
+          <circle cx="22" cy="40" r="9" fill="#3b8fd8"/><circle cx="140" cy="40" r="5" fill="#cfd6df"/><circle class="cr-orbit-dot" r="3" fill="#ffd27a"/></svg></div>
+      <div class="cr-screen ${linked ? '' : 'cr-danger'}"><div class="cr-screen-title">${t('cr.earth')}</div>
+        <div class="cr-big">${linked ? '🌍' : '📵'}</div><div class="ui-small">${t(linked ? 'hud.commLinked' : 'hud.commLost')}</div></div>
+      <div class="cr-screen"><div class="cr-screen-title">${t('cr.rocket')}</div>
+        <div class="cr-big">🚀</div><div class="ui-small">${rocket}</div></div>`;
   };
 
   /** 管制モニター：隊員の係・明日のタスク・くわしい様子を、見たいときだけ開く */
@@ -1297,12 +1360,18 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const keepScroll =
       oldPage !== null && oldPage.dataset.page === nightView ? oldPage.scrollTop : 0;
     notebookEl.innerHTML = `
-      <div class="nb">
+      <div class="nb cr">
         <div class="nb-head">${exitTop}<b class="nb-head-title"><span class="nb-head-label">${t('notebook.title', { day: Math.floor(view.day) + 1 })}</span><span class="nb-exit-short">${t('hud.day', { day: Math.floor(view.day) + 1 })}</span></b></div>
         ${guideHtml}
-        ${arriving}
-        <section class="nb-page ${arriving === '' ? '' : 'nb-page-arriving'}" data-page="${nightView}">${nightViewHtml(nightView, rest, state, view)}</section>
-        <div class="nb-foot">${foot}</div>
+        <div class="cr-room">
+          <aside class="cr-side">${controlScreensLeft(view)}</aside>
+          <div class="cr-main">
+            ${arriving}
+            <section class="nb-page ${arriving === '' ? '' : 'nb-page-arriving'}" data-page="${nightView}">${nightViewHtml(nightView, rest, state, view)}</section>
+          </div>
+          <aside class="cr-side">${controlScreensRight(view)}</aside>
+        </div>
+        <div class="nb-foot cr-console">${foot}</div>
       </div>`;
     const newPage = notebookEl.querySelector<HTMLElement>('.nb-page');
     if (newPage === null) {
