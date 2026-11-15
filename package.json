@@ -12,6 +12,7 @@
     "test": "vitest run",
     "lint": "biome check",
     "format": "biome check --write",
+    "screens": "node tools/screens.ts",
     "worker:dev": "wrangler dev --config worker/wrangler.jsonc",
     "worker:deploy": "wrangler deploy --config worker/wrangler.jsonc"
   },

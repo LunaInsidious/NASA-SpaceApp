@@ -22,6 +22,7 @@ NASA Space Apps Challenge 2026「Build a Junior Astronaut Mission Trainer」に�
 - `pnpm test`：Vitest
 - `pnpm lint`：Biome で書式とリントを確かめる。`pnpm format` で直せるものを直す
 - `pnpm worker:dev`：Worker（`worker/`）をローカルで動かす
+- `pnpm screens <dev の URL> [段の名前]`：iPhone 16・iPad（縦・横）・小さめの PC の大きさで、くんれんの画面（最初の段・建設の段・置く場所を選ぶところ・ミッション）を `.scratch/screens/` に撮る。先に `pnpm dev` を動かしておく。開発のときだけ、URL の `?step=段の名前` でくんれんをその段から始められる
 
 PRを出す前に `pnpm lint`、`pnpm test`、`pnpm build` を通す。
 
