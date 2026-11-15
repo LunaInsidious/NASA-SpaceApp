@@ -246,9 +246,9 @@
       "source": "TBD"
     },
     "iceKgPerTrip": {
-      "value": 30,
+      "value": 10,
       "unit": "kg",
-      "source": "TBD"
+      "source": "TBD（2026-11-15 バランス調整：資源がたまるだけにならないように）"
     },
     "repairDoseHours": {
       "value": 3,
@@ -273,29 +273,29 @@
   },
   "start": {
     "oxygenKg": {
-      "value": 25,
+      "value": 20,
       "unit": "kg",
-      "source": "TBD"
+      "source": "TBD（2026-11-15 バランス調整：資源がたまるだけにならないように）"
     },
     "waterKg": {
-      "value": 80,
-      "unit": "kg",
-      "source": "TBD"
-    },
-    "foodKg": {
       "value": 45,
       "unit": "kg",
-      "source": "TBD"
+      "source": "TBD（2026-11-15 バランス調整：資源がたまるだけにならないように）"
+    },
+    "foodKg": {
+      "value": 40,
+      "unit": "kg",
+      "source": "TBD（2026-11-15 バランス調整：資源がたまるだけにならないように）"
     },
     "spareParts": {
-      "value": 10,
+      "value": 5,
       "unit": "unit",
-      "source": "TBD"
+      "source": "TBD（2026-11-15 バランス調整：資源がたまるだけにならないように）"
     },
     "materialsKg": {
-      "value": 600,
+      "value": 650,
       "unit": "kg",
-      "source": "TBD"
+      "source": "TBD（2026-11-15 バランス調整：資源がたまるだけにならないように）"
     },
     "habitatOffsetX": {
       "value": 10,
@@ -520,9 +520,9 @@
         "source": "TBD"
       },
       "degradationPerDay": {
-        "value": 0.006,
+        "value": 0.02,
         "unit": "1/day",
-        "source": "TBD"
+        "source": "TBD（2026-11-15 バランス調整：資源がたまるだけにならないように）"
       },
       "waterRecoveryRatio": {
         "value": 0.85,
@@ -665,9 +665,9 @@
       "source": "docs/SPEC.md 未決事項（仮の値）"
     },
     "capacityKg": {
-      "value": 800,
+      "value": 400,
       "unit": "kg",
-      "source": "TBD"
+      "source": "TBD（2026-11-15 バランス調整：資源がたまるだけにならないように）"
     },
     "costRoundTo": {
       "value": 10,
@@ -754,9 +754,9 @@
       },
       "crew": {
         "massKg": {
-          "value": 500,
+          "value": 300,
           "unit": "kg/person",
-          "source": "TBD"
+          "source": "TBD（2026-11-15 バランス調整：資源がたまるだけにならないように）"
         },
         "volumeM3": {
           "value": 3,
