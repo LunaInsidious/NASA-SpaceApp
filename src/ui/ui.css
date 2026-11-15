@@ -1792,134 +1792,216 @@ body.nb-open .ui-hud-tank {
   font-size: 16px;
 }
 
-/* ---- 夜の画面：居住モジュールの管制室（画面いっぱい。真ん中の大きな画面に通信、左右に小さな画面、下に操作卓） ---- */
+/* ---- 夜の画面：居住モジュールの管制室（画面いっぱい）。天井の明かり、正面の壁一面のモニター、手前の操作卓 ---- */
 .nb-layer {
   padding: 0;
-  background: #05080f;
+  background: #03060b;
 }
 
 .nb.cr {
+  position: relative;
   width: 100%;
-  max-height: none;
   height: 100%;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
   border: none;
   border-radius: 0;
-  /* 部屋の壁：上から差す明かりと、壁のパネルの継ぎ目 */
-  background-color: #0a1220;
-  background-image:
-    radial-gradient(ellipse at 50% -10%, rgba(111, 211, 255, 0.16), transparent 60%),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  background-size:
-    100% 100%,
-    120px 100%,
-    100% 90px;
-}
-
-.cr .nb-head {
-  padding: 10px 18px 8px;
-  border-bottom: 1px solid rgba(111, 211, 255, 0.2);
-  background: linear-gradient(rgba(20, 34, 54, 0.9), rgba(10, 18, 32, 0.6));
-}
-
-.cr-room {
-  display: flex;
-  flex: 1 1 auto;
-  gap: 16px;
-  min-height: 0;
-  padding: 14px 18px;
-}
-
-.cr-main {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  min-width: 0;
-  max-width: 900px;
-  margin: 0 auto;
-  border: 3px solid #23374f;
-  border-radius: 16px;
-  /* 大きな画面：ふちの金属と、画面の光 */
-  background: radial-gradient(
-    ellipse at 50% 0%,
-    rgba(40, 90, 140, 0.35),
-    rgba(6, 14, 26, 0.96) 70%
-  );
-  box-shadow:
-    0 0 0 2px #0b1626,
-    0 0 40px rgba(111, 211, 255, 0.18),
-    inset 0 0 30px rgba(0, 0, 0, 0.6);
-  position: relative;
+  /* 部屋：暗い天井から、モニターに照らされた壁へ。壁のパネルの継ぎ目 */
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px) 0 0 / 160px 100%,
+    linear-gradient(#020408 0%, #08111d 18%, #0b1726 60%, #060b13 100%);
   overflow: hidden;
 }
 
-/* 画面の走査線（うっすら） */
+/* 天井の明かり（並んだ照明から落ちる、うすい光） */
+.cr-lights {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 38%;
+  background:
+    radial-gradient(ellipse 9% 60% at 12% 0%, rgba(160, 210, 255, 0.16), transparent 70%),
+    radial-gradient(ellipse 9% 60% at 37% 0%, rgba(160, 210, 255, 0.16), transparent 70%),
+    radial-gradient(ellipse 9% 60% at 63% 0%, rgba(160, 210, 255, 0.16), transparent 70%),
+    radial-gradient(ellipse 9% 60% at 88% 0%, rgba(160, 210, 255, 0.16), transparent 70%);
+  pointer-events: none;
+}
+
+.cr-wall {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 10px 18px 12px;
+}
+
+/* 壁の上の電光表示：場所・日付・時計 */
+.cr-ticker {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px;
+  padding: 4px 18px;
+  border: 2px solid #1a2a3d;
+  border-radius: 6px;
+  background: #02060a;
+  color: #ffb84d;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-shadow: 0 0 6px rgba(255, 170, 60, 0.7);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+}
+
+.cr-clock {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color: #7dff9a;
+  text-shadow: 0 0 6px rgba(125, 255, 154, 0.7);
+}
+
+.cr-led {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff4f4f;
+  box-shadow: 0 0 8px #ff4f4f;
+  animation: cr-blink 1.2s steps(2, start) infinite;
+}
+
+/* 博士の案内は、電光表示の下に（メイン画面に重ねない） */
+.cr-guide {
+  width: min(900px, 100%);
+  margin: 0 auto 8px;
+}
+
+.cr-guide .ui-modal-guide {
+  margin: 0;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+}
+
+/* 壁一面のモニター：左右のモニター群は、少しこちらへ向けて弧を描くように */
+.cr-wallgrid {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(150px, 1fr) minmax(0, 3.2fr) minmax(150px, 1fr);
+  gap: 14px;
+  min-height: 0;
+  perspective: 1200px;
+}
+
+.cr-bank {
+  display: grid;
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 10px;
+  min-height: 0;
+}
+
+.cr-bank-left {
+  transform: rotateY(12deg);
+  transform-origin: right center;
+}
+
+.cr-bank-right {
+  transform: rotateY(-12deg);
+  transform-origin: left center;
+}
+
+/* モニター：黒いふち（ベゼル）、画面の光、走査線、映り込み */
+.cr-screen,
+.cr-main {
+  position: relative;
+  border: 7px solid #10151d;
+  border-radius: 8px;
+  background: radial-gradient(ellipse at 50% 30%, #12304d, #050d18 75%);
+  box-shadow:
+    0 0 0 1px #2a3442,
+    0 10px 24px rgba(0, 0, 0, 0.7),
+    0 0 26px rgba(80, 170, 255, 0.12);
+  overflow: hidden;
+}
+
+.cr-screen::after,
 .cr-main::after {
   position: absolute;
   inset: 0;
   content: "";
-  background: repeating-linear-gradient(rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px);
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.06) 0%, transparent 35%),
+    repeating-linear-gradient(rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 3px);
   pointer-events: none;
 }
 
-.cr-main .nb-page {
-  padding: 16px 20px;
-}
-
-.cr .nb-comm {
-  max-width: none;
-  border: none;
-  background: transparent;
-  font-size: 17px;
-}
-
-.cr .nb-comm-arrive {
-  margin: 12px 20px 0;
-}
-
-.cr-side {
-  display: flex;
-  flex: 0 0 210px;
-  flex-direction: column;
-  gap: 14px;
-}
-
 .cr-screen {
-  padding: 10px 12px;
-  border: 2px solid #23374f;
-  border-radius: 12px;
-  background: rgba(6, 16, 28, 0.92);
-  box-shadow:
-    0 0 18px rgba(111, 211, 255, 0.1),
-    inset 0 0 14px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  padding: 8px 10px;
   text-align: center;
 }
 
+/* 物資の画面は3本のゲージがあるので、2段ぶんの高さ */
+.cr-screen.cr-screen-tall {
+  grid-row: span 2;
+}
+
 .cr-screen.cr-danger {
-  border-color: #b33a33;
-  box-shadow: 0 0 18px rgba(255, 90, 79, 0.35);
+  background: radial-gradient(ellipse at 50% 30%, #4d1614, #1a0606 75%);
+  box-shadow:
+    0 0 0 1px #5a2a2a,
+    0 0 26px rgba(255, 80, 70, 0.35);
 }
 
 .cr-screen-title {
-  margin-bottom: 6px;
-  font-size: 13px;
+  margin-bottom: 4px;
+  font-size: 12px;
   font-weight: 700;
   color: #9fe3ff;
   letter-spacing: 1px;
 }
 
+.cr-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-width: 10px;
+}
+
+.cr-main-label {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  z-index: 1;
+  font:
+    700 10px / 1 ui-monospace,
+    Menlo,
+    monospace;
+  color: rgba(159, 227, 255, 0.5);
+  letter-spacing: 2px;
+}
+
+.cr-main .nb-page {
+  padding: 18px 22px;
+}
+
+.cr .nb-comm-arrive {
+  margin: 14px 22px 0;
+}
+
 .cr-gauge {
   display: grid;
-  grid-template-columns: 4.5em 1fr;
+  grid-template-columns: 4.2em 1fr;
   gap: 6px;
   align-items: center;
-  margin: 6px 0;
-  font-size: 13px;
+  margin: 3px 0;
+  font-size: 12px;
   text-align: left;
 }
 
 .cr-gauge .cr-bar {
-  height: 10px;
+  height: 9px;
 }
 
 .cr-gauge.cr-danger span {
@@ -1928,20 +2010,79 @@ body.nb-open .ui-hud-tank {
 }
 
 .cr-big {
-  font-size: 34px;
-  line-height: 1.3;
+  font-size: 30px;
+  line-height: 1.25;
 }
 
-/* 下の操作卓：ボタンは卓の上のキー */
+.cr-crew {
+  font-size: 22px;
+  line-height: 1.3;
+  word-break: break-all;
+}
+
+/* 手前の操作卓：天板（奥へ傾いた面）と、その上の小さな光るパネル。ボタンは卓のキー */
+.cr-desk {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 32px 7% 18px;
+}
+
+.cr-desk::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(#253246 0%, #1a2433 30%, #0d131c 100%);
+  clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 100%);
+  box-shadow: inset 0 3px 0 #3a4b63;
+}
+
+.cr-desk-top {
+  position: absolute;
+  inset: 12px 9% auto;
+  display: flex;
+  gap: 2%;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.cr-desk .cr-desk-top span {
+  flex: 1 1 0;
+  height: 10px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #0f3d2a, #1b6b47 40%, #0f3d2a);
+  box-shadow: 0 0 8px rgba(80, 255, 160, 0.25);
+  animation: cr-blink 2.6s ease-in-out infinite;
+}
+
+.cr-desk .cr-desk-top span:nth-child(2n) {
+  background: linear-gradient(90deg, #3d2a0f, #8a5a1b 40%, #3d2a0f);
+  animation-delay: 0.7s;
+}
+
 .nb-foot.cr-console {
-  padding: 12px 18px 16px;
-  border-top: 3px solid #23374f;
-  background: linear-gradient(#162338, #0b1422);
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+  position: relative;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  align-items: center;
 }
 
 .ui-root .cr-console button {
-  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.5);
+  border-color: #3a4b63;
+  background: linear-gradient(#2a3a52, #18243a);
+  box-shadow:
+    0 4px 0 #05080e,
+    0 6px 12px rgba(0, 0, 0, 0.6);
+}
+
+.ui-root .cr-console button.primary {
+  background: linear-gradient(#3cb36b, #23824a);
+  border-color: #6fe39a;
+}
+
+.ui-root .cr-console button.nb-exit {
+  flex: 0 0 auto;
 }
 
 /* 管制室にいる間は、外の困りごとのカードは出さない（命に関わることは通信で目立たせて知らせる） */
@@ -1949,18 +2090,33 @@ body.nb-open .advice-card {
   display: none;
 }
 
-/* せまい画面：左右の小さな画面はやめて、真ん中の画面だけ */
+/* せまい画面：壁はメイン画面だけ。卓は低く */
 @media (max-width: 900px) {
-  .cr-side {
+  .cr-wallgrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cr-bank {
     display: none;
   }
 
-  .cr-room {
-    padding: 8px;
+  .cr-wall {
+    padding: 6px 8px 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .cr-desk::before {
+    clip-path: polygon(3% 0, 97% 0, 100% 100%, 0 100%);
   }
 
-  .cr .nb-comm {
-    font-size: 15px;
+  .cr-desk {
+    min-height: 0;
+    padding: 26px 4% 10px;
+  }
+
+  .cr-main .nb-page {
+    padding: 12px;
   }
 }
 

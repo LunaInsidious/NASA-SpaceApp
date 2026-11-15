@@ -837,5 +837,6 @@
   "cr.receiving": "📡 Receiving",
   "cr.offline": "📟 Inside the base only",
   "cr.orbit": "Earth and Moon",
-  "cr.signal": "Signal"
+  "cr.signal": "Signal",
+  "cr.crew": "Crew"
 }

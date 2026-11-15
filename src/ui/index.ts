@@ -226,6 +226,14 @@ function stars(value: number, max: number): string {
   return '★'.repeat(count) + '☆'.repeat(STAR_COUNT - count);
 }
 
+/** ゲーム内の時刻（管制室の時計。着陸の日からの日数の小数から） */
+function gameClock(day: number): string {
+  const minutes = Math.floor((day - Math.floor(day)) * HOURS_PER_DAY * 60);
+  const hh = String(Math.floor(minutes / 60)).padStart(2, '0');
+  const mm = String(minutes % 60).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
 function bar(ratio: number, extraClass: string): string {
   const clamped = Math.min(1, Math.max(0, ratio));
   const low = clamped < LOW_BAR_RATIO ? 'low' : '';
@@ -1159,7 +1167,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         : [`<div class="cr-bubble cr-bubble-greet">${r.greeting}</div>`]),
       ...r.lines.map((line) => `<div class="cr-bubble">${line}</div>`),
       ...r.dangers.map((line) => `<div class="cr-bubble cr-bubble-danger">${line}</div>`),
-      `<div class="cr-bubble"><div class="nb-comm-stars"><span class="ui-label">${t('comm.stars')}</span>${stars}</div>${r.starChanges.map((line) => `<p class="nb-comm-starline">${line}</p>`).join('')}</div>`,
+      `<div class="cr-bubble"><div class="nb-comm-stars">${stars}</div>${r.starChanges.map((line) => `<p class="nb-comm-starline">${line}</p>`).join('')}</div>`,
       `<div class="cr-bubble cr-bubble-tomorrow">${r.tomorrow}<p class="ui-small">${r.tomorrowTasks}</p></div>`,
       ...(info.queuedOrder === null
         ? []
@@ -1198,9 +1206,11 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     return `
       <div class="cr-screen cr-deco" aria-hidden="true"><div class="cr-screen-title">${t('cr.signal')}</div>
         <svg class="cr-wave" viewBox="0 0 160 40"><polyline points="0,20 10,20 16,8 22,32 28,20 50,20 56,12 62,28 68,20 90,20 96,6 102,34 108,20 130,20 136,14 142,26 148,20 160,20" fill="none" stroke="#7dff9a" stroke-width="2"/></svg></div>
-      <div class="cr-screen"><div class="cr-screen-title">${t('cr.supplies')}</div>${supplies}</div>
+      <div class="cr-screen cr-screen-tall"><div class="cr-screen-title">${t('cr.supplies')}</div>${supplies}</div>
       <div class="cr-screen"><div class="cr-screen-title">${t('cr.power')} <b class="${net >= 0 ? 'ui-ok' : 'ui-bad'}">${net >= 0 ? '▲' : '▼'}</b></div>
-        <div class="cr-gauge"><span>${t('cr.battery')}</span>${bar(battery, 'cr-bar')}</div></div>`;
+        <div class="cr-gauge"><span>${t('cr.battery')}</span>${bar(battery, 'cr-bar')}</div></div>
+      <div class="cr-screen"><div class="cr-screen-title">${t('cr.crew')}</div>
+        <div class="cr-crew">${'🧑‍🚀'.repeat(currentView.crew.count)}</div></div>`;
   };
 
   /** 右：地球との通信と、ロケット（飛んでいるか、注文できるか） */
@@ -1361,17 +1371,24 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       oldPage !== null && oldPage.dataset.page === nightView ? oldPage.scrollTop : 0;
     notebookEl.innerHTML = `
       <div class="nb cr">
-        <div class="nb-head">${exitTop}<b class="nb-head-title"><span class="nb-head-label">${t('notebook.title', { day: Math.floor(view.day) + 1 })}</span><span class="nb-exit-short">${t('hud.day', { day: Math.floor(view.day) + 1 })}</span></b></div>
-        ${guideHtml}
-        <div class="cr-room">
-          <aside class="cr-side">${controlScreensLeft(view)}</aside>
-          <div class="cr-main">
-            ${arriving}
-            <section class="nb-page ${arriving === '' ? '' : 'nb-page-arriving'}" data-page="${nightView}">${nightViewHtml(nightView, rest, state, view)}</section>
+        <div class="cr-lights" aria-hidden="true"></div>
+        <div class="cr-wall">
+          <div class="cr-ticker"><span class="cr-led" aria-hidden="true"></span><span class="nb-head-label">${t('notebook.title', { day: Math.floor(view.day) + 1 })}</span><span class="nb-exit-short">${t('hud.day', { day: Math.floor(view.day) + 1 })}</span><span class="cr-clock">${gameClock(view.day)}</span></div>
+          ${guideHtml === '' ? '' : `<div class="cr-guide">${guideHtml}</div>`}
+          <div class="cr-wallgrid">
+            <div class="cr-bank cr-bank-left">${controlScreensLeft(view)}</div>
+            <div class="cr-main">
+              <div class="cr-main-label" aria-hidden="true">MAIN</div>
+              ${arriving}
+              <section class="nb-page ${arriving === '' ? '' : 'nb-page-arriving'}" data-page="${nightView}">${nightViewHtml(nightView, rest, state, view)}</section>
+            </div>
+            <div class="cr-bank cr-bank-right">${controlScreensRight(view)}</div>
           </div>
-          <aside class="cr-side">${controlScreensRight(view)}</aside>
         </div>
-        <div class="nb-foot cr-console">${foot}</div>
+        <div class="cr-desk">
+          <div class="cr-desk-top" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="nb-foot cr-console">${nightView === 'comm' ? '' : exitTop}${foot}</div>
+        </div>
       </div>`;
     const newPage = notebookEl.querySelector<HTMLElement>('.nb-page');
     if (newPage === null) {
