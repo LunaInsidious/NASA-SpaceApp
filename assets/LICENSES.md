@@ -26,7 +26,11 @@ NASA ゴダード宇宙飛行センターの Planetary Geodynamics Data Archive�
 
 ## 音
 
-効果音と BGM は WebAudio でその場で作る（効果音は `src/ui/fx.ts`、BGM は `src/ui/music.ts`。BGM の曲はこのリポジトリのオリジナル）。外部の音の素材は使っていない。
+効果音は WebAudio でその場で作る（`src/ui/fx.ts`。このリポジトリのオリジナル）。
+
+BGM（public/audio/）：
+
+- `calm-track-loop.m4a` — "Calm Track"（ループ版 `calm_track-loop.ogg`）— pmiller — CC0 1.0（https://creativecommons.org/publicdomain/zero/1.0/ ）— https://opengameart.org/content/calm-track 。2026-11-15 にダウンロードし、ffmpeg で AAC（96 kbps）に変えた（Safari でも鳴らすため）。曲そのものは変えていない
 
 ## favicon（public/favicon._、public/apple-touch-icon.png、public/favicon-_.png）
 
