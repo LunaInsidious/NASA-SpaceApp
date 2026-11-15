@@ -1,9 +1,12 @@
 // バランス調整用：決めた操作列で画面なしに回し、発展度の推移を CSV で出す（docs/SPEC.md ステップ2）
 // 使い方: node tools/simulate-csv.ts > .scratch/development.csv
+
+import { readFileSync } from 'node:fs';
 import donki from '../data/donki-events.json' with { type: 'json' };
 import values from '../data/values.json' with { type: 'json' };
 import type { DonkiTimeline, SimCommand, SimState } from '../src/contracts/index.ts';
-import { createProceduralEnv } from '../src/env/index.ts';
+import { createTerrainEnv, terrainFromSite } from '../src/env/index.ts';
+import { parseSite } from '../src/env/site.ts';
 import { createInitialState, step } from '../src/sim/index.ts';
 
 const SEED = 1;
@@ -28,7 +31,16 @@ const rng = () => {
   return a / 2147483647;
 };
 
-const env = createProceduralEnv(values, SEED);
+const SITE_DIR = 'public/terrain/site01/';
+const site = parseSite(JSON.parse(readFileSync(`${SITE_DIR}site.json`, 'utf8')));
+const heightFile = readFileSync(`${SITE_DIR}${site.heightFile}`);
+const env = createTerrainEnv(
+  terrainFromSite(
+    site,
+    heightFile.buffer.slice(heightFile.byteOffset, heightFile.byteOffset + heightFile.byteLength),
+  ),
+  values,
+);
 let state = createInitialState(values, env, env.landerPosition);
 const stepHours = values.time.stepHours.value;
 const rows = [

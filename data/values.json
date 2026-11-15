@@ -208,16 +208,6 @@
     }
   },
   "terrain": {
-    "sizeMeters": {
-      "value": 300,
-      "unit": "m",
-      "source": "docs/SPEC.md 未決事項（仮の値）"
-    },
-    "latitudeDeg": {
-      "value": -89.5,
-      "unit": "deg",
-      "source": "TBD"
-    },
     "landerClearanceMeters": {
       "value": 6,
       "unit": "m",

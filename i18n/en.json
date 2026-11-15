@@ -233,7 +233,7 @@
   "data.values": "Reference materials",
   "data.valuesPending": "The sources for the game's numbers are still being checked.",
   "data.terrainTitle": "Terrain",
-  "data.terrain": "The terrain is generated automatically for now. Real lunar terrain data is not used yet.",
+  "data.terrain": "The terrain is real NASA data from the lunar south pole ({name}). A real {crop} m square is shrunk to 1/{scale} both across and in height (slopes and shadow shapes stay as they really are). Distances on screen are converted back to real lengths.",
   "achievement.solarInShadow": "Solar panel in the shadow",
   "achievement.shelteredFromFlare": "Took shelter from a solar flare",
   "achievement.foundIce": "Found ice",

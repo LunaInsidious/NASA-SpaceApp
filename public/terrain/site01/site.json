@@ -1,0 +1,31 @@
+{
+  "name": "Site01 Connecting ridge",
+  "source": "NASA GSFC PGDA: High-Resolution LOLA Topography for Lunar South Pole Sites",
+  "url": "https://pgda.gsfc.nasa.gov/products/78",
+  "citation": "Barker, M.K. et al. (2021) Improved LOLA elevation maps for south pole landing sites: Error estimates and their impact on illumination conditions. Planetary and Space Science 203, 105119. doi:10.1016/j.pss.2020.105119",
+  "scale": 5,
+  "centerX": -11470,
+  "centerY": -13070,
+  "cropMeters": 1500,
+  "sizeMeters": 300,
+  "resolution": 201,
+  "baseHeightMeters": 1776.63,
+  "latitudeDeg": -89.4265,
+  "landerPosition": [
+    -15,
+    115.5
+  ],
+  "iceSpots": [
+    {
+      "x": 51.07,
+      "z": -66.65,
+      "radius": 6.93
+    },
+    {
+      "x": -96.2,
+      "z": -141.1,
+      "radius": 3.28
+    }
+  ],
+  "heightFile": "height.bin"
+}

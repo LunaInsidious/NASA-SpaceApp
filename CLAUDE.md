@@ -23,6 +23,7 @@ NASA Space Apps Challenge 2026「Build a Junior Astronaut Mission Trainer」に�
 - `pnpm lint`：Biome で書式とリントを確かめる。`pnpm format` で直せるものを直す
 - `pnpm worker:dev`：Worker（`worker/`）をローカルで動かす
 - `pnpm screens <dev の URL> [段の名前]`：iPhone 16・iPad（縦・横）・小さめの PC の大きさで、くんれんの画面（最初の段・建設の段・置く場所を選ぶところ・ミッション）を `.scratch/screens/` に撮る。先に `pnpm dev` を動かしておく。開発のときだけ、URL の `?step=段の名前` でくんれんをその段から始められる
+- `pnpm terrain`：`.scratch/terrain/Site01_final_adj_5mpp_surf.tif`（PGDA からダウンロードしたもの。リポジトリには入れない）から `public/terrain/site01/` を作り直す。範囲・縮尺・解像度などの引数はすべて package.json に書いてある（`tools/make-terrain.ts`）
 
 PRを出す前に `pnpm lint`、`pnpm test`、`pnpm build` を通す。
 
@@ -51,4 +52,5 @@ PRを出す前に `pnpm lint`、`pnpm test`、`pnpm build` を通す。
 - タスク（`src/tasks/`、`data/tasks.json`）：氷・点検・レゴリスの3つ。今ある SimCommand だけで反映し、その場の行動はミニゲーム（`src/ui/minigame.ts`）をこなしてから送る。3D の画面に常に出す数字はボンベと残り時間だけで、くわしい数字はインベントリ画面（I キー）
 - 補給の注文には、間隔の日数に加えて、前の注文からタスク（氷を運ぶ・点検・レゴリス）を `launch.tasksPerLaunch` 回こなす必要がある（地球への報告。最初の注文はいらない）。数は契約の `SimState.tasksSinceLaunch`（人間が承認して足した。`SAVE_VERSION` は 3）。今日のタスクに選んだ施設を隊員が先に直したら、main が `reportTask` の命令を送って1回に数える（人間が承認して契約に足した。そのタスクには印がつき、2回やらなくてよい）
 - 豆知識カード（`src/cards/`、`data/cards.json`）：条件は実績の条件の種類（`ACHIEVEMENT_CONDITIONS`）を使う。出典は JSON に持たせ、ふだんの画面には出さない
-- 実データの地形（ステップ5）、ランキング、結果画面はまだない
+- 実データの地形（ステップ5）：NASA PGDA の LOLA 5 m/画素の GeoTIFF（Site01 Connecting ridge。人間が選んだ）から、尾根の頂上と永久影のクレーターが入る 1.5 km 四方を切り出し、縦横とも 1/5 に縮めて一辺 300 m にした（縮尺も人間が決めた）。`public/terrain/site01/` の `site.json` と `height.bin` を main が起動時に読む（読めなければ止める。自動生成の地形はなくした）。日照と氷（永久影）は、ゲームと同じ計算（`src/env` の `createTerrainEnv`）で変換の道具が求める。着陸船は、まわり 20 m がどの向きの太陽でも日なたになる平らな場所。画面に出す距離は実寸（× scale）。地形を変えたので `SAVE_VERSION` は 4。地図の外の遠くの山の影は入れていない（切り出した範囲の中だけで影を計算する）
+- ランキング、結果画面はまだない
