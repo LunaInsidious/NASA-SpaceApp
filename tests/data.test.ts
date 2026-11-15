@@ -7,7 +7,15 @@ import en from '../i18n/en.json';
 import ja from '../i18n/ja.json';
 import type { ValueEntry } from '../src/contracts/index.ts';
 import { parseAchievements } from '../src/save/achievements.ts';
-import { parseMissions, STEPS, STORY_INTRO_PAGES, STORY_STEPS } from '../src/tutorial/index.ts';
+import {
+  INTRO_REPLY_PAGES,
+  parseMissions,
+  REPLY_COUNT,
+  REPLY_STEPS,
+  STEPS,
+  STORY_INTRO_PAGES,
+  STORY_STEPS,
+} from '../src/tutorial/index.ts';
 import { stripRuby } from '../src/ui/i18n.ts';
 import { realValueEntries } from '../src/ui/index.ts';
 import { parseNasaImages } from '../src/ui/photo.ts';
@@ -182,6 +190,21 @@ describe('ふりがな', () => {
         `mission.chapter.${m.id}`,
         `mission.story.${m.id}`,
       ]),
+      // 博士への返事と、博士の反応
+      ...INTRO_REPLY_PAGES.flatMap((page) =>
+        Array.from({ length: REPLY_COUNT }, (_, i) => [
+          `story.intro.${page}.reply.${i + 1}`,
+          `story.intro.${page}.react.${i + 1}`,
+        ]).flat(),
+      ),
+      ...REPLY_STEPS.flatMap((step) =>
+        Array.from({ length: REPLY_COUNT }, (_, i) => [
+          `tutorial.reply.${step}.${i + 1}`,
+          `tutorial.react.${step}.${i + 1}`,
+        ]).flat(),
+      ),
+      'story.feeling.excited',
+      'story.feeling.nervous',
     ];
     for (const lang of [ja, en]) {
       expect(keys.filter((key) => !(key in lang))).toEqual([]);
