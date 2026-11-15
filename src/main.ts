@@ -298,7 +298,8 @@ ui.setDonkiEvents(timeline);
 const nasaImages = parseNasaImages(nasaImagesJson);
 ui.setNasaImages(nasaImages);
 const photoCard = createPhotoCard(document.body, nasaImages);
-const adviceCard = createAdviceCard(document.body, (menu) => ui.openMenu(menu));
+// スマホでは博士の吹き出しの下に並べる（PC ではそれぞれの場所に出る）
+const adviceCard = createAdviceCard(tutorial.guideStack, (menu) => ui.openMenu(menu));
 
 /** チュートリアルとミッションの「できた！」 */
 function celebrate(what: 'step' | 'mission' | 'trainingDone'): void {

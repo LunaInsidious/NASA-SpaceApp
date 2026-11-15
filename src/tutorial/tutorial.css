@@ -257,10 +257,11 @@ body[data-advice="broken"] [data-action="context"][data-context="repair"] {
 }
 
 @media (max-width: 640px) {
-  /* スマホ：右のメニューの列と、下のその場の行動の列にかからない場所 */
+  /* スマホ：左上のゲージのすぐ下。宇宙飛行士は画面の下のほうに見せる（src/world の PHONE_PLAYER_SCREEN_SHIFT） */
   .tutorial {
-    bottom: calc(200px + env(safe-area-inset-bottom));
-    right: 74px;
+    top: calc(140px + env(safe-area-inset-top));
+    bottom: auto;
+    right: 8px;
     max-height: 30vh;
     padding: 8px 10px;
     font-size: 13px;
@@ -878,7 +879,7 @@ body[data-tutorial-step="comm"] .ui-status::before {
   /* 置く場所を選んでいる間：吹き出しは上（ゲージの下）に小さく、やることの文だけ（博士の顔・見出し・どうして？は隠す）。
      下は地面と「ここに置く」 */
   .tutorial.tutorial-compact {
-    top: calc(146px + env(safe-area-inset-top));
+    top: calc(140px + env(safe-area-inset-top));
     bottom: auto;
     max-height: 18vh;
   }
@@ -923,4 +924,42 @@ body[data-tutorial-step="comm"] .ui-status::before {
     padding-left: 0;
     min-height: 0;
   }
+}
+
+/* 博士の吹き出しと困りごとのカードの入れ物。PC ではそれぞれの場所（fixed）に出す */
+.guide-stack {
+  display: contents;
+}
+
+/* スマホ：左上のゲージのすぐ下から、吹き出し・困りごとの順に並べる（重ならないように）。
+   宇宙飛行士はその下に見せる（src/world の PHONE_PLAYER_SCREEN_SHIFT） */
+@media (max-width: 640px) {
+  .guide-stack {
+    position: fixed;
+    top: calc(140px + env(safe-area-inset-top));
+    left: 8px;
+    right: 8px;
+    z-index: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: none;
+  }
+
+  .guide-stack > .tutorial,
+  .guide-stack > .tutorial.tutorial-compact,
+  .guide-stack > .advice-card {
+    position: static;
+    transform: none;
+    width: auto;
+    pointer-events: auto;
+  }
+}
+
+/* 置く場所を選んでいる間は、どの画面でも「やること」の文だけにして、置く場所（地面の形）を見せる */
+.tutorial.tutorial-compact .tutorial-why,
+.tutorial.tutorial-compact .tutorial-label,
+.tutorial.tutorial-compact .tutorial-frozen,
+.tutorial.tutorial-compact .tutorial-skip {
+  display: none;
 }
