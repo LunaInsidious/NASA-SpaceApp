@@ -791,6 +791,7 @@
   "comm.tomorrow.tasks": "Tomorrow, finish {count} more task(s) to order the next supplies.",
   "comm.tomorrow.free": "Tomorrow, grow your base however you like.",
   "comm.tomorrowTasks": "Tomorrow's suggestions: {tasks}",
+  "comm.listSeparator": ", ",
   "comm.tomorrowTasksNone": "No tasks for tomorrow yet (you can choose them on the control monitor).",
   "comm.stars": "Development stars",
   "comm.reply": "📨 Reply to Mission Control (order supplies)",

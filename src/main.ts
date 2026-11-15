@@ -810,7 +810,9 @@ function nightReport(): NightReportView {
   const tomorrowTasks =
     selectedTasks.length === 0
       ? t('comm.tomorrowTasksNone')
-      : t('comm.tomorrowTasks', { tasks: selectedTasks.map(taskLabel).join('、') });
+      : t('comm.tomorrowTasks', {
+          tasks: selectedTasks.map(taskLabel).join(tPlain('comm.listSeparator')),
+        });
   return {
     linked: report.linked,
     from: t(report.linked ? 'comm.from' : 'comm.terminal'),
