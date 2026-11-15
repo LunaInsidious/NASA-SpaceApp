@@ -458,7 +458,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         <button data-action="pauseView" data-view="data"><span>${t('menu.data')}</span></button>
       </div>
       <div class="ui-menu-sound"><span>${t('menu.sound')}</span><span class="ui-row">${sound}</span></div>
-      <div class="ui-menu-sound"><span>${t('menu.language')}</span><span class="ui-row">${langs}</span></div>`;
+      <div class="ui-menu-sound"><span>${t('menu.language')}</span><span class="ui-row">${langs}</span></div>
+      <div class="ui-restart-row"><button data-action="backToTitle">${t('save.backToTitle')}</button></div>`;
   };
   // メニューの中で開いた先（カード・セーブ・データ）。「← メニューに戻る」で選ぶところへ
   const pauseSubHtml = (view: Exclude<PauseView, 'main'>) => {
@@ -1167,8 +1168,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       <h3>${t('save.manualTitle')}</h3>
       <ul class="ui-list">${slots}</ul>
       <h3>${t('save.listTitle')}</h3>
-      ${saveListHtml()}
-      <div class="ui-restart-row"><button data-action="backToTitle">${t('save.backToTitle')}</button></div>`;
+      ${saveListHtml()}`;
   };
 
   // ---- データ出典 ----
@@ -1784,6 +1784,8 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       case 'backToTitle':
         dialogs.length = 0;
         menu = null;
+        // メニューの窓から戻るので、メニューも閉じる（タイトルの上に残らないように）
+        closePause();
         renderModal();
         updatePause();
         callbacks.onBackToTitle();
