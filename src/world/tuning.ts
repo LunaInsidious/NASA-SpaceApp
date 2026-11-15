@@ -36,6 +36,11 @@ export const CAMERA_MAX_BETA_RAD = 1.5;
 export const CAMERA_TARGET_HEIGHT_M = 1.3;
 export const CAMERA_GROUND_MARGIN_M = 1;
 export const CAMERA_FOLLOW_RATE = 8;
+/** くんれんで空の地球を見せるとき：カメラの縦の角度（地平線のすぐ上が画面に入る）と、
+ *  地球を吹き出しの横（画面の左）に出すための横のずらし。向きを変える速さ */
+export const SKY_FOCUS_BETA_RAD = 1.47;
+export const SKY_FOCUS_YAW_OFFSET_RAD = 0.42;
+export const SKY_FOCUS_RATE = 2.2;
 export const CAMERA_MAX_Z_M = 4000;
 /** スマホの幅（CSS の @media (max-width: 640px) と同じ）。博士の吹き出しが上に出る */
 export const PHONE_LAYOUT_QUERY = '(max-width: 640px)';

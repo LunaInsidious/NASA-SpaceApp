@@ -908,15 +908,15 @@
       "unit": "m",
       "source": "ゲームの調整値：くんれんで「歩いた」とする距離"
     },
-    "lookTurnRad": {
-      "value": 0.6,
-      "unit": "rad",
-      "source": "ゲームの調整値：くんれんで「見回した」とする角度"
-    },
     "minStepSeconds": {
       "value": 1.5,
       "unit": "s",
       "source": "ゲームの調整値：くんれんの段を読む前に進まないための最短の時間"
+    },
+    "lookTurnRad": {
+      "value": 0.6,
+      "unit": "rad",
+      "source": "ゲームの調整値：くんれんで「見回した」とする角度"
     }
   },
   "build": {

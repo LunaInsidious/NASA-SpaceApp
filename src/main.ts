@@ -1476,6 +1476,9 @@ engine.runRenderLoop(() => {
     lastActionsKey = actionsKey;
     ui.setContextActions(actions);
   }
+  // くんれんの「あれが地球だよ」：カメラを空の地球へ向ける
+  const earth = env.earthDirection();
+  world.setSkyFocus(tutorial.showsEarth() ? Math.atan2(earth.x, earth.z) : null);
   world.frame(dtSec);
   scene.render();
 });

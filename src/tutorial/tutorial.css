@@ -968,3 +968,22 @@ body[data-tutorial-step="comm"] .ui-status::before {
 .tutorial.tutorial-collapsed::after {
   display: none;
 }
+
+/* 博士の物語の一言（やることの上）。指示とは別の、お話の声 */
+.tutorial .tutorial-story {
+  margin: 4px 0 2px;
+  padding: 4px 10px;
+  border-left: 3px solid #ffd27a;
+  color: #ffe9a8;
+  font-style: italic;
+  line-height: 1.6;
+}
+
+.tutorial .tutorial-story[hidden] {
+  display: none;
+}
+
+/* 置く場所を選んでいる間は、物語の一言も隠す（地面を見せる） */
+.tutorial.tutorial-compact .tutorial-story {
+  display: none;
+}

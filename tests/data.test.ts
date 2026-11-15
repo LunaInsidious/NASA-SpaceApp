@@ -7,7 +7,7 @@ import en from '../i18n/en.json';
 import ja from '../i18n/ja.json';
 import type { ValueEntry } from '../src/contracts/index.ts';
 import { parseAchievements } from '../src/save/achievements.ts';
-import { parseMissions, STEPS } from '../src/tutorial/index.ts';
+import { parseMissions, STEPS, STORY_INTRO_PAGES, STORY_STEPS } from '../src/tutorial/index.ts';
 import { stripRuby } from '../src/ui/i18n.ts';
 import { SOURCE_KEYS } from '../src/ui/index.ts';
 import { parseNasaImages } from '../src/ui/photo.ts';
@@ -173,5 +173,23 @@ describe('ふりがな', () => {
         expect(Object.keys(en), path).toContain(`unit.${entry.unit}`);
       }
     }
+  });
+
+  it('物語：はじまりの話の各ページ、博士がお話をする段、ミッションの章の題とお話が、日本語と英語の両方にある', () => {
+    const keys = [
+      ...Array.from({ length: STORY_INTRO_PAGES }, (_, i) => [
+        `story.intro.${i + 1}.title`,
+        `story.intro.${i + 1}.body`,
+      ]).flat(),
+      ...STORY_STEPS.map((step) => `tutorial.story.${step}`),
+      ...parseMissions(missions).flatMap((m) => [
+        `mission.chapter.${m.id}`,
+        `mission.story.${m.id}`,
+      ]),
+    ];
+    for (const lang of [ja, en]) {
+      expect(keys.filter((key) => !(key in lang))).toEqual([]);
+    }
+    expect(STORY_STEPS.every((step) => STEPS.includes(step))).toBe(true);
   });
 });

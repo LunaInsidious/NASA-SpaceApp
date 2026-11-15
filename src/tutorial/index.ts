@@ -34,6 +34,7 @@ function devStartIndex(): number {
 export const STEPS = [
   'move',
   'look',
+  'earth',
   'buildSolar',
   'placeSolar',
   'power',
@@ -235,7 +236,7 @@ const MORE_THRESHOLD_PX = 6;
 const MORE_SCROLL_RATIO = 0.8;
 
 // 読んで「わかった」を押すと進む段
-const ACK_STEPS: readonly Step[] = ['power', 'comm', 'lifeLine'];
+const ACK_STEPS: readonly Step[] = ['earth', 'power', 'comm', 'lifeLine'];
 // 大きな窓が出たときに、博士の口が動く長さ（見た目だけ）
 const MODAL_SPEAK_MS = 1500;
 
@@ -344,6 +345,8 @@ export interface Tutorial {
   guide(): 'ice' | 'home' | null;
   /** 大きな窓を出していて、ゲームを止めておくべきか */
   isBlocking(): boolean;
+  /** 「あれが地球だよ」の段で、カメラを空の地球へ向けるか */
+  showsEarth(): boolean;
   /** 飛ばせないチュートリアルの最中か（アクシデントのカードはボンベだけにする） */
   isTutorial(): boolean;
   /** チュートリアル中にゲームオーバーになった。理由とルナはかせのアドバイスを見せ、新しいゲームで1段目からやり直す */
@@ -386,7 +389,27 @@ const STEP_PAGES: Partial<Record<Step, RestRequiredPage>> = {
 };
 
 // title：タイトル画面で「はじめから」か「つづきから」を選ぶのを待っている（何も出さない）
-type Mode = 'title' | 'ask' | 'tutorial' | 'finishedModal' | 'missions' | 'failed';
+// intro：はじめての子に、ミッションのはじまりの話（STORY_INTRO_PAGES 枚）を見せている
+type Mode = 'title' | 'ask' | 'intro' | 'tutorial' | 'finishedModal' | 'missions' | 'failed';
+// はじまりの話の枚数（i18n の story.intro.1〜）
+export const STORY_INTRO_PAGES = 3;
+// 博士がお話（tutorial.story.*）をする段。やることの上に、物語の一言として出す
+export const STORY_STEPS: readonly Step[] = [
+  'move',
+  'look',
+  'earth',
+  'buildSolar',
+  'battery',
+  'buildAntenna',
+  'comm',
+  'buildHabitat',
+  'order',
+  'arrived',
+  'toIce',
+  'flareDrill',
+  'regolith',
+  'data',
+];
 
 export function createTutorial(
   root: HTMLElement,
@@ -401,7 +424,10 @@ export function createTutorial(
   onLearn: (terms: readonly HelpTerm[], announce: boolean) => void,
 ): Tutorial {
   let mode: Mode = 'title';
+  // はじまりの話の何枚目か（1から）
+  let introPage = 1;
   let index = 0;
+  // 「みまわす」の段を始めたときのカメラの向き
   let stepYaw: number | null = null;
   // 「あるく」の段を始めた場所
   let stepOrigin: { x: number; z: number } | null = null;
@@ -492,6 +518,7 @@ export function createTutorial(
   const outdoorNote = document.createElement('p');
   outdoorNote.className = 'tutorial-note';
   outdoorNote.hidden = true;
+
   const renderOutdoorNote = () => {
     outdoorNote.innerHTML = t('tutorial.goOutsideFirst');
   };
@@ -633,11 +660,31 @@ export function createTutorial(
       panel.hidden = true;
       showModal('tutorial.welcome.title', 'tutorial.welcome.question', [
         // 初めてなら、セーブがあっても新しいゲームで始める（途中の状態だと、今はできない指示が出る）
-        button(t('tutorial.welcome.firstTime'), 'tutorial-big primary', () => resetTo('tutorial')),
+        button(t('tutorial.welcome.firstTime'), 'tutorial-big primary', () => {
+          // はじめてなら、くんれんの前に、ミッションのはじまりの話をする
+          mode = 'intro';
+          introPage = 1;
+          render();
+        }),
         button(t('tutorial.welcome.played'), 'tutorial-big', () => {
           // あそんだことがあるなら、ことばじてんは全部の言葉を見せる（自分で選んだので、お知らせは出さない）
           onLearn(HELP_TERMS, false);
           mode = 'missions';
+          render();
+        }),
+      ]);
+      return;
+    }
+    if (mode === 'intro') {
+      panel.hidden = true;
+      const last = introPage >= STORY_INTRO_PAGES;
+      showModal(`story.intro.${introPage}.title`, `story.intro.${introPage}.body`, [
+        button(t(last ? 'story.start' : 'story.next'), 'tutorial-big primary', () => {
+          if (last) {
+            resetTo('tutorial');
+            return;
+          }
+          introPage++;
           render();
         }),
       ]);
@@ -817,9 +864,15 @@ export function createTutorial(
     doLabel.innerHTML = t('tutorial.doLabel');
     const skip = skipButton();
     // やることを上に大きく、どうして（理由と言葉の意味）は下に少し小さく
+    // 物語の一言（この段で博士がお話をするなら、やることの上に）
+    const story = document.createElement('p');
+    story.className = 'tutorial-story';
+    story.hidden = !STORY_STEPS.includes(step());
+    story.innerHTML = story.hidden ? '' : t(`tutorial.story.${step()}`);
     const parts: HTMLElement[] = [
       professor(),
       header(t('tutorial.title'), t('tutorial.progress', { n: index + 1, total: STEPS.length })),
+      story,
       doLabel,
       text,
       outdoorNote,
@@ -834,7 +887,7 @@ export function createTutorial(
       frozen.innerHTML = t('tutorial.timeStopped');
       parts.splice(2, 0, frozen);
     }
-    speak(`step:${index}:${flareChoice ?? ''}`, [text, why], skip);
+    speak(`step:${index}:${flareChoice ?? ''}`, [story, text, why], skip);
     if (ACK_STEPS.includes(step())) {
       const row = document.createElement('div');
       row.className = 'tutorial-buttons';
@@ -852,20 +905,31 @@ export function createTutorial(
     const text = document.createElement('p');
     text.className = 'tutorial-text';
     text.innerHTML = mission === undefined ? t('mission.allDone') : t(mission.textKey);
+    // ミッションは物語の章：題は「第n章：…」、やることの上に物語の一言
+    const story = document.createElement('p');
+    story.className = 'tutorial-story';
+    story.hidden = mission === undefined;
+    story.innerHTML = mission === undefined ? '' : t(`mission.story.${mission.id}`);
     const skip = skipButton();
     const parts: HTMLElement[] = [
       professor(),
       header(
-        t('mission.title'),
+        mission === undefined
+          ? t('mission.title')
+          : t('mission.chapter', {
+              n: missionIndex + 1,
+              name: t(`mission.chapter.${mission.id}`),
+            }),
         t('tutorial.progress', {
           n: Math.min(missionIndex + 1, missions.length),
           total: missions.length,
         }),
       ),
+      story,
       text,
       skip,
     ];
-    speak(`mission:${missionIndex}`, [text], skip);
+    speak(`mission:${missionIndex}`, [story, text], skip);
     // 全部おわったら、パネルを閉じられるようにする（閉じても 📋 からまた開ける）
     if (mission === undefined) {
       const row = document.createElement('div');
@@ -969,6 +1033,7 @@ export function createTutorial(
       case 'comm':
       case 'arrived':
         return !p.windowOpen;
+      case 'earth':
       case 'lifeLine':
         return false;
     }
@@ -1014,7 +1079,6 @@ export function createTutorial(
       // 段を出したときの場所と向き（読み終わる前に歩いたり見回したりしても数える）
       stepOrigin ??= { x: progress.playerX, z: progress.playerZ };
       stepRest ??= progress.restDays;
-      stepYaw ??= progress.viewYawRad;
       // 1回に1段だけ。文を出し終えて、少し時間がたってから進む（すでにできていた段も、読む前に飛ばさない）
       const readEnough =
         typing?.isTyping() !== true &&
@@ -1023,6 +1087,7 @@ export function createTutorial(
         advance();
       }
       outdoorNote.hidden = !(OUTDOOR_STEPS.includes(step()) && progress.indoors);
+      stepYaw ??= progress.viewYawRad;
       return;
     }
     if (mode === 'missions') {
@@ -1128,8 +1193,17 @@ export function createTutorial(
           return INDOOR_STEPS.includes(step()) && lastProgress?.indoors === false ? 'home' : null;
       }
     },
+    showsEarth() {
+      return mode === 'tutorial' && step() === 'earth';
+    },
     isBlocking() {
-      return rereading || mode === 'ask' || mode === 'finishedModal' || mode === 'failed';
+      return (
+        rereading ||
+        mode === 'ask' ||
+        mode === 'intro' ||
+        mode === 'finishedModal' ||
+        mode === 'failed'
+      );
     },
     isTutorial() {
       return mode === 'tutorial';

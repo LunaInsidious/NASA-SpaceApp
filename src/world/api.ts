@@ -21,6 +21,8 @@ export interface World {
    */
   frame(dtSec: number): void;
   setPadInput(input: PadInput): void;
+  /** くんれんの場面で、カメラをこの水平の向き（getViewYawRad と同じはかり方）へゆっくり向け、空が見える高さにする。null で戻す */
+  setSkyFocus(yawRad: number | null): void;
   /** false の間は宇宙飛行士が動かない（メニュー、屋内、一時停止） */
   setMovementEnabled(enabled: boolean): void;
   setSunAzimuth(sunAzimuthRad: number): void;
