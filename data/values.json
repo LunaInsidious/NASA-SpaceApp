@@ -219,6 +219,26 @@
       "value": 6,
       "unit": "m",
       "source": "ゲームの調整値：着陸船に施設が重ならない距離"
+    },
+    "antennaHeightMeters": {
+      "value": 3,
+      "unit": "m",
+      "source": "ゲームの調整値：地球が見えるかを調べるアンテナの高さ"
+    },
+    "landerDustPeak": {
+      "value": 2,
+      "unit": "x",
+      "source": "ゲームの調整値：着陸船のそばでは、ロケットが巻き上げたほこりで傷みが（1＋この数）倍になる"
+    },
+    "landerDustRadiusMeters": {
+      "value": 40,
+      "unit": "m",
+      "source": "ゲームの調整値：着陸船のほこりが届く広さ（この距離で増える分が約 1/3 になる）"
+    },
+    "polarLatitudeDeg": {
+      "value": 80,
+      "unit": "deg",
+      "source": "ゲームの調整値：これより極に近い場所では、太陽が地平線すれすれを一周するとして計算する"
     }
   },
   "player": {
@@ -776,18 +796,6 @@
           "value": 0.0005,
           "unit": "m^3/unit",
           "source": "ゲームの調整値：資材 1 kg の大きさ（金属の板などをまとめた目安。バランス）"
-        }
-      },
-      "facilityKit": {
-        "massPerMaterialKg": {
-          "value": 1,
-          "unit": "kg/kg",
-          "source": "ゲームの調整値：施設のキットは資材と同じ重さとした（かんたんにするため）"
-        },
-        "volumeM3": {
-          "value": 2,
-          "unit": "m^3/unit",
-          "source": "ゲームの調整値：施設のキットの大きさ（バランス）"
         }
       },
       "crew": {

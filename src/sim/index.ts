@@ -230,19 +230,8 @@ export function buildCost(kind: FacilityKind, options: BuildOptions, values: Val
 export function launchItemCost(item: LaunchItem, values: Values): number {
   const lv = values.launch;
   const volumetric = lv.volumetricKgPerM3.value;
-  let unitCost: number;
-  if (item.kind === 'facilityKit') {
-    if (item.facilityKind === undefined) {
-      throw new Error('facilityKit には facilityKind が必要');
-    }
-    const mass =
-      buildCost(item.facilityKind, { dustCover: false }, values).materials *
-      lv.items.facilityKit.massPerMaterialKg.value;
-    unitCost = Math.max(mass, lv.items.facilityKit.volumeM3.value * volumetric);
-  } else {
-    const spec = lv.items[item.kind];
-    unitCost = Math.max(spec.massKg.value, spec.volumeM3.value * volumetric);
-  }
+  const spec = lv.items[item.kind];
+  const unitCost = Math.max(spec.massKg.value, spec.volumeM3.value * volumetric);
   // 荷物ごとに、きりのよい数（costRoundTo の倍数）に丸める。画面とメーターと注文の判定は、この同じ数を使う。
   // 荷物があるなら、少なくとも1単位は使う（0 にならない）
   const step = lv.costRoundTo.value;
@@ -301,7 +290,6 @@ function countItems(items: LaunchItem[], kind: LaunchItemKind): number {
 function orderLaunch(state: SimState, items: LaunchItem[], values: Values): void {
   if (!canOrderNow(state, values) || items.length === 0) return;
   if (items.some((i) => !Number.isInteger(i.quantity) || i.quantity <= 0)) return;
-  if (items.some((i) => i.kind === 'facilityKit' && i.facilityKind === undefined)) return;
   const totalCost = items.reduce((sum, i) => sum + launchItemCost(i, values), 0);
   if (totalCost > values.launch.capacityKg.value + EPSILON) return;
   const inFlight = state.launches.flatMap((l) => l.items);
@@ -339,14 +327,6 @@ function deliver(state: SimState, items: LaunchItem[], values: Values): void {
       case 'spareParts':
       case 'materials':
         state.stocks[item.kind] += item.quantity;
-        break;
-      case 'facilityKit':
-        if (item.facilityKind === undefined) {
-          throw new Error('facilityKit には facilityKind が必要');
-        }
-        // TODO(人間に確認): 契約にキットの置き場がないので、その施設の建設コスト分の資材として届ける
-        state.stocks.materials +=
-          buildCost(item.facilityKind, { dustCover: false }, values).materials * item.quantity;
         break;
       case 'crew':
         for (let i = 0; i < item.quantity; i++) {

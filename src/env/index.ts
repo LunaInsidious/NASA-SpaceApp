@@ -3,7 +3,6 @@
 import type { Values } from '../contracts/index.ts';
 import type { TerrainEnv } from './api.ts';
 import type { Site } from './site.ts';
-import { ANTENNA_HEIGHT_M, DUST_PEAK, DUST_RADIUS_M, POLAR_LATITUDE_DEG } from './tuning.ts';
 
 type Vec3 = { x: number; y: number; z: number };
 
@@ -44,6 +43,10 @@ export function createTerrainEnv(data: TerrainData, values: Values): TerrainEnv 
   }
   const sunElevationDeg = values.moon.sunElevationDeg.value;
   const earthElevationDeg = values.moon.earthElevationDeg.value;
+  const antennaHeight = values.terrain.antennaHeightMeters.value;
+  const dustPeak = values.terrain.landerDustPeak.value;
+  const dustRadius = values.terrain.landerDustRadiusMeters.value;
+  const polarLatitudeDeg = values.terrain.polarLatitudeDeg.value;
 
   const half = sizeMeters / 2;
   const cell = sizeMeters / (resolution - 1);
@@ -96,14 +99,14 @@ export function createTerrainEnv(data: TerrainData, values: Values): TerrainEnv 
   });
 
   const sunDirection = (sunAzimuthRad: number): Vec3 => {
-    if (Math.abs(latitudeDeg) >= POLAR_LATITUDE_DEG) {
+    if (Math.abs(latitudeDeg) >= polarLatitudeDeg) {
       // 極のそばでは太陽は地平線すれすれを一周する。極からずれた分だけ一日のうちで高度が上下する
       const offPoleDeg = 90 - Math.abs(latitudeDeg);
       const el = (sunElevationDeg + offPoleDeg * Math.cos(sunAzimuthRad)) * DEG;
       return fromAzimuthElevation(sunAzimuthRad, el);
     }
     // 極でない場所：sunAzimuthRad を時角として、赤緯 0 の太陽の向きを求める
-    // TODO(人間に確認): 季節（赤緯）の変化は入れていない
+    // 季節（赤緯）の変化は入れない（かんたんにするため。人間の判断）
     const h = sunAzimuthRad;
     return {
       x: -Math.sin(h),
@@ -125,11 +128,11 @@ export function createTerrainEnv(data: TerrainData, values: Values): TerrainEnv 
     earthDirection,
     heightAt,
     isSunlit: (x, z, y, sunAzimuthRad) => !isOccluded(x, y, z, sunDirection(sunAzimuthRad)),
-    isEarthVisible: (x, z) => !isOccluded(x, heightAt(x, z) + ANTENNA_HEIGHT_M, z, earth),
+    isEarthVisible: (x, z) => !isOccluded(x, heightAt(x, z) + antennaHeight, z, earth),
     isIceAt: (x, z) => iceSpots.some((s) => Math.hypot(x - s.x, z - s.z) <= s.radius),
     dustFactorAt: (x, z) => {
       const d2 = (x - landerX) ** 2 + (z - landerZ) ** 2;
-      return 1 + DUST_PEAK * Math.exp(-d2 / (DUST_RADIUS_M * DUST_RADIUS_M));
+      return 1 + dustPeak * Math.exp(-d2 / (dustRadius * dustRadius));
     },
   };
 }

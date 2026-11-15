@@ -18,14 +18,12 @@ export type LaunchItemKind =
   | 'food'
   | 'spareParts'
   | 'materials'
-  | 'facilityKit'
   | 'crew'
   | 'relaySatellite';
 
 export interface LaunchItem {
   kind: LaunchItemKind;
   quantity: number;
-  facilityKind?: FacilityKind; // facilityKit のときだけ
 }
 
 /** コスト ＝ max(実際の重さ, 大きさを重さに換算した値)。値は values.json */
@@ -193,7 +191,7 @@ export interface DonkiEvent {
   donkiId: string; // DONKI の ID（flrID か sepID）
   eventTime: string; // DONKI 上の日時（ISO 8601、UTC）
   classOrIntensity: string; // フレアの等級（例：X1.0）。SEP は強さ
-  // TODO(人間に確認): 仕様の項目にはないが、画面から DONKI の出典をたどれるように DONKI のページの URL を持たせた
+  // 仕様の項目にはないが、画面から DONKI の出典をたどれるように DONKI のページの URL を持たせた（人間が承認した契約の変更）
   link: string;
 }
 
