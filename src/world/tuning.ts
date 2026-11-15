@@ -38,6 +38,8 @@ export const ROCK_MAX_SIZE_M = 1.2;
 export const ROCK_CLEAR_RADIUS_M = 25;
 /** 石の自分の明るさ（地面の明るさになじませる） */
 export const ROCK_EMISSIVE = 0.22;
+/** 影の中の石の明るさ（日なたを 1 として） */
+export const ROCK_SHADOW_BRIGHTNESS = 0.18;
 /** 地図の端から、これより外に出ない */
 export const PLAYER_BOUNDS_MARGIN_M = 2;
 /** 向きを変える速さ（大きいほど早く向く） */

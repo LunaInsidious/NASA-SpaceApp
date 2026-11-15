@@ -86,6 +86,7 @@ import {
   ROCK_EMISSIVE,
   ROCK_MAX_SIZE_M,
   ROCK_MIN_SIZE_M,
+  ROCK_SHADOW_BRIGHTNESS,
   SHADE_LIT_BASE,
   SHADE_LIT_SLOPE_GAIN,
   SHADE_SHADOW,
@@ -260,6 +261,7 @@ function createRocks(scene: Scene, env: TerrainEnv) {
   const half = env.sizeMeters / 2;
   const [landerX, landerZ] = env.landerPosition;
   const matrices: number[] = [];
+  const spots: { x: number; y: number; z: number }[] = [];
   const m = new Float32Array(16);
   for (let placed = 0, tries = 0; placed < ROCK_COUNT && tries < ROCK_COUNT * 4; tries++) {
     const x = (random() * 2 - 1) * half;
@@ -293,11 +295,23 @@ function createRocks(scene: Scene, env: TerrainEnv) {
       1,
     ]);
     matrices.push(...m);
+    spots.push({ x, y: env.heightAt(x, z) + sy, z });
     placed++;
   }
   rock.thinInstanceSetBuffer('matrix', new Float32Array(matrices), 16);
   // 石は地図全体に散らばるので、画面の外かどうかで消さない（元の石1つの大きさで判定されると、全部消える）
   rock.alwaysSelectAsActiveMesh = true;
+  // 石の明るさ：地面と同じ日照の計算で、影の中の石は暗くする（光源だけだと影の中でも明るく見える）
+  const colors = new Float32Array(spots.length * 4);
+  return {
+    shade(sunAzimuthRad: number) {
+      spots.forEach((spot, i) => {
+        const b = env.isSunlit(spot.x, spot.z, spot.y, sunAzimuthRad) ? 1 : ROCK_SHADOW_BRIGHTNESS;
+        colors.set([b, b, b, 1], i * 4);
+      });
+      rock.thinInstanceSetBuffer('color', colors, 4);
+    },
+  };
 }
 
 /** 地形のメッシュと、頂点の明るさへの影の焼き込み */
@@ -571,7 +585,8 @@ export function createWorld(
   const terrain = createTerrain(scene, env, detail);
   const outerTerrain = createOuterTerrain(scene, outer, env.sizeMeters / 2, detail);
   outerTerrain.shade(env.sunDirection(0));
-  createRocks(scene, env);
+  const rocks = createRocks(scene, env);
+  rocks.shade(0);
   createLander(scene, env);
   const astronaut = createAstronaut(scene);
 
@@ -893,6 +908,7 @@ export function createWorld(
       applySun();
       terrain.requestBake(sunAzimuthRad);
       outerTerrain.shade(env.sunDirection(sunAzimuthRad));
+      rocks.shade(sunAzimuthRad);
     },
     syncFacilities(facilities: Facility[], working: Record<string, boolean>) {
       const seen = new Set<string>();
