@@ -226,6 +226,47 @@ function stars(value: number, max: number): string {
   return '★'.repeat(count) + '☆'.repeat(STAR_COUNT - count);
 }
 
+// 地球から月へのロケットの道（絵の座標）。2次ベジェ曲線：地球のそば → 上にふくらむ → 月のそば
+const ROUTE_FROM = { x: 38, y: 60 };
+const ROUTE_BEND = { x: 100, y: 4 };
+const ROUTE_TO = { x: 168, y: 58 };
+
+/**
+ * 地球と月のあいだの道に、飛んでいるロケットを今いる場所に置いた絵。
+ * 場所は「届くまでの残り時間」から決める（注文した直後は地球のそば、届く直前は月のそば）
+ */
+function routeSvg(launch: SimView['launch'], withLabels: boolean): string {
+  const point = (k: number) => ({
+    x: (1 - k) ** 2 * ROUTE_FROM.x + 2 * (1 - k) * k * ROUTE_BEND.x + k ** 2 * ROUTE_TO.x,
+    y: (1 - k) ** 2 * ROUTE_FROM.y + 2 * (1 - k) * k * ROUTE_BEND.y + k ** 2 * ROUTE_TO.y,
+  });
+  const rockets = launch.inFlight
+    .map((flight) => {
+      const k = Math.min(1, Math.max(0, 1 - flight.hoursUntilArrival / launch.deliveryHours));
+      const at = point(k);
+      // 進む向き（曲線の接線）にロケットの先を向ける
+      const dx = 2 * (1 - k) * (ROUTE_BEND.x - ROUTE_FROM.x) + 2 * k * (ROUTE_TO.x - ROUTE_BEND.x);
+      const dy = 2 * (1 - k) * (ROUTE_BEND.y - ROUTE_FROM.y) + 2 * k * (ROUTE_TO.y - ROUTE_BEND.y);
+      const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
+      const days = Math.max(1, Math.ceil(flight.hoursUntilArrival / HOURS_PER_DAY));
+      const label = withLabels
+        ? `<text x="${fmt(at.x, 1)}" y="${fmt(at.y + 16, 1)}" class="route-label">${esc(tPlain('route.daysLeft', { days }))}</text>`
+        : '';
+      return `<g class="route-rocket" transform="translate(${fmt(at.x, 1)} ${fmt(at.y, 1)}) rotate(${fmt(deg, 1)})">
+          <path d="M-6 -2.2 L-11 0 L-6 2.2 Z" fill="#ff8a3c" class="route-flame"/>
+          <path d="M9 0 L-5 -4.5 L-3 0 L-5 4.5 Z" fill="#ffd27a" stroke="#fff3c4" stroke-width="0.6"/>
+        </g>${label}`;
+    })
+    .join('');
+  return `<svg class="route" viewBox="0 0 200 84" role="img" aria-label="${esc(tPlain('route.label'))}">
+      <path d="M${ROUTE_FROM.x} ${ROUTE_FROM.y} Q${ROUTE_BEND.x} ${ROUTE_BEND.y} ${ROUTE_TO.x} ${ROUTE_TO.y}" fill="none" stroke="#3f6f99" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <circle cx="22" cy="64" r="15" fill="#2f7fd0"/><path d="M14 58 q6 -4 10 2 q-2 6 -8 4 z M22 70 q6 -2 8 3 q-6 3 -8 -3z" fill="#5fbf6a"/>
+      <circle cx="182" cy="62" r="9" fill="#cfd6df"/><circle cx="179" cy="60" r="1.8" fill="#aab3bf"/><circle cx="185" cy="65" r="1.3" fill="#aab3bf"/>
+      ${withLabels ? `<text x="22" y="82" class="route-label">${esc(tPlain('route.earth'))}</text><text x="182" y="82" class="route-label">${esc(tPlain('route.moon'))}</text>` : ''}
+      ${rockets}
+    </svg>`;
+}
+
 /** ゲーム内の時刻（管制室の時計。着陸の日からの日数の小数から） */
 function gameClock(day: number): string {
   const minutes = Math.floor((day - Math.floor(day)) * HOURS_PER_DAY * 60);
@@ -915,6 +956,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     }
     return `
       <h2>${t('launch.title')}</h2>
+      ${current.launch.inFlight.length > 0 ? `<div class="route-panel">${routeSvg(current.launch, true)}</div>` : ''}
       ${blockers.length > 0 ? `<div class="ui-blocker">${blockers.map((b) => `<div>${b}</div>`).join('')}</div>` : ''}
       <div class="ui-meter"><div class="${over ? 'over' : ''}" style="width:${fmt(meterRatio * PERCENT)}%"></div></div>
       <div>${t('launch.meter', { used: fmt(used), capacity: fmt(capacity) })}</div>
@@ -1240,13 +1282,10 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
             : t('cr.rocket.wait', { days: toDays(l.hoursUntilNext) });
     const linked = currentView.comm.linked;
     return `
-      <div class="cr-screen cr-deco" aria-hidden="true"><div class="cr-screen-title">${t('cr.orbit')}</div>
-        <svg class="cr-orbit" viewBox="0 0 160 80"><ellipse cx="80" cy="40" rx="66" ry="26" fill="none" stroke="#2f5a7e" stroke-dasharray="4 4"/>
-          <circle cx="22" cy="40" r="9" fill="#3b8fd8"/><circle cx="140" cy="40" r="5" fill="#cfd6df"/><circle class="cr-orbit-dot" r="3" fill="#ffd27a"/></svg></div>
+      <div class="cr-screen cr-screen-tall"><div class="cr-screen-title">${t('cr.rocket')}</div>
+        ${routeSvg(l, true)}<div class="ui-small">${rocket}</div></div>
       <div class="cr-screen ${linked ? '' : 'cr-danger'}"><div class="cr-screen-title">${t('cr.earth')}</div>
-        <div class="cr-big">${linked ? '🌍' : '📵'}</div><div class="ui-small">${t(linked ? 'hud.commLinked' : 'hud.commLost')}</div></div>
-      <div class="cr-screen"><div class="cr-screen-title">${t('cr.rocket')}</div>
-        <div class="cr-big">🚀</div><div class="ui-small">${rocket}</div></div>`;
+        <div class="cr-big">${linked ? '🌍' : '📵'}</div><div class="ui-small">${t(linked ? 'hud.commLinked' : 'hud.commLost')}</div></div>`;
   };
 
   /** 管制モニター：隊員の係・明日のタスク・くわしい様子を、見たいときだけ開く */

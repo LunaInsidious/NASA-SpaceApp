@@ -2273,24 +2273,6 @@ body.nb-open .advice-card {
 }
 
 /* 飾りの画面（地球と月・信号の波） */
-.cr-orbit,
-.cr-wave {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.cr-orbit-dot {
-  offset-path: path("M 14 40 A 66 26 0 1 0 146 40 A 66 26 0 1 0 14 40");
-  animation: cr-orbit 8s linear infinite;
-}
-
-@keyframes cr-orbit {
-  to {
-    offset-distance: 100%;
-  }
-}
-
 .cr-wave polyline {
   stroke-dasharray: 220;
   animation: cr-wave 2.4s linear infinite;
@@ -2333,4 +2315,41 @@ body.nb-open .advice-card {
   .cr-bubble::before {
     display: none;
   }
+}
+
+/* 地球から月へのロケットの道（管制室の右のモニターと、補給の画面） */
+.route {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.route-label {
+  fill: #cfe8ff;
+  font-size: 9px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.route-flame {
+  animation: cr-blink 0.5s steps(2, start) infinite;
+}
+
+.route-panel .route {
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.route-panel {
+  margin: 10px 0;
+  padding: 8px 12px;
+  border: 2px solid #23374f;
+  border-radius: 12px;
+  background: radial-gradient(ellipse at 50% 30%, #12304d, #050d18 80%);
+}
+
+.cr-wave {
+  display: block;
+  width: 100%;
+  height: auto;
 }

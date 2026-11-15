@@ -835,8 +835,11 @@
   "cr.rocket.needTasks": "{count} more task(s) needed to order",
   "cr.receiving": "📡 Receiving",
   "cr.offline": "📟 Inside the base only",
-  "cr.orbit": "Earth and Moon",
   "cr.signal": "Signal",
   "cr.crew": "Crew",
-  "data.valuesGameTuning": "The other {count} numbers are set to make the game fun to play (game tuning values). Some differ from the real world."
+  "data.valuesGameTuning": "The other {count} numbers are set to make the game fun to play (game tuning values). Some differ from the real world.",
+  "route.daysLeft": "{days} day(s)",
+  "route.label": "The rocket route from Earth to the Moon",
+  "route.earth": "Earth",
+  "route.moon": "Moon"
 }
