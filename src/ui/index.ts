@@ -1271,14 +1271,23 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
     const exitTop = rest.canGoOut
       ? `<button class="nb-exit" data-action="context" data-context="exitHabitat" aria-label="${tPlain('action.exitHabitat')}"><span>${t('notebook.icon.exit')}</span><span class="nb-head-label">${t('action.exitHabitat')}</span><span class="nb-exit-short">${t('notebook.exitShort')}</span></button>`
       : '';
+    // 同じページを描き直すときは、スクロールの位置をそのままにする（下の物資を ＋ しても上に戻らないように）
+    const oldPage = notebookEl.querySelector<HTMLElement>('.nb-page');
+    const keepScroll =
+      oldPage !== null && oldPage.dataset.page === restPage ? oldPage.scrollTop : 0;
     notebookEl.innerHTML = `
       <div class="nb">
         <div class="nb-head">${exitTop}<b class="nb-head-title"><span class="nb-head-label">${t('notebook.title', { day: Math.floor(view.day) + 1 })}</span><span class="nb-exit-short">${t('hud.day', { day: Math.floor(view.day) + 1 })}</span></b></div>
         ${guideHtml}
         <nav class="nb-steps">${steps}</nav>
-        <section class="nb-page">${restPageHtml(restPage, rest, state, view)}</section>
+        <section class="nb-page" data-page="${restPage}">${restPageHtml(restPage, rest, state, view)}</section>
         <div class="nb-foot">${back}${forward}</div>
       </div>`;
+    const newPage = notebookEl.querySelector<HTMLElement>('.nb-page');
+    if (newPage === null) {
+      throw new Error('ノートのページがない');
+    }
+    newPage.scrollTop = keepScroll;
   };
 
   // 窓のいちばん上に出す博士の「やること」（main が毎フレーム渡す）
