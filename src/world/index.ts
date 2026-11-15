@@ -17,7 +17,6 @@ import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Matrix, Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder';
-import { CreateCapsule } from '@babylonjs/core/Meshes/Builders/capsuleBuilder';
 import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder';
 import { CreateDisc } from '@babylonjs/core/Meshes/Builders/discBuilder';
 import { CreateIcoSphere } from '@babylonjs/core/Meshes/Builders/icoSphereBuilder';
@@ -30,6 +29,7 @@ import type { Scene } from '@babylonjs/core/scene';
 import type { Facility, FacilityKind, Values } from '../contracts/index.ts';
 import type { OuterTerrain, TerrainEnv } from '../env/api.ts';
 import type { PadInput, PlayerPose, World } from './api.ts';
+import { createAstronaut } from './astronaut.ts';
 import {
   applyFacilityState,
   applyGhostLook,
@@ -601,38 +601,6 @@ function createLander(scene: Scene, env: TerrainEnv): TransformNode {
     part.isPickable = false;
   }
   return root;
-}
-
-function createAstronaut(scene: Scene): { root: TransformNode; meshes: Mesh[] } {
-  const root = new TransformNode('astronaut', scene);
-  const suit = new StandardMaterial('astronaut-suit', scene);
-  suit.diffuseColor = new Color3(0.95, 0.95, 0.97);
-  const visorMat = new StandardMaterial('astronaut-visor', scene);
-  visorMat.diffuseColor = new Color3(0.75, 0.55, 0.15);
-  visorMat.specularColor = new Color3(1, 0.9, 0.6);
-  const packMat = new StandardMaterial('astronaut-pack', scene);
-  packMat.diffuseColor = new Color3(0.7, 0.72, 0.76);
-
-  const body = CreateCapsule('astronaut-body', { radius: 0.32, height: 1.3 }, scene);
-  body.material = suit;
-  body.position.y = 0.75;
-  const helmet = CreateSphere('astronaut-helmet', { diameter: 0.5, segments: 12 }, scene);
-  helmet.material = suit;
-  helmet.position.y = 1.55;
-  // バイザーは正面（+z）
-  const visor = CreateSphere('astronaut-visor', { diameter: 0.42, segments: 12 }, scene);
-  visor.material = visorMat;
-  visor.scaling.z = 0.6;
-  visor.position.set(0, 1.57, 0.14);
-  const pack = CreateBox('astronaut-pack', { width: 0.5, height: 0.6, depth: 0.25 }, scene);
-  pack.material = packMat;
-  pack.position.set(0, 1, -0.32);
-  const meshes = [body, helmet, visor, pack];
-  for (const mesh of meshes) {
-    mesh.parent = root;
-    mesh.isPickable = false;
-  }
-  return { root, meshes };
 }
 
 export function createWorld(
