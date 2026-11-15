@@ -6,6 +6,7 @@ import type {
   FacilityKind,
   GameEvent,
   LaunchItem,
+  LaunchItemKind,
   SimState,
 } from '../contracts/index.ts';
 import type { SaveSummary } from '../save/api.ts';
@@ -160,6 +161,8 @@ export interface Ui {
   setRest(info: RestInfo | null): void;
   /** 外で今日こなすタスクの一覧（ボンベの下に出す）。中では出さない */
   setTaskList(tasks: { label: string; done: boolean }[]): void;
+  /** くんれんの間に建ててよいもの・頼んでよいもの（main が毎フレーム渡す）。ほかは押せなくし、押すと理由を出す */
+  setTutorialLimits(limits: TutorialLimits): void;
   /** ミニゲームを開く。成功するか「やめる」で onFinish を呼ぶ（時間切れは中で「もう一度」を選ぶ） */
   startMinigame(kind: MinigameKind, onFinish: (outcome: 'success' | 'quit') => void): void;
   /** 開いているミニゲームを閉じる（倒れた、警報など。onFinish は呼ばない） */
@@ -185,4 +188,14 @@ export interface Ui {
   isUserPaused(): boolean;
   /** 窓（メニュー）のいちばん上に出す、博士の「やること」。null なら出さない */
   setGuide(html: string | null): void;
+}
+
+/** くんれんの間の、建てる・頼むの制限。null なら制限なし（ミッション） */
+export interface TutorialLimits {
+  /** 建ててよい施設（空なら何も建てられない） */
+  build: readonly FacilityKind[] | null;
+  /** 頼んでよい荷物（空なら何も頼めない） */
+  order: readonly LaunchItemKind[] | null;
+  /** 注文に必ず入れるもの */
+  orderRequires: LaunchItemKind | null;
 }

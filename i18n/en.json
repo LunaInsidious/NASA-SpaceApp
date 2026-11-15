@@ -863,5 +863,8 @@
   "cr.today": "Today's actions",
   "cr.today.times": "{text} ×{count}",
   "cr.today.stayed": "You did not go outside today",
-  "cr.today.nothing": "You went outside but did no tasks or building"
+  "cr.today.nothing": "You went outside but did no tasks or building",
+  "tutorial.locked.build": "During training you can only build what Professor Luna asks for. Save your materials for later.",
+  "tutorial.locked.order": "During training you can only order what Professor Luna asks for.",
+  "tutorial.locked.orderRequires": "Add one \"New crew member\" with + before you order."
 }

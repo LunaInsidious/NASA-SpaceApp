@@ -23,6 +23,7 @@ import type {
   MorningSummary,
   RestInfo,
   TerrainSource,
+  TutorialLimits,
   Ui,
   UiCallbacks,
 } from './api.ts';
@@ -409,6 +410,14 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
   const dialogs: Dialog[] = [];
   let saves: SaveSummary[] = [];
   let donkiEvents: DonkiEvent[] = [];
+  // くんれんの間に建ててよいもの・頼んでよいもの（null なら制限なし）
+  let tutorialLimits: TutorialLimits = { build: null, order: null, orderRequires: null };
+  const buildAllowed = (kind: FacilityKind) =>
+    tutorialLimits.build === null || tutorialLimits.build.includes(kind);
+  const buildLockAttr = (kind: FacilityKind) =>
+    buildAllowed(kind) ? '' : 'aria-disabled="true" data-locked="tutorial.build"';
+  const orderAllowed = (kind: LaunchItemKind) =>
+    tutorialLimits.order === null || tutorialLimits.order.includes(kind);
   let terrainSource: TerrainSource | null = null;
   const buildOptions: { dustCover: boolean; shieldMaterial: 'regolith' | 'water' } = {
     dustCover: false,
@@ -908,7 +917,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
           </button>`;
         }).join('');
         return `<li class="ui-shield-card">
-          <button class="ui-item ui-fac-item ${affordable ? '' : 'dim'}" data-action="buildSelect" data-kind="${kind}">
+          <button class="ui-item ui-fac-item ${affordable && buildAllowed(kind) ? '' : 'dim'}" data-action="buildSelect" data-kind="${kind}" ${buildLockAttr(kind)}>
             ${facilityIconHtml(kind)}
             <span class="ui-grow"><b>${t('build.shieldWith', { material: t(`build.material.${buildOptions.shieldMaterial}`) })}</b> — ${t('build.cost', { materials: fmt(cost.materials) })}
             <small>${t(`facilityDesc.${kind}`)}</small></span>
@@ -921,7 +930,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         </li>`;
       }
       return `<li>
-        <button class="ui-item ui-fac-item ${affordable ? '' : 'dim'}" data-action="buildSelect" data-kind="${kind}">
+        <button class="ui-item ui-fac-item ${affordable && buildAllowed(kind) ? '' : 'dim'}" data-action="buildSelect" data-kind="${kind}" ${buildLockAttr(kind)}>
           ${facilityIconHtml(kind)}
           <span class="ui-grow"><b>${t(`facility.${kind}`)}</b> — ${t('build.cost', { materials: fmt(cost.materials) })}
           <small>${t(`facilityDesc.${kind}`)}</small></span>
@@ -1004,7 +1013,7 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         <span class="ui-stepper">
           <button data-action="cart" data-kind="${kind}" data-delta="-1" aria-label="${tPlain(`launchItem.${kind}`)} −">−</button>
           <span class="ui-qty">${cart[kind] / step}</span>
-          <button data-action="cart" data-kind="${kind}" data-delta="1" aria-label="${tPlain(`launchItem.${kind}`)} ＋" ${noRoom ? 'disabled' : ''}>＋</button>
+          <button data-action="cart" data-kind="${kind}" data-delta="1" aria-label="${tPlain(`launchItem.${kind}`)} ＋" ${noRoom ? 'disabled' : orderAllowed(kind) ? '' : 'aria-disabled="true" data-locked="tutorial.order"'}>＋</button>
         </span>
       </li>`;
     }).join('');
@@ -1048,7 +1057,13 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       ${inFlight}
       ${reasons.map((reason) => `<div class="ui-small ui-bad">${reason}</div>`).join('')}
       <div class="ui-actions">
-        <button data-action="order" class="primary" ${canOrder ? '' : 'disabled'}>${t('launch.order')}</button>
+        <button data-action="order" class="primary" ${
+          !canOrder
+            ? 'disabled'
+            : tutorialLimits.orderRequires !== null && cart[tutorialLimits.orderRequires] === 0
+              ? `aria-disabled="true" data-locked="tutorial.orderRequires"`
+              : ''
+        }>${t('launch.order')}</button>
       </div>`;
   };
 
@@ -1709,7 +1724,9 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
         target,
         locked === 'reply'
           ? t('comm.replyLocked')
-          : t(`notebook.doFirst.${locked.slice('task.'.length)}`),
+          : locked.startsWith('tutorial.')
+            ? t(`tutorial.locked.${locked.slice('tutorial.'.length)}`)
+            : t(`notebook.doFirst.${locked.slice('task.'.length)}`),
       );
       return;
     }
@@ -2115,6 +2132,13 @@ export function createUi(root: HTMLElement, callbacks: UiCallbacks, values: Valu
       if (menu !== null || rest !== null) {
         renderModal();
       }
+    },
+    setTutorialLimits(next) {
+      if (JSON.stringify(next) === JSON.stringify(tutorialLimits)) {
+        return;
+      }
+      tutorialLimits = next;
+      renderModal();
     },
     setTaskList(next) {
       if (JSON.stringify(next) === JSON.stringify(taskList)) {

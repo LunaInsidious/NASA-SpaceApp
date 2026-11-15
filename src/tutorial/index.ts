@@ -2,9 +2,10 @@
 // 起動時に「あそんだことがある？」を聞き、初めてなら飛ばせない完全なチュートリアルで、全部の機能を1つずつ体験させる。
 // 終わったら（経験者はすぐに）data/missions.json の目標をミッションとして順に出す。
 // 押すボタンは光らせ（tutorial.css）、行く場所には world の光の柱を立てる（guide()）
-import type { FacilityKind, SimState, Values } from '../contracts/index.ts';
+import type { FacilityKind, LaunchItemKind, SimState, Values } from '../contracts/index.ts';
 import { asHelpTerm, HELP_TERMS, type HelpTerm } from '../help/terms.ts';
 import type { CommLostReason } from '../sim/api.ts';
+import type { TutorialLimits } from '../ui/api.ts';
 import { onLangChange, setLang, t, tPlain } from '../ui/i18n.ts';
 import type { DeathAdvice } from './death.ts';
 import { deathAdviceHtml } from './deathView.ts';
@@ -63,6 +64,19 @@ export const STEPS = [
   'data',
 ] as const;
 type Step = (typeof STEPS)[number];
+// くんれんで建てる段と、その施設。くんれんの間は、その段の施設だけを建てられる
+// （先にほかの物を建てて資材がなくなり、居住モジュールが建てられず進めなくなることがないように）
+const BUILD_STEPS: Partial<Record<Step, FacilityKind>> = {
+  buildSolar: 'solar',
+  placeSolar: 'solar',
+  battery: 'battery',
+  buildAntenna: 'antenna',
+  buildHabitat: 'habitat',
+};
+// くんれんで注文する段で頼めるもの（博士が言うもの）と、かならず入れるもの（あとで隊員に係を決める段があるので）
+const ORDER_STEP_ITEMS: readonly LaunchItemKind[] = ['food', 'crew'];
+const ORDER_STEP_REQUIRED: LaunchItemKind = 'crew';
+
 // その段で説明する言葉。段を見せたときに、ことばじてんに足す
 const STEP_TERMS: Partial<Record<Step, readonly HelpTerm[]>> = {
   buildSolar: ['solar', 'materials'],
@@ -344,6 +358,8 @@ export interface Tutorial {
   timeRuns(): boolean;
   /** 「翌日へ」を押してよいか（くんれん中は、翌日へを教える段とロケットを待つ段だけ） */
   allowsNextDay(): boolean;
+  /** くんれんの間に建ててよいもの・頼んでよいもの（その段で博士が言うものだけ） */
+  limits(): TutorialLimits;
   /** いまの「やること」（くんれんの段かミッション）。窓の中にも出す。なければ null */
   currentInstruction(): string | null;
   /**
@@ -1066,6 +1082,18 @@ export function createTutorial(
     },
     timeRuns() {
       return mode !== 'tutorial' || TIME_STEPS.includes(step());
+    },
+    limits() {
+      if (mode !== 'tutorial') {
+        return { build: null, order: null, orderRequires: null };
+      }
+      const kind = BUILD_STEPS[step()];
+      const ordering = step() === 'order';
+      return {
+        build: kind === undefined ? [] : [kind],
+        order: ordering ? ORDER_STEP_ITEMS : [],
+        orderRequires: ordering ? ORDER_STEP_REQUIRED : null,
+      };
     },
     allowsNextDay() {
       return (

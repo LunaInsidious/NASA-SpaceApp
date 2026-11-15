@@ -1461,6 +1461,7 @@ engine.runRenderLoop(() => {
     ui.notify(t('task.crewFixed', { task: taskLabel(task) }), false);
   }
   ui.setTaskList(todayPlan.map((task) => ({ label: taskLabel(task), done: task.done })));
+  ui.setTutorialLimits(tutorial.limits());
   const actionsKey = actions.join(',');
   if (actionsKey !== lastActionsKey) {
     lastActionsKey = actionsKey;
