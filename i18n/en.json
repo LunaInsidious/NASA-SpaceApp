@@ -438,6 +438,8 @@
   "photo.close": "Close",
   "title.subtitle": "Build a base at the Moon's south pole",
   "title.disclaimer": "A fan-made game inspired by NASA's Artemis program. It is not an official NASA product.",
+  "title.mobileNotice": "On phones and tablets, the screen may be too small and some controls may be hard to use. We recommend playing on a computer.",
+  "title.mobileNoticeOk": "OK",
   "title.new": "New game",
   "title.continue": "Continue",
   "title.settings": "Settings",

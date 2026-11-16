@@ -53,6 +53,17 @@ const LOGO_SVG = `<svg viewBox="0 0 320 150" aria-hidden="true">
 
 type View = 'main' | 'continue' | 'settings' | 'cards';
 
+const MOBILE_NOTICE_KEY = 'lunar-outpost-mobile-notice';
+
+function readMobileNoticeSeen(): boolean {
+  try {
+    return localStorage.getItem(MOBILE_NOTICE_KEY) === 'seen';
+  } catch (error) {
+    console.warn('PC をすすめるお知らせを閉じたかどうかを読めない', error);
+    return false;
+  }
+}
+
 export interface TitleCallbacks {
   /** セーブの一覧（新しい順） */
   saves(): SaveSummary[];
@@ -75,6 +86,8 @@ export interface Title {
 export function createTitle(root: HTMLElement, callbacks: TitleCallbacks): Title {
   let open = true;
   let view: View = 'main';
+  // タッチで操作する端末（スマートフォン・タブレット）には、PC をすすめるお知らせを出す。一度閉じたら、そのブラウザでは出さない
+  let mobileNotice = window.matchMedia('(pointer: coarse)').matches && !readMobileNoticeSeen();
   const layer = document.createElement('div');
   layer.className = 'title-layer';
   root.append(layer);
@@ -184,6 +197,31 @@ export function createTitle(root: HTMLElement, callbacks: TitleCallbacks): Title
     ];
   }
 
+  function mobileNoticeView(): HTMLElement {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'title-notice-layer';
+    const box = document.createElement('div');
+    box.className = 'title-notice';
+    box.setAttribute('role', 'alertdialog');
+    box.setAttribute('aria-modal', 'true');
+    const text = document.createElement('p');
+    text.innerHTML = t('title.mobileNotice');
+    box.append(
+      text,
+      button(t('title.mobileNoticeOk'), 'title-button primary', () => {
+        mobileNotice = false;
+        try {
+          localStorage.setItem(MOBILE_NOTICE_KEY, 'seen');
+        } catch (error) {
+          console.warn('PC をすすめるお知らせを閉じたことを保存できない', error);
+        }
+        render();
+      }),
+    );
+    backdrop.append(box);
+    return backdrop;
+  }
+
   function render(): void {
     layer.hidden = !open;
     if (open) {
@@ -217,6 +255,7 @@ export function createTitle(root: HTMLElement, callbacks: TitleCallbacks): Title
     disclaimer.className = 'title-disclaimer';
     disclaimer.innerHTML = t('title.disclaimer');
     layer.replaceChildren(logo, name, subtitle, menu, disclaimer);
+    if (mobileNotice) layer.append(mobileNoticeView());
   }
 
   onLangChange(render);
