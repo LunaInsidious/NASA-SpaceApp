@@ -19,6 +19,8 @@ dist-ssr
 # 作業用（コミットしない）
 .scratch
 .remember
+.claude
+docs/DIALOGUE.md
 
 # Editor directories and files
 .vscode/*
